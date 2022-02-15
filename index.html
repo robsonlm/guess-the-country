@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Guess the country?</title>
+    <link rel="stylesheet" href="./styles/main.css" />
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  </head>
+  <body>
+    <section class="game">
+      <h1 class="game__title">Guess the country</h1>
+      <div class="game__wrapper">
+        <img id="flag" src="" alt="Guess the flag" />
+        <button class="game__buttons" id="button1"></button>
+        <button class="game__buttons" id="button2"></button>
+      </div>
+      <section class="game__score">
+        <a class="game__answer" target="_blank"
+          >Last answer: <span id="last"></span
+        ></a>
+
+        <h3 class="game__labels">Right answers: <span id="right"></span></h3>
+
+        <h3 class="game__labels">Wrong answers: <span id="wrong"></span></h3>
+
+        <h3 class="game__labels">Total: <span id="total"></span></h3>
+
+        <h3 class="game__labels">% of right: <span id="total-per"></span>%</h3>
+      </section>
+    </section>
+    <!-- <script src="./response.js"></script> -->
+    <script src="./scripts/script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,59 @@
+@import url("https://fonts.googleapis.com/css2?family=Sigmar+One&display=swap");
+* {
+  margin: 0;
+}
+
+.game {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100vw;
+  height: 100vh;
+  padding-top: 3rem;
+  background-color: #e9c46a;
+}
+.game__title {
+  color: darkblue;
+  font-family: "Sigmar One", cursive;
+  font-size: 3rem;
+  margin-bottom: 2rem;
+}
+.game__wrapper {
+  display: flex;
+  flex-direction: column;
+}
+.game__buttons {
+  padding: 1rem;
+  margin: 0.5rem;
+  border-radius: 0.5rem;
+  border: 0;
+  background-color: #2a9d8f;
+  color: white;
+  font-size: 1.5rem;
+}
+.game #flag {
+  padding-bottom: 1rem;
+}
+.game__score {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 0.5rem;
+  width: 20rem;
+  height: 10rem;
+  margin: 2rem;
+  background-color: #f4a261;
+  padding: 1rem;
+}
+.game__answer {
+  color: green;
+  font-size: 1.3rem;
+}
+.game__answer--wrong {
+  color: red;
+  font-size: 1.3rem;
+}
+
+span {
+  font-size: 1.2rem;
+}/*# sourceMappingURL=main.css.map */
