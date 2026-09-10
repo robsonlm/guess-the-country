@@ -1,0 +1,152 @@
+@import url("https://fonts.googleapis.com/css2?family=Sigmar+One&display=swap");
+* {
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.game {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 3rem 1rem;
+  background-color: #e9c46a;
+}
+.game__settings-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 0;
+  background-color: #264653;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.game__settings-btn:hover {
+  background-color: #1d3640;
+}
+.game__settings-btn:focus-visible {
+  outline: 3px solid #e76f51;
+  outline-offset: 2px;
+}
+.game__title {
+  color: darkblue;
+  font-family: "Sigmar One", cursive;
+  font-size: 3rem;
+  margin-bottom: 2rem;
+}
+.game__key-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(24rem, 100%);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  background-color: #f4a261;
+}
+.game__key-form-title {
+  font-size: 1.3rem;
+  color: #264653;
+}
+.game__key-label {
+  font-size: 1rem;
+  color: #264653;
+}
+.game__key-input {
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.4rem;
+  border: 1px solid #264653;
+  font-size: 1rem;
+  font-family: inherit;
+}
+.game__key-submit {
+  padding: 0.7rem;
+  border-radius: 0.4rem;
+  border: 0;
+  background-color: #2a9d8f;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.game__key-submit:hover {
+  background-color: #21867a;
+}
+.game__key-submit:focus-visible {
+  outline: 3px solid #264653;
+  outline-offset: 2px;
+}
+.game__key-error {
+  color: #b00020;
+  font-size: 0.95rem;
+}
+.game__key-help {
+  font-size: 0.85rem;
+  color: #264653;
+}
+.game__key-help a {
+  color: #264653;
+}
+.game__wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.game__loading, .game__error {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+}
+.game__error {
+  color: #b00020;
+}
+.game__flag {
+  padding-bottom: 1rem;
+  max-width: 320px;
+  height: auto;
+}
+.game__buttons {
+  padding: 1rem;
+  margin: 0.5rem;
+  border-radius: 0.5rem;
+  border: 0;
+  background-color: #2a9d8f;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  min-width: 14rem;
+}
+.game__buttons:hover {
+  background-color: #21867a;
+}
+.game__buttons:focus-visible {
+  outline: 3px solid #264653;
+  outline-offset: 2px;
+}
+.game__score {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  width: min(20rem, 100%);
+  margin: 2rem 0;
+  background-color: #f4a261;
+  padding: 1rem;
+}
+.game__answer {
+  color: green;
+  font-size: 1.3rem;
+}
+.game__answer--wrong {
+  color: red;
+}
+
+span {
+  font-size: 1.3rem;
+  font-weight: 600;
+}
