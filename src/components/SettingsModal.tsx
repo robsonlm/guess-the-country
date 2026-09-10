@@ -267,17 +267,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="toggle-info">
               <span className="toggle-title" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#c7d2fe' }}>
                 <HardDrive size={16} style={{ color: 'var(--primary-light)' }} />
-                Offline Database
+                Offline Database & Flags
               </span>
               <span className="toggle-desc" style={{ color: '#94a3b8' }}>
-                {localInfo.count} world countries stored locally (100% keyless & offline-ready)
+                {localInfo.count} sovereign UN countries & flags stored locally (100% offline, 0 API calls)
               </span>
             </div>
             <button
               type="button"
               className="icon-btn"
               onClick={handleSyncClick}
-              title="Re-download and refresh local dataset"
+              title="Reload local offline dataset"
               disabled={isSyncing}
             >
               <RefreshCw size={16} className={isSyncing ? 'spin' : ''} />

@@ -77,8 +77,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       .showAtmosphere(true)
       .atmosphereColor('#2a9d8f')
       .atmosphereAltitude(0.22)
-      .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg')
-      .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png');
+      .globeImageUrl('/textures/earth-night.jpg')
+      .bumpImageUrl('/textures/earth-topology.png');
 
     // Orbit controls settings
     const controls = globe.controls();
