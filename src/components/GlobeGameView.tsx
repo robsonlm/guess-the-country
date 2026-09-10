@@ -70,6 +70,9 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     const width = globeContainerRef.current.clientWidth || 800;
     const height = globeContainerRef.current.clientHeight || 540;
 
+    const base = import.meta.env.BASE_URL || '/';
+    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+
     const globe = new (Globe as any)(globeContainerRef.current)
       .width(width)
       .height(height)
@@ -77,8 +80,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       .showAtmosphere(true)
       .atmosphereColor('#2a9d8f')
       .atmosphereAltitude(0.22)
-      .globeImageUrl('/textures/earth-night.jpg')
-      .bumpImageUrl('/textures/earth-topology.png');
+      .globeImageUrl(`${cleanBase}textures/earth-night.jpg`)
+      .bumpImageUrl(`${cleanBase}textures/earth-topology.png`);
 
     // Orbit controls settings
     const controls = globe.controls();

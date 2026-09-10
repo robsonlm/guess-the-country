@@ -10,7 +10,9 @@ export const STORAGE_KEYS = {
 
 export function getFlagUrl(alpha2: string): string {
   if (!alpha2) return '';
-  return `/flags/${alpha2.toLowerCase()}.png`;
+  const base = import.meta.env.BASE_URL || '/';
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  return `${cleanBase}flags/${alpha2.toLowerCase()}.png`;
 }
 
 export function loadSettings(): UserSettings {

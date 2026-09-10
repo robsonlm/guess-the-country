@@ -323,7 +323,9 @@ export async function loadGeoFeatures(): Promise<GeoFeature[]> {
   let geojson: any = null;
 
   try {
-    const res = await fetch('/ne_110m_admin_0_countries.geojson');
+    const base = import.meta.env.BASE_URL || '/';
+    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+    const res = await fetch(`${cleanBase}ne_110m_admin_0_countries.geojson`);
     if (res.ok) {
       geojson = await res.json();
     }
