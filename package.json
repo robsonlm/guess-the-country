@@ -11,6 +11,7 @@
   "dependencies": {
     "@types/three": "^0.185.4",
     "canvas-confetti": "^1.9.4",
+    "firebase": "^12.19.0",
     "globe.gl": "^2.46.2",
     "lucide-react": "^0.475.0",
     "react": "^19.0.0",

@@ -16,6 +16,11 @@ import {
   getFilteredLeaderboard,
   formatTimeElapsed,
   syncGlobalLeaderboard,
+  isFirebaseConfigured,
+  subscribeToFirebaseLeaderboard,
+  loadLeaderboard,
+  saveLeaderboard,
+  mergeAndDeduplicate,
 } from '../services/leaderboard';
 import '../styles/App.css';
 
@@ -63,20 +68,32 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter | 'all'>(defaultContinent);
   const [isSyncing, setIsSyncing] = useState(false);
   const [, setRefreshKey] = useState(0);
+  const isFirebaseActive = isFirebaseConfigured();
 
-  // Sync with global database on open
+  // Sync and subscribe to global database on open
   useEffect(() => {
-    if (isOpen) {
-      setIsSyncing(true);
-      syncGlobalLeaderboard()
-        .then(() => {
-          setRefreshKey((prev) => prev + 1);
-        })
-        .finally(() => {
-          setIsSyncing(false);
-        });
+    if (!isOpen) return;
+
+    setIsSyncing(true);
+    syncGlobalLeaderboard()
+      .then(() => {
+        setRefreshKey((prev) => prev + 1);
+      })
+      .finally(() => {
+        setIsSyncing(false);
+      });
+
+    // Real-time listener for live multi-device updates if Firebase is configured
+    if (isFirebaseActive) {
+      const unsubscribe = subscribeToFirebaseLeaderboard((remoteEntries) => {
+        const local = loadLeaderboard();
+        const merged = mergeAndDeduplicate(local, remoteEntries);
+        saveLeaderboard(merged);
+        setRefreshKey((prev) => prev + 1);
+      });
+      return () => unsubscribe();
     }
-  }, [isOpen]);
+  }, [isOpen, isFirebaseActive]);
 
   if (!isOpen) return null;
 
@@ -127,9 +144,27 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 <h2 className="modal-title" style={{ margin: 0, fontSize: '1.25rem' }}>
                   Global Hall of Fame
                 </h2>
-                <div className="global-live-badge" title="Synchronized live across all players worldwide">
+                <div
+                  className="global-live-badge"
+                  style={{
+                    background: isFirebaseActive ? 'rgba(16, 185, 129, 0.2)' : 'rgba(99, 102, 241, 0.2)',
+                    borderColor: isFirebaseActive ? 'rgba(16, 185, 129, 0.4)' : 'rgba(99, 102, 241, 0.4)',
+                    color: isFirebaseActive ? '#34d399' : '#a5b4fc',
+                  }}
+                  title={
+                    isFirebaseActive
+                      ? 'Live Firebase Firestore connected across all devices'
+                      : 'Global cloud sync active'
+                  }
+                >
                   <Globe2 size={11} />
-                  <span>{isSyncing ? 'Syncing...' : 'Live Global'}</span>
+                  <span>
+                    {isSyncing
+                      ? 'Syncing...'
+                      : isFirebaseActive
+                      ? '🟢 Live Firebase'
+                      : '🌐 Cloud Sync'}
+                  </span>
                 </div>
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>

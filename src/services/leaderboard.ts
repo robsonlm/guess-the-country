@@ -1,4 +1,12 @@
 import { GameMode, ContinentFilter } from '../types/game';
+import {
+  saveEntryToFirebase,
+  fetchFirebaseLeaderboard,
+  isFirebaseConfigured,
+  subscribeToFirebaseLeaderboard,
+} from './firebase';
+
+export { isFirebaseConfigured, subscribeToFirebaseLeaderboard };
 
 export type LeaderboardCategory = 'fastest' | 'least-mistakes' | 'highest-streak' | 'overall';
 
@@ -119,7 +127,7 @@ const SEEDED_LEADERBOARD: LeaderboardEntry[] = [
   },
 ];
 
-function mergeAndDeduplicate(local: LeaderboardEntry[], remote: LeaderboardEntry[]): LeaderboardEntry[] {
+export function mergeAndDeduplicate(local: LeaderboardEntry[], remote: LeaderboardEntry[]): LeaderboardEntry[] {
   const map = new Map<string, LeaderboardEntry>();
 
   // Add seeded first
@@ -172,16 +180,31 @@ export function saveLeaderboard(entries: LeaderboardEntry[]): void {
 }
 
 /**
- * Synchronizes the leaderboard with the global shared cloud database.
+ * Synchronizes the leaderboard with Firebase Firestore or fallback cloud backend.
  * Fetches all global entries submitted by all players worldwide,
  * merges them with local records, and returns the unified list.
  */
 export async function syncGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
   const local = loadLeaderboard();
 
+  // If Firebase Firestore is configured, use it directly
+  if (isFirebaseConfigured()) {
+    try {
+      const firebaseEntries = await fetchFirebaseLeaderboard();
+      if (firebaseEntries && firebaseEntries.length > 0) {
+        const merged = mergeAndDeduplicate(local, firebaseEntries);
+        saveLeaderboard(merged);
+        return merged;
+      }
+    } catch (err) {
+      console.warn('[Leaderboard] Firebase sync notice:', err);
+    }
+  }
+
+  // Fallback cloud sync
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 5000);
 
     const res = await fetch(CLOUD_API_URL, {
       method: 'GET',
@@ -198,26 +221,32 @@ export async function syncGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
       return merged;
     }
   } catch {
-    // Offline or network fail: fallback to local cache
+    // Offline fallback
   }
 
   return local;
 }
 
 /**
- * Asynchronously pushes updated leaderboard entries to the shared global cloud database.
+ * Asynchronously pushes updated leaderboard entries to Firebase Firestore and fallback backend.
  */
-export async function pushGlobalLeaderboard(entries: LeaderboardEntry[]): Promise<void> {
+export async function pushGlobalLeaderboard(entry: LeaderboardEntry, allEntries: LeaderboardEntry[]): Promise<void> {
+  // Push individual document to Firebase Firestore
+  if (isFirebaseConfigured()) {
+    saveEntryToFirebase(entry).catch((err) => console.warn('[Firebase] Background write notice:', err));
+  }
+
+  // Also push array to fallback cloud REST bin
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
+    const timeout = setTimeout(() => controller.abort(), 6000);
 
     await fetch(CLOUD_API_URL, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'guess-the-country-leaderboard',
-        data: { entries },
+        data: { entries: allEntries },
       }),
       signal: controller.signal,
     });
@@ -272,7 +301,7 @@ export function addLeaderboardEntry(
   saveLeaderboard(updatedList);
 
   // Trigger background cloud sync so all players across the world receive this score
-  pushGlobalLeaderboard(updatedList);
+  pushGlobalLeaderboard(newEntry, updatedList);
 
   // Compute player's ranks in the relevant category scope
   const sameScopeList = updatedList.filter(
