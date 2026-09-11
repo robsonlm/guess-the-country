@@ -194,6 +194,7 @@ export function App() {
               <LifelineBar
                 lifelineState={lifelineState}
                 disabled={isResolving || isPaused}
+                questionType={currentRound.questionType}
                 onUseCapital={onUseCapital}
                 onUseFiftyFifty={onUseFiftyFifty}
               />

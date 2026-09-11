@@ -289,6 +289,8 @@ export function useGameState() {
   // Lifelines
   const onUseCapital = useCallback(() => {
     if (
+      settingsRef.current.gameMode === 'name-to-flag' ||
+      currentRound?.questionType === 'name-to-flag' ||
       lifelineState.capitalCredits <= 0 ||
       lifelineState.capitalUsedOnCurrentRound ||
       !currentRound ||
@@ -638,8 +640,15 @@ export function useGameState() {
             capitalCredits: prev.capitalCredits + 1,
           }));
           setLevelUpNotice(`🔥 ${nextStreak} Conquered in a Row! • +1 Capital Clue Credit 🏛️`);
+        } else if (settingsRef.current.gameMode === 'name-to-flag') {
+          // For name-to-flag: Capital is removed, only 50/50 lifeline is used
+          setLifelineState((prev) => ({
+            ...prev,
+            fiftyFiftyCredits: prev.fiftyFiftyCredits + 1,
+          }));
+          setLevelUpNotice(`🔥 Streak ${nextStreak}! • +1 50/50 Credit ✂️`);
         } else {
-          // For flag-to-name and name-to-flag: Award +1 to Atlas lifelines (both 50/50 and Capital)
+          // For flag-to-name: Award +1 to Atlas lifelines (both 50/50 and Capital)
           setLifelineState((prev) => ({
             ...prev,
             capitalCredits: prev.capitalCredits + 1,
