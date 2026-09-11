@@ -2343,11 +2343,33 @@
    ========================================================================== */
 
 .app-container.main-page-active {
+  height: 100% !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
   overflow-y: auto !important;
-  height: auto !important;
-  min-height: 100dvh !important;
-  max-height: none !important;
-  padding-bottom: 2rem !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  overscroll-behavior-y: contain;
+  padding-bottom: 3rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.app-container.main-page-active::-webkit-scrollbar {
+  width: 6px;
+}
+
+.app-container.main-page-active::-webkit-scrollbar-track {
+  background: rgba(11, 15, 25, 0.4);
+}
+
+.app-container.main-page-active::-webkit-scrollbar-thumb {
+  background: rgba(42, 157, 143, 0.5);
+  border-radius: 9999px;
+}
+
+.app-container.main-page-active::-webkit-scrollbar-thumb:hover {
+  background: rgba(72, 202, 228, 0.8);
 }
 
 .main-page-container {
@@ -2357,7 +2379,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  padding: 0.5rem 0.25rem 2rem;
+  padding: 0.5rem 0.25rem 3rem;
+  flex-shrink: 0;
 }
 
 /* --- Hero Section --- */
@@ -3054,11 +3077,21 @@
     padding: 3px 8px !important;
     font-size: 0.72rem !important;
   }
-  .app-container {
+  .app-container:not(.main-page-active) {
     padding: 0.2rem 0.4rem !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .app-container.main-page-active {
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 0.35rem 0.5rem 3.5rem !important;
     box-sizing: border-box !important;
   }
 
