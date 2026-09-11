@@ -11,11 +11,8 @@ import {
   Zap,
   Check,
   ShieldCheck,
-  KeyRound,
-  AlertCircle,
 } from 'lucide-react';
 import { UserSettings, GameMode, TimerMode, ThemeMode, ContinentFilter } from '../types/game';
-import { verifyAdminPassword } from '../services/firebase';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -58,9 +55,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [theme, setTheme] = useState<ThemeMode>(settings.theme);
   const [continentFilter, setContinentFilter] = useState<ContinentFilter>(settings.continentFilter);
   const [adminTestMode, setAdminTestMode] = useState<boolean>(!!settings.adminTestMode);
-  const [adminCodeInput, setAdminCodeInput] = useState('');
-  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
-  const [adminCodeFeedback, setAdminCodeFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -72,9 +66,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setTheme(settings.theme);
       setContinentFilter(settings.continentFilter);
       setAdminTestMode(!!settings.adminTestMode);
-      setAdminCodeInput('');
-      setAdminCodeFeedback(null);
-      setIsVerifyingAdmin(false);
       setShowConfirmReset(false);
       setIsSyncing(false);
     }
@@ -105,42 +96,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onClose();
   };
 
-  const handleVerifyCode = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!adminCodeInput.trim() || isVerifyingAdmin) return;
-
-    setIsVerifyingAdmin(true);
-    setAdminCodeFeedback(null);
-
-    try {
-      const res = await verifyAdminPassword(adminCodeInput);
-      if (res.success) {
-        setAdminTestMode(true);
-        setAdminCodeFeedback({
-          type: 'success',
-          message: '⚡ Admin Fast Test Mode unlocked! Correct answers locked to position #2.',
-        });
-        setAdminCodeInput('');
-      } else {
-        setAdminCodeFeedback({
-          type: 'error',
-          message: res.error || '❌ Invalid administrator password. Check code and try again.',
-        });
-      }
-    } catch (err: any) {
-      setAdminCodeFeedback({
-        type: 'error',
-        message: err.message || 'Verification failed. Check network connection.',
-      });
-    } finally {
-      setIsVerifyingAdmin(false);
-    }
-  };
-
   const handleDisableAdminMode = () => {
     setAdminTestMode(false);
-    setAdminCodeFeedback(null);
-    setAdminCodeInput('');
   };
 
   const handleResetClick = () => {
@@ -324,18 +281,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </button>
           </div>
 
-          {/* Admin Fast Test Mode Card */}
-          <div
-            className="toggle-row"
-            style={{
-              background: adminTestMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(30, 41, 59, 0.5)',
-              borderColor: adminTestMode ? 'rgba(16, 185, 129, 0.35)' : 'rgba(255, 255, 255, 0.08)',
-              flexDirection: 'column',
-              alignItems: 'stretch',
-              gap: '0.6rem',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Admin Mode Status & Logout (Only visible when Admin Mode is active) */}
+          {adminTestMode && (
+            <div
+              className="toggle-row"
+              style={{
+                background: 'rgba(16, 185, 129, 0.1)',
+                borderColor: 'rgba(16, 185, 129, 0.35)',
+              }}
+            >
               <div className="toggle-info">
                 <span
                   className="toggle-title"
@@ -343,73 +297,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    color: adminTestMode ? '#34d399' : '#e2e8f0',
+                    color: '#34d399',
                   }}
                 >
-                  <KeyRound size={16} style={{ color: adminTestMode ? '#10b981' : 'var(--primary-light)' }} />
-                  Admin Fast Test Mode
+                  <ShieldCheck size={16} style={{ color: '#10b981' }} />
+                  Admin Mode Active
                 </span>
-                <span className="toggle-desc">
-                  {adminTestMode
-                    ? '⚡ Active: Correct answers are always locked to 2nd position [Key 2]'
-                    : 'Enter passkey to lock correct answers to position 2 for rapid playthroughs'}
+                <span className="toggle-desc" style={{ color: '#a7f3d0' }}>
+                  ⚡ Correct answers locked to position #2 & global leaderboard controls authorized.
                 </span>
               </div>
-              {adminTestMode && (
-                <button
-                  type="button"
-                  className="btn-danger-outline"
-                  onClick={handleDisableAdminMode}
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
-                >
-                  Disable
-                </button>
-              )}
-            </div>
-
-            {!adminTestMode && (
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
-                <input
-                  type="password"
-                  placeholder="Enter admin passkey..."
-                  value={adminCodeInput}
-                  onChange={(e) => setAdminCodeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleVerifyCode();
-                    }
-                  }}
-                  className="admin-code-input"
-                />
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={isVerifyingAdmin || !adminCodeInput.trim()}
-                  onClick={() => handleVerifyCode()}
-                  style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
-                >
-                  {isVerifyingAdmin ? 'Verifying...' : 'Unlock'}
-                </button>
-              </div>
-            )}
-
-            {adminCodeFeedback && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  fontSize: '0.78rem',
-                  color: adminCodeFeedback.type === 'success' ? '#34d399' : '#f87171',
-                  marginTop: '0.1rem',
-                }}
+              <button
+                type="button"
+                className="btn-danger-outline"
+                onClick={handleDisableAdminMode}
+                style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
               >
-                {adminCodeFeedback.type === 'success' ? <ShieldCheck size={14} /> : <AlertCircle size={14} />}
-                <span>{adminCodeFeedback.message}</span>
-              </div>
-            )}
-          </div>
+                Logout Admin
+              </button>
+            </div>
+          )}
 
           {/* Reset Score Action */}
           <div className="toggle-row">
