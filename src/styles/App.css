@@ -57,6 +57,31 @@
   background: linear-gradient(135deg, #ffffff 40%, #c7d2fe 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+}
+
+.brand-title-full {
+  display: inline;
+}
+
+.brand-title-compact {
+  display: none;
+}
+
+.header-mode-full-text {
+  display: inline;
+}
+
+.header-mode-compact-text {
+  display: none;
+}
+
+.header-player-name {
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-actions {
@@ -2233,6 +2258,7 @@
     box-sizing: border-box !important;
   }
 
+  /* Header */
   .app-header {
     margin-bottom: 0.15rem !important;
     padding: 0.25rem 0.5rem !important;
@@ -2255,12 +2281,43 @@
     font-size: 0.92rem !important;
   }
 
+  .brand-title-full {
+    display: none !important;
+  }
+
+  .brand-title-compact {
+    display: inline !important;
+    font-size: 0.88rem !important;
+  }
+
   .brand-section {
     gap: 0.35rem !important;
   }
 
   .header-actions {
-    gap: 0.3rem !important;
+    gap: 0.25rem !important;
+  }
+
+  .header-player-btn {
+    padding: 3px 7px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .header-player-name {
+    max-width: 50px !important;
+  }
+
+  .header-mode-toggle-btn {
+    padding: 3px 8px !important;
+    font-size: 0.74rem !important;
+  }
+
+  .header-mode-full-text {
+    display: none !important;
+  }
+
+  .header-mode-compact-text {
+    display: inline !important;
   }
 
   .icon-btn {
@@ -2278,12 +2335,221 @@
     font-size: 0.7rem !important;
   }
 
+  /* Workspace */
   .game-workspace {
     gap: 0.15rem !important;
     flex: 1 !important;
     min-height: 0 !important;
     overflow: hidden !important;
     width: 100% !important;
+  }
+
+  /* Timer Bar */
+  .timer-bar-container {
+    height: 4px !important;
+    margin: 0 0 0.15rem 0 !important;
+  }
+
+  /* Flag Card & Reverse Card */
+  .flag-card {
+    padding: 0.35rem 0.5rem !important;
+    min-height: 85px !important;
+    max-height: 22vh !important;
+    border-radius: 8px !important;
+  }
+
+  .flag-header-tag {
+    font-size: 0.62rem !important;
+    margin-bottom: 0.2rem !important;
+  }
+
+  .flag-image-wrapper {
+    max-height: 17vh !important;
+    min-height: 55px !important;
+  }
+
+  .flag-image {
+    max-height: 100% !important;
+  }
+
+  .reverse-flag-card {
+    padding: 0.4rem 0.6rem !important;
+    min-height: 80px !important;
+    max-height: 20vh !important;
+  }
+
+  .reverse-flag-title {
+    font-size: 1.1rem !important;
+  }
+
+  .reverse-flag-sub {
+    font-size: 0.72rem !important;
+  }
+
+  /* Lifelines Bar */
+  .lifelines-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0.15rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .lifelines-row {
+    gap: 0.3rem !important;
+    justify-content: center !important;
+  }
+
+  .lifelines-label {
+    display: none !important;
+  }
+
+  .lifeline-btn {
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.7rem !important;
+    gap: 0.25rem !important;
+    border-radius: 6px !important;
+  }
+
+  .hint-banner {
+    padding: 0.2rem 0.45rem !important;
+    font-size: 0.68rem !important;
+    margin-top: 0.15rem !important;
+    border-radius: 6px !important;
+  }
+
+  /* Choice Buttons */
+  .choices-grid {
+    gap: 0.25rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .choice-btn {
+    padding: 0.35rem 0.55rem !important;
+    min-height: 38px !important;
+    font-size: 0.76rem !important;
+    border-radius: 8px !important;
+  }
+
+  .choice-left-content {
+    gap: 0.35rem !important;
+  }
+
+  .choice-flag-icon {
+    width: 20px !important;
+    height: 13px !important;
+  }
+
+  .choice-key {
+    display: none !important;
+  }
+
+  /* Last Answer Review Card */
+  .last-answer-card {
+    padding: 0.25rem 0.5rem !important;
+    min-height: 28px !important;
+    border-radius: 6px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .last-answer-info {
+    gap: 0.4rem !important;
+  }
+
+  .last-answer-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .last-answer-icon svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .last-answer-title {
+    display: none !important;
+  }
+
+  .last-answer-country-row {
+    gap: 0.3rem !important;
+    font-size: 0.74rem !important;
+  }
+
+  .last-answer-name {
+    font-size: 0.78rem !important;
+  }
+
+  .last-answer-flag-thumb {
+    width: 18px !important;
+    height: 12px !important;
+  }
+
+  .last-answer-link {
+    padding: 0.15rem 0.4rem !important;
+    font-size: 0.66rem !important;
+  }
+
+  /* Score Board - Sleek 4-Column Single Row */
+  .score-board {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.25rem !important;
+    width: 100% !important;
+    flex-shrink: 0 !important;
+  }
+
+  .score-card {
+    padding: 0.25rem 0.3rem !important;
+    border-radius: 6px !important;
+    gap: 0.1rem !important;
+  }
+
+  .score-label {
+    font-size: 0.6rem !important;
+    letter-spacing: 0 !important;
+    gap: 0.2rem !important;
+  }
+
+  .score-label svg {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .score-value {
+    font-size: 0.88rem !important;
+  }
+
+  /* Mastered Flags Tray */
+  .mastered-tray {
+    border-radius: 8px !important;
+    margin-top: 0.1rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .mastered-header {
+    padding: 0.3rem 0.55rem !important;
+  }
+
+  .mastered-icon {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .mastered-icon svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  .mastered-title {
+    font-size: 0.76rem !important;
+  }
+
+  .mastered-subtitle {
+    display: none !important;
+  }
+
+  .mastered-pct-badge {
+    padding: 0.1rem 0.4rem !important;
+    font-size: 0.68rem !important;
   }
 
   /* In Globe mode on mobile, hide the mastered flags tray so globe has maximum screen area */
@@ -2297,10 +2563,182 @@
     display: none !important;
   }
 
-  /* Compact start modal on mobile */
-  .start-modal-content {
-    padding: 1rem 0.85rem !important;
+  /* Modals on Mobile */
+  .modal-overlay {
+    padding: 0.4rem !important;
+  }
+
+  .modal-content {
+    max-height: 92dvh !important;
+    overflow-y: auto !important;
+    border-radius: 14px !important;
+    width: 96% !important;
+  }
+
+  .modal-header {
+    padding: 0.7rem 0.9rem !important;
+  }
+
+  .modal-title {
+    font-size: 1rem !important;
+  }
+
+  .modal-body {
+    padding: 0.75rem 0.9rem !important;
+    gap: 0.75rem !important;
+  }
+
+  .modal-footer {
+    padding: 0.7rem 0.9rem !important;
+  }
+
+  /* Leaderboard Modal on Mobile */
+  .leaderboard-modal-content {
+    max-height: 92dvh !important;
+    width: 96% !important;
+  }
+
+  .leaderboard-header {
+    padding: 0.8rem 1rem 0.5rem !important;
+  }
+
+  .leaderboard-title {
+    font-size: 1.15rem !important;
+  }
+
+  .leaderboard-category-tabs {
+    gap: 3px !important;
+  }
+
+  .leaderboard-category-tab {
+    padding: 4px 8px !important;
+    font-size: 0.7rem !important;
+  }
+
+  .leaderboard-filters-bar {
+    padding: 4px 6px !important;
+    gap: 4px !important;
+  }
+
+  .leaderboard-filter-group {
+    gap: 2px !important;
+  }
+
+  .leaderboard-filter-label {
+    font-size: 0.65rem !important;
+  }
+
+  .leaderboard-filter-pill {
+    padding: 2px 6px !important;
+    font-size: 0.66rem !important;
+  }
+
+  .leaderboard-podium-container {
+    gap: 5px !important;
+    grid-template-columns: 1fr 1.15fr 1fr !important;
+  }
+
+  .podium-card {
+    padding: 6px 3px !important;
+    gap: 2px !important;
+  }
+
+  .podium-crown {
+    font-size: 1rem !important;
+    margin-top: -4px !important;
+  }
+
+  .podium-name {
+    font-size: 0.72rem !important;
+  }
+
+  .podium-badge {
+    font-size: 0.9rem !important;
+  }
+
+  .podium-primary-stat {
+    font-size: 0.66rem !important;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 5px 6px !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* Achievements Modal on Mobile */
+  .achievements-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.35rem !important;
+  }
+
+  .achievement-card {
+    padding: 0.55rem !important;
+    gap: 0.3rem !important;
+  }
+
+  /* Start Modal on Mobile */
+  .start-game-modal {
     max-height: 94dvh !important;
+    width: 95% !important;
+    border-radius: 16px !important;
+  }
+
+  .start-modal-header {
+    padding: 1rem 1rem 0.5rem !important;
+  }
+
+  .start-modal-icon {
+    width: 44px !important;
+    height: 44px !important;
+    margin-bottom: 0.4rem !important;
+  }
+
+  .start-modal-title {
+    font-size: 1.2rem !important;
+  }
+
+  .start-modal-body {
+    padding: 0 1rem 1rem !important;
+    gap: 0.75rem !important;
+  }
+
+  /* Victory Modals on Mobile */
+  .victory-modal-content,
+  .globe-victory-modal-content {
+    max-height: 94dvh !important;
+    overflow-y: auto !important;
+    padding: 1rem 0.8rem !important;
+    width: 95% !important;
+  }
+
+  .victory-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.35rem !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand-title-compact {
+    font-size: 0.8rem !important;
+  }
+
+  .header-actions {
+    gap: 0.2rem !important;
+  }
+
+  .header-player-name {
+    display: none !important;
+  }
+
+  .header-mode-toggle-btn {
+    padding: 3px 6px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .choice-btn {
+    font-size: 0.72rem !important;
+    padding: 0.3rem 0.4rem !important;
   }
 }
 

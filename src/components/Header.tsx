@@ -29,13 +29,29 @@ export const Header: React.FC<HeaderProps> = ({
   const getModeButtonInfo = () => {
     switch (settings.gameMode) {
       case 'globe':
-        return { label: '🌍 3D Globe', title: 'Mode: 3D Earth Globe (Click to switch to Flag ➔ Name)' };
+        return {
+          labelFull: '🌍 3D Globe',
+          labelCompact: '🌍 Globe',
+          title: 'Mode: 3D Earth Globe (Click to switch to Flag ➔ Name)',
+        };
       case 'flag-to-name':
-        return { label: '🏁 Flag ➔ Name', title: 'Mode: Flag ➔ Name (Click to switch to Name ➔ Flag)' };
+        return {
+          labelFull: '🏁 Flag ➔ Name',
+          labelCompact: '🏁 Flags',
+          title: 'Mode: Flag ➔ Name (Click to switch to Name ➔ Flag)',
+        };
       case 'name-to-flag':
-        return { label: '🔤 Name ➔ Flag', title: 'Mode: Name ➔ Flag (Click to switch to 3D Globe)' };
+        return {
+          labelFull: '🔤 Name ➔ Flag',
+          labelCompact: '🔤 Reverse',
+          title: 'Mode: Name ➔ Flag (Click to switch to 3D Globe)',
+        };
       default:
-        return { label: '🌍 3D Globe', title: 'Switch mode' };
+        return {
+          labelFull: '🌍 3D Globe',
+          labelCompact: '🌍 Globe',
+          title: 'Switch mode',
+        };
     }
   };
 
@@ -48,7 +64,10 @@ export const Header: React.FC<HeaderProps> = ({
           <Globe2 size={22} />
         </div>
         <div>
-          <h1 className="brand-title">Guess the Country</h1>
+          <h1 className="brand-title">
+            <span className="brand-title-full">Guess the Country</span>
+            <span className="brand-title-compact">Guess Country</span>
+          </h1>
         </div>
       </div>
 
@@ -56,7 +75,7 @@ export const Header: React.FC<HeaderProps> = ({
         {playerName && (
           <button
             type="button"
-            className="action-btn"
+            className="action-btn header-player-btn"
             onClick={onOpenProfile}
             title={`Player: ${playerName} (Click to change explorer name or enter ADMINMODE)`}
             style={{
@@ -81,7 +100,7 @@ export const Header: React.FC<HeaderProps> = ({
             ) : (
               <User size={14} style={{ color: 'var(--primary-light)' }} />
             )}
-            <span style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span className="header-player-name">
               {playerName}
             </span>
           </button>
@@ -89,7 +108,7 @@ export const Header: React.FC<HeaderProps> = ({
         {onToggleMode && (
           <button
             type="button"
-            className={`action-btn ${isGlobeMode ? 'active' : ''}`}
+            className={`action-btn header-mode-toggle-btn ${isGlobeMode ? 'active' : ''}`}
             onClick={onToggleMode}
             title={modeInfo.title}
             style={{
@@ -102,7 +121,8 @@ export const Header: React.FC<HeaderProps> = ({
               color: isGlobeMode ? '#48cae4' : 'var(--text)',
             }}
           >
-            {modeInfo.label}
+            <span className="header-mode-full-text">{modeInfo.labelFull}</span>
+            <span className="header-mode-compact-text">{modeInfo.labelCompact}</span>
           </button>
         )}
 
