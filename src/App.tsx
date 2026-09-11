@@ -283,6 +283,7 @@ export function App() {
         defaultGameMode={settings.gameMode}
         defaultContinent={settings.continentFilter}
         defaultTimerMode={settings.timerMode}
+        isAdmin={Boolean(settings.adminTestMode)}
       />
 
       {/* Trophy Shelf & Achievements Modal */}

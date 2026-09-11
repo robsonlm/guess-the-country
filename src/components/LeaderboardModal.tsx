@@ -11,6 +11,8 @@ import {
   Globe2,
   Clock,
   Trash2,
+  KeyRound,
+  ShieldCheck,
 } from 'lucide-react';
 import { GameMode, ContinentFilter, TimerMode } from '../types/game';
 import {
@@ -34,6 +36,7 @@ interface LeaderboardModalProps {
   defaultGameMode?: GameMode;
   defaultContinent?: ContinentFilter;
   defaultTimerMode?: TimerMode;
+  isAdmin?: boolean;
 }
 
 const CATEGORIES: { id: LeaderboardCategory; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -69,6 +72,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   defaultGameMode = 'globe',
   defaultContinent = 'all',
   defaultTimerMode = 'timed',
+  isAdmin = false,
 }) => {
   const [selectedMode, setSelectedMode] = useState<GameMode>(defaultGameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(defaultContinent);
@@ -77,6 +81,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes'
   );
 
+  const [isSessionAdmin, setIsSessionAdmin] = useState(isAdmin);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [, setRefreshKey] = useState(0);
@@ -89,8 +94,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       setSelectedContinent(defaultContinent);
       setSelectedTimerMode(defaultTimerMode);
       setSelectedCategory(defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes');
+      setIsSessionAdmin(isAdmin);
     }
-  }, [isOpen, defaultGameMode, defaultContinent, defaultTimerMode]);
+  }, [isOpen, defaultGameMode, defaultContinent, defaultTimerMode, isAdmin]);
 
   // Sync and subscribe to global database on open
   useEffect(() => {
@@ -128,8 +134,24 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const topThree = entries.slice(0, 3);
 
   const handleClearAll = async () => {
+    let authorized = isSessionAdmin;
+
+    if (!authorized) {
+      const code = window.prompt(
+        '🔒 Admin Authentication Required\nEnter admin passkey to authorize clearing the leaderboard:'
+      );
+      if (!code) return;
+      if (code.trim().toLowerCase() === 'babycakez') {
+        authorized = true;
+        setIsSessionAdmin(true);
+      } else {
+        alert('❌ Unauthorized: Invalid admin passkey.');
+        return;
+      }
+    }
+
     const confirmed = window.confirm(
-      'Are you sure you want to clear ALL leaderboard records globally across all modes and devices?'
+      '⚠️ Admin Action: Are you sure you want to permanently clear ALL leaderboard records globally across all modes and devices?'
     );
     if (!confirmed) return;
 
@@ -137,6 +159,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     try {
       await clearAllLeaderboardEntries();
       setRefreshKey((prev) => prev + 1);
+      alert('✅ Leaderboard successfully cleared globally.');
     } finally {
       setIsClearing(false);
     }
@@ -518,24 +541,61 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           )}
         </div>
 
-        {/* Footer actions with Clear Board option */}
+        {/* Footer actions - Protected for Admin only */}
         <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            type="button"
-            className="action-btn"
-            onClick={handleClearAll}
-            disabled={isClearing}
-            style={{
-              fontSize: '0.75rem',
-              padding: '4px 10px',
-              color: '#f87171',
-              borderColor: 'rgba(239, 68, 68, 0.3)',
-            }}
-            title="Clear all leaderboard records globally"
-          >
-            <Trash2 size={13} />
-            <span>{isClearing ? 'Clearing...' : 'Clear All Entries'}</span>
-          </button>
+          {isSessionAdmin ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  color: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontWeight: 600,
+                }}
+              >
+                <ShieldCheck size={13} /> Admin Mode
+              </span>
+              <button
+                type="button"
+                className="action-btn"
+                onClick={handleClearAll}
+                disabled={isClearing}
+                style={{
+                  fontSize: '0.72rem',
+                  padding: '3px 8px',
+                  color: '#f87171',
+                  borderColor: 'rgba(239, 68, 68, 0.3)',
+                }}
+                title="Admin: Clear all leaderboard records globally"
+              >
+                <Trash2 size={12} />
+                <span>{isClearing ? 'Clearing...' : 'Clear All (Admin)'}</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleClearAll}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-dim)',
+                fontSize: '0.7rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                cursor: 'pointer',
+                opacity: 0.5,
+                padding: '4px 6px',
+              }}
+              title="Admin access required to manage leaderboard data"
+            >
+              <KeyRound size={12} />
+              <span>Admin</span>
+            </button>
+          )}
 
           <button
             type="button"
