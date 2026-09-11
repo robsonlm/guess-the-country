@@ -87,7 +87,7 @@ export function App() {
   const unlockedCount = achievements.filter((a) => a.unlockedAt !== null).length;
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${settings.gameMode === 'globe' ? 'globe-mode-active' : ''}`}>
       <Header
         currentStreak={score.currentStreak}
         level={currentRound?.level ?? 1}
@@ -228,6 +228,7 @@ export function App() {
           />
 
           <footer
+            className="game-pro-tip-footer"
             style={{
               marginTop: '0.15rem',
               color: 'var(--text-dim)',

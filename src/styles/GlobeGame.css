@@ -749,6 +749,21 @@
   transform: translateY(-1px);
 }
 
+/* Text Variant Switches */
+.conquest-compact-text,
+.mistakes-compact-text,
+.assigned-compact-text,
+.submit-compact-text {
+  display: none;
+}
+
+.conquest-full-text,
+.mistakes-full-text,
+.assigned-full-text,
+.submit-full-text {
+  display: inline;
+}
+
 /* --- Responsive Media Queries (Fit 100dvh No-Scroll) --- */
 @media (max-width: 860px) {
   .globe-choices-deck {
@@ -760,40 +775,302 @@
 }
 
 @media (max-width: 600px) {
-  .globe-choices-deck {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.3rem;
-  }
-  .final-three-targets-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.3rem;
-  }
-  .globe-choice-card {
-    padding: 0.3rem;
+  /* Container layout */
+  .globe-game-container {
     gap: 0.2rem;
+    padding: 0;
+    height: 100%;
+    max-height: 100%;
+    overflow: hidden;
+    justify-content: space-between;
   }
-  .globe-flag-wrapper {
-    height: clamp(38px, 6.5vh, 55px);
+
+  /* Text Variant Switches on Mobile */
+  .conquest-compact-text,
+  .mistakes-compact-text,
+  .assigned-compact-text,
+  .submit-compact-text {
+    display: inline;
   }
-  .globe-choice-label {
-    font-size: 0.72rem;
+
+  .conquest-full-text,
+  .mistakes-full-text,
+  .assigned-full-text,
+  .submit-full-text {
+    display: none;
   }
+
+  /* Continent Selector Bar */
+  .globe-continent-selector-bar {
+    padding: 2px 6px;
+    gap: 4px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+  }
+  .globe-continent-selector-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .globe-continent-selector-label {
+    display: none !important;
+  }
+  .globe-continent-pills {
+    flex-wrap: nowrap;
+    gap: 3px;
+  }
+  .globe-continent-pill {
+    padding: 2px 7px;
+    font-size: 0.68rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Globe Stage Canvas */
+  .globe-stage {
+    min-height: 110px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Floating Top HUD - Minimalistic Essential Info */
   .globe-hud-top {
+    top: 4px;
+    left: 4px;
+    right: 4px;
+    padding: 2px 4px;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    gap: 4px;
+  }
+  .globe-stats-pill-group {
+    gap: 3px;
+    flex-wrap: nowrap;
   }
   .globe-stat-badge {
-    padding: 2px 7px;
-    font-size: 0.7rem;
+    padding: 2px 6px;
+    font-size: 0.68rem;
+    gap: 3px;
+  }
+  .globe-stat-badge.accuracy {
+    display: none !important;
+  }
+  .globe-stat-badge.mistakes:not(.danger) {
+    display: none !important;
+  }
+  .globe-actions-group {
+    gap: 3px;
+  }
+  .globe-zoom-group {
+    display: none !important;
+  }
+  .globe-action-btn:has(svg.lucide-rotate-cw) {
+    display: none !important;
   }
   .globe-action-btn {
-    padding: 3px 7px;
-    font-size: 0.7rem;
+    padding: 2px 7px;
+    font-size: 0.68rem;
+    gap: 3px;
+  }
+
+  /* Target Banner at Bottom of Globe */
+  .globe-target-banner {
+    bottom: 4px;
+    left: 4px;
+    right: 4px;
+    padding: 2px 8px;
+    max-width: 92%;
+    border-radius: var(--radius-sm);
+  }
+  .final-three-active .globe-target-banner {
+    display: none !important;
+  }
+  .globe-target-text {
+    font-size: 0.72rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .globe-target-subtext {
+    font-size: 0.64rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Conquest Progress Bar */
+  .globe-conquest-bar-container {
+    height: 3px;
+    margin: 1px 0;
+  }
+
+  /* Normal Round Clues Bar */
+  .globe-clues-bar {
+    padding: 2px 4px !important;
+    gap: 4px !important;
+  }
+  .globe-prompt-text {
+    display: none !important;
+  }
+
+  /* Normal Round & Final 3 Flag Cards Deck */
+  .globe-choices-deck {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.25rem;
+    margin-top: 0.2rem !important;
+    flex-shrink: 0;
+  }
+  .globe-choice-card {
+    padding: 3px 2px;
+    gap: 2px;
+    border-radius: 8px;
+    min-height: 46px;
+  }
+  .globe-choice-keybadge {
+    display: none !important;
+  }
+  .globe-flag-wrapper {
+    height: clamp(22px, 3.2vh, 26px) !important;
+  }
+  .globe-flag-img {
+    height: 100%;
+    max-height: 26px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  .globe-choice-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    padding: 0 2px;
+  }
+  .globe-assigned-pill {
+    top: 2px;
+    right: 2px;
+    padding: 1px 4px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    max-width: 55px;
+  }
+
+  /* --- Final 3 Showdown Mobile Layout --- */
+  .final-three-container {
+    gap: 0.2rem;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .final-three-header {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .final-three-badge {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    letter-spacing: 0.5px;
+  }
+  .final-three-instruction {
+    display: none !important;
+  }
+
+  .final-three-targets-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.25rem;
+    margin: 0;
+    flex-shrink: 0;
+  }
+
+  .final-target-card {
+    padding: 4px 5px;
+    gap: 2px;
+    border-radius: 8px;
+    border-width: 1.5px;
+    min-height: 44px;
+  }
+  .final-target-header {
+    line-height: 1;
+  }
+  .final-target-number {
+    font-size: 0.68rem;
+    font-weight: 800;
+  }
+  .final-target-focus-btn {
+    padding: 1px 4px;
+    border-radius: 4px;
+  }
+  .final-target-name {
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .final-target-region {
+    display: none !important;
+  }
+  .final-target-slot {
+    min-height: 22px;
+    margin-top: 1px;
+  }
+  .final-assigned-preview {
+    padding: 2px 4px;
+    gap: 4px;
+    border-radius: 5px;
+  }
+  .final-assigned-flag-thumb {
+    width: 20px;
+    height: 14px;
+  }
+  .final-assigned-flag-name {
+    font-size: 0.66rem;
+    font-weight: 700;
+  }
+  .final-assigned-clear-btn {
+    padding: 1px;
+  }
+  .final-target-empty-slot {
+    padding: 2px 4px;
+    font-size: 0.66rem;
+    border-radius: 5px;
+    gap: 3px;
+  }
+  .final-target-feedback {
+    font-size: 0.66rem;
+    margin-top: 1px;
+  }
+
+  .final-three-actions {
+    margin-top: 0.2rem;
   }
   .final-submit-btn {
-    min-width: 100%;
-    padding: 7px 14px;
-    font-size: 0.8rem;
+    min-width: 0 !important;
+    width: 100% !important;
+    padding: 5px 10px !important;
+    font-size: 0.8rem !important;
+    height: 35px !important;
+    border-radius: 8px !important;
+    gap: 6px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .globe-choice-label {
+    font-size: 0.62rem;
+  }
+  .final-target-number {
+    font-size: 0.62rem;
+  }
+  .final-submit-btn {
+    font-size: 0.75rem !important;
+    height: 32px !important;
   }
 }

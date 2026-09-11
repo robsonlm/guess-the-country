@@ -369,6 +369,14 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
 
     const updated: Record<string, string> = { ...selectedAssignments };
 
+    // Tapping already-assigned flag toggles it off
+    if (updated[targetAlpha] === chosenFlagAlpha) {
+      delete updated[targetAlpha];
+      setSelectedAssignments(updated);
+      setValidationResults(null);
+      return;
+    }
+
     // Remove flag from any other country target (1-to-1 match)
     Object.keys(updated).forEach((key) => {
       if (updated[key] === chosenFlagAlpha) {
@@ -431,9 +439,9 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   }, [isFinalThree, isResolving, disabled, options, isAllAssigned, selectedAssignments, activeTargetIndex, finalThreeTargets]);
 
   return (
-    <div className="globe-game-container">
-      {/* Continent Expedition Quick Selector Bar */}
-      {onSelectContinent && (
+    <div className={`globe-game-container ${isFinalThree ? 'final-three-active' : ''}`}>
+      {/* Continent Expedition Quick Selector Bar (hidden during Final 3) */}
+      {onSelectContinent && !isFinalThree && (
         <div className="globe-continent-selector-bar">
           <div className="globe-continent-selector-label">
             <Compass size={14} style={{ color: '#48cae4' }} />
@@ -473,8 +481,11 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
           <div className="globe-stats-pill-group">
             <div className="globe-stat-badge conquest" title="Conquered Countries">
               <GlobeIcon size={14} />
-              <span>
+              <span className="conquest-full-text">
                 Conquest: <strong>{conqueredCount}</strong> / {totalCountriesCount} ({conqueredPercent}%)
+              </span>
+              <span className="conquest-compact-text">
+                <strong>{conqueredCount}</strong>/{totalCountriesCount} ({conqueredPercent}%)
               </span>
             </div>
 
@@ -483,8 +494,11 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               title="Total Mistakes Made"
             >
               <AlertTriangle size={14} />
-              <span>
+              <span className="mistakes-full-text">
                 Mistakes: <strong>{mistakesCount}</strong>
+              </span>
+              <span className="mistakes-compact-text">
+                <strong>{mistakesCount}</strong>
               </span>
             </div>
 
@@ -494,8 +508,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
             </div>
 
             {streak >= 3 && (
-              <div className="globe-stat-badge" style={{ borderColor: '#f77f00', color: '#f77f00' }}>
-                🔥 Streak: {streak}
+              <div className="globe-stat-badge streak" style={{ borderColor: '#f77f00', color: '#f77f00' }}>
+                🔥 {streak}
               </div>
             )}
           </div>
@@ -528,7 +542,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               title="Center camera on highlighted country"
             >
               <Target size={14} />
-              <span>Focus Target</span>
+              <span className="focus-text">Focus Target</span>
             </button>
 
             <button
@@ -586,48 +600,48 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         <div className="globe-conquest-bar-fill" style={{ width: `${conqueredPercent}%` }} />
       </div>
 
-      {/* Clues & Lifeline Shortcuts */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-        <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-          {isFinalThree
-            ? `Select and match all ${finalThreeTargets.length} remaining territories to their flags:`
-            : 'Choose the correct flag for the highlighted territory:'}
-        </span>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            className="action-btn"
-            onClick={onUseCapital}
-            disabled={isResolving || disabled || lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound}
-            style={{
-              fontSize: '0.78rem',
-              padding: '4px 10px',
-              opacity: lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound ? 0.55 : 1,
-              cursor: lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound ? 'not-allowed' : 'pointer',
-            }}
-            title={
-              lifelineState.capitalUsedOnCurrentRound
-                ? 'Capital clue already used this round'
-                : lifelineState.capitalCredits <= 0
-                ? 'No capital credits remaining (earn +1 every 5 correct streak)'
-                : `Reveal capital clue (${lifelineState.capitalCredits} credit${lifelineState.capitalCredits > 1 ? 's' : ''} available)`
-            }
-          >
-            <HelpCircle size={13} /> Capital Clue ({lifelineState.capitalCredits})
-          </button>
+      {/* Clues & Lifeline Shortcuts (Normal rounds only) */}
+      {!isFinalThree && (
+        <div className="globe-clues-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
+          <span className="globe-prompt-text" style={{ fontSize: '0.86rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+            Choose the correct flag for the highlighted territory:
+          </span>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              className="action-btn"
+              onClick={onUseCapital}
+              disabled={isResolving || disabled || lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound}
+              style={{
+                fontSize: '0.76rem',
+                padding: '3px 9px',
+                opacity: lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound ? 0.55 : 1,
+                cursor: lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound ? 'not-allowed' : 'pointer',
+              }}
+              title={
+                lifelineState.capitalUsedOnCurrentRound
+                  ? 'Capital clue already used this round'
+                  : lifelineState.capitalCredits <= 0
+                  ? 'No capital credits remaining (earn +1 every 5 correct streak)'
+                  : `Reveal capital clue (${lifelineState.capitalCredits} credit${lifelineState.capitalCredits > 1 ? 's' : ''} available)`
+              }
+            >
+              <HelpCircle size={13} /> Capital Clue ({lifelineState.capitalCredits})
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* FINAL 3 SHOWDOWN MODE INTERACTIVE PANEL */}
       {isFinalThree ? (
         <div className="final-three-container fade-in">
           <div className="final-three-header">
             <div className="final-three-badge">
-              <Sparkles size={15} />
-              <span>FINAL {finalThreeTargets.length} CONQUEST</span>
+              <Sparkles size={13} />
+              <span>FINAL {finalThreeTargets.length} SHOWDOWN</span>
             </div>
             <p className="final-three-instruction">
-              Click a target territory card to activate camera, then select its matching flag below.
+              Select a territory, then pick its flag below.
             </p>
           </div>
 
@@ -672,13 +686,13 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                       }}
                       title={`Focus camera on Target #${idx + 1}`}
                     >
-                      <Target size={12} />
+                      <Target size={11} />
                     </button>
                   </div>
 
-                  <div className="final-target-name">
-                    {isValidated ? country.name : `Territory #${idx + 1}`}
-                  </div>
+                  {isValidated && (
+                    <div className="final-target-name">{country.name}</div>
+                  )}
                   <div className="final-target-region">{country.subregion || country.region}</div>
 
                   {/* Assigned Flag Slot Preview */}
@@ -700,14 +714,14 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                             onClick={(e) => handleClearAssignment(country.alpha2, e)}
                             title="Unassign flag"
                           >
-                            <X size={12} />
+                            <X size={11} />
                           </button>
                         )}
                       </div>
                     ) : (
                       <div className="final-target-empty-slot">
-                        <Flag size={14} />
-                        <span>{isFocused ? 'Select flag below' : 'Unassigned'}</span>
+                        <Flag size={12} />
+                        <span>{isFocused ? 'Pick Flag' : 'Empty'}</span>
                       </div>
                     )}
                   </div>
@@ -716,12 +730,12 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                     <div className={`final-target-feedback ${isCorrect ? 'correct' : 'wrong'}`}>
                       {isCorrect ? (
                         <>
-                          <Check size={13} />
-                          <span>Correct ({country.name})</span>
+                          <Check size={12} />
+                          <span>Correct</span>
                         </>
                       ) : (
                         <>
-                          <X size={13} />
+                          <X size={12} />
                           <span>Mismatch ({country.name})</span>
                         </>
                       )}
@@ -733,7 +747,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
           </div>
 
           {/* 3 Flag Cards Deck */}
-          <div className="globe-choices-deck" style={{ marginTop: '0.5rem' }}>
+          <div className="globe-choices-deck" style={{ marginTop: '0.35rem' }}>
             {options.map((option, index) => {
               const assignedTarget = finalThreeTargets.find(
                 (t) => selectedAssignments[t.alpha2] === option.country.alpha2
@@ -762,7 +776,9 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
 
                   {assignedTargetIdx !== -1 && (
                     <span className="globe-assigned-pill">
-                      <Check size={11} /> Target #{assignedTargetIdx + 1}
+                      <Check size={10} />
+                      <span className="assigned-full-text">Target #{assignedTargetIdx + 1}</span>
+                      <span className="assigned-compact-text">#{assignedTargetIdx + 1}</span>
                     </span>
                   )}
 
@@ -792,11 +808,16 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               onClick={handleFinalSubmit}
               disabled={!isAllAssigned || isResolving || disabled}
             >
-              <Send size={16} />
-              <span>
+              <Send size={15} />
+              <span className="submit-full-text">
                 {isAllAssigned
                   ? `Conquer All ${finalThreeTargets.length} Countries (${assignedCount}/${finalThreeTargets.length})`
                   : `Assign All Flags to Submit (${assignedCount}/${finalThreeTargets.length})`}
+              </span>
+              <span className="submit-compact-text">
+                {isAllAssigned
+                  ? `Conquer All ${finalThreeTargets.length} Countries`
+                  : `Assign 3 Flags (${assignedCount}/${finalThreeTargets.length})`}
               </span>
             </button>
           </div>
