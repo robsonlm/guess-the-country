@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Guess the Country</title>
+    <script type="text/javascript">
+      // Single Page Apps for GitHub Pages
+      // MIT License
+      // https://github.com/rafgraph/spa-github-pages
+      var pathSegmentsToKeep = 1;
+      var l = window.location;
+      var pathParts = l.pathname.slice(1).split('/');
+      var repoBase = pathParts.slice(0, pathSegmentsToKeep).join('/');
+      var subPath = pathParts.slice(pathSegmentsToKeep).join('/');
+
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        (repoBase ? '/' + repoBase : '') + '/?p=/' +
+        encodeURIComponent(subPath) +
+        (l.search ? '&q=' + encodeURIComponent(l.search.slice(1)) : '') +
+        l.hash
+      );
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to Guess the Country...</p>
+  </body>
+</html>

@@ -31,6 +31,7 @@ import { loadAchievements, checkNewAchievements } from '../services/achievements
 import { getNeighboringCountries } from '../services/countriesGeo';
 import { getLastPlayerName, setLastPlayerName } from '../services/leaderboard';
 import { useSoundEffects } from './useSoundEffects';
+import { getCurrentRoute, navigateToRoute } from '../utils/router';
 
 const INITIAL_LIFELINES: LifelineState = {
   capitalCredits: 1,
@@ -65,8 +66,27 @@ export function useGameState() {
 
   // Player Name and Game Start Flow (asked when game starts)
   const [currentPlayerName, setCurrentPlayerName] = useState<string>(getLastPlayerName);
-  const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
+  const [isGameStarted, setIsGameStarted] = useState<boolean>(() => getCurrentRoute() === 'play');
   const [isStartModalOpen, setIsStartModalOpen] = useState<boolean>(false);
+
+  // Synchronize browser URL navigation (popstate & hashchange)
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const currentRoute = getCurrentRoute();
+      if (currentRoute === 'play') {
+        setIsGameStarted(true);
+      } else {
+        setIsGameStarted(false);
+      }
+    };
+
+    window.addEventListener('popstate', handleLocationChange);
+    window.addEventListener('hashchange', handleLocationChange);
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange);
+      window.removeEventListener('hashchange', handleLocationChange);
+    };
+  }, []);
 
   // Timer state (10s per flag in 'timed' mode, untimed in 'relaxed')
   const [timeLeft, setTimeLeft] = useState<number>(settings.timerMode === 'timed' ? 10 : 0);
@@ -896,6 +916,7 @@ export function useGameState() {
     }
     setIsGameStarted(true);
     setIsStartModalOpen(false);
+    navigateToRoute('play');
     if (settingsRef.current.timerMode === 'timed') {
       setTimeLeft(10);
     } else {
@@ -906,6 +927,7 @@ export function useGameState() {
   const navigateToHome = useCallback(() => {
     setIsGameStarted(false);
     setIsStartModalOpen(false);
+    navigateToRoute('home');
   }, []);
 
   const openStartModal = useCallback(() => {
