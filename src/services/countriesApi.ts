@@ -27,6 +27,7 @@ export function loadSettings(): UserSettings {
         timerMode: parsed.timerMode || 'none',
         theme: parsed.theme || 'deep-space',
         continentFilter: parsed.continentFilter || 'all',
+        adminTestMode: parsed.adminTestMode ?? false,
       };
     }
   } catch {
@@ -40,6 +41,7 @@ export function loadSettings(): UserSettings {
     timerMode: 'none',
     theme: 'deep-space',
     continentFilter: 'all',
+    adminTestMode: false,
   };
 }
 

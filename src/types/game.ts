@@ -29,6 +29,7 @@ export interface UserSettings {
   timerMode: TimerMode;
   theme: ThemeMode;
   continentFilter: ContinentFilter;
+  adminTestMode?: boolean;
 }
 
 export interface ChoiceOption {

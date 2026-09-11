@@ -10,6 +10,9 @@ import {
   Compass,
   Zap,
   Check,
+  ShieldCheck,
+  KeyRound,
+  AlertCircle,
 } from 'lucide-react';
 import { UserSettings, GameMode, QuestionType, TimerMode, ThemeMode, ContinentFilter } from '../types/game';
 
@@ -54,6 +57,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [timerMode, setTimerMode] = useState<TimerMode>(settings.timerMode);
   const [theme, setTheme] = useState<ThemeMode>(settings.theme);
   const [continentFilter, setContinentFilter] = useState<ContinentFilter>(settings.continentFilter);
+  const [adminTestMode, setAdminTestMode] = useState<boolean>(!!settings.adminTestMode);
+  const [adminCodeInput, setAdminCodeInput] = useState('');
+  const [adminCodeFeedback, setAdminCodeFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -65,6 +71,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setTimerMode(settings.timerMode);
       setTheme(settings.theme);
       setContinentFilter(settings.continentFilter);
+      setAdminTestMode(!!settings.adminTestMode);
+      setAdminCodeInput('');
+      setAdminCodeFeedback(null);
       setShowConfirmReset(false);
       setIsSyncing(false);
     }
@@ -91,8 +100,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       timerMode,
       theme,
       continentFilter,
+      adminTestMode,
     });
     onClose();
+  };
+
+  const handleVerifyCode = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanCode = adminCodeInput.trim().toLowerCase();
+    if (cleanCode === 'babycakez') {
+      setAdminTestMode(true);
+      setAdminCodeFeedback({
+        type: 'success',
+        message: '⚡ Admin Fast Test Mode unlocked! Correct answers locked to position #2.',
+      });
+      setAdminCodeInput('');
+    } else {
+      setAdminCodeFeedback({
+        type: 'error',
+        message: '❌ Invalid passkey. Check code and try again.',
+      });
+    }
+  };
+
+  const handleDisableAdminMode = () => {
+    setAdminTestMode(false);
+    setAdminCodeFeedback(null);
+    setAdminCodeInput('');
   };
 
   const handleResetClick = () => {
@@ -316,6 +350,92 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             >
               <RefreshCw size={16} className={isSyncing ? 'spin' : ''} />
             </button>
+          </div>
+
+          {/* Admin Fast Test Mode Card */}
+          <div
+            className="toggle-row"
+            style={{
+              background: adminTestMode ? 'rgba(16, 185, 129, 0.1)' : 'rgba(30, 41, 59, 0.5)',
+              borderColor: adminTestMode ? 'rgba(16, 185, 129, 0.35)' : 'rgba(255, 255, 255, 0.08)',
+              flexDirection: 'column',
+              alignItems: 'stretch',
+              gap: '0.6rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="toggle-info">
+                <span
+                  className="toggle-title"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    color: adminTestMode ? '#34d399' : '#e2e8f0',
+                  }}
+                >
+                  <KeyRound size={16} style={{ color: adminTestMode ? '#10b981' : 'var(--primary-light)' }} />
+                  Admin Fast Test Mode
+                </span>
+                <span className="toggle-desc">
+                  {adminTestMode
+                    ? '⚡ Active: Correct answers are always locked to 2nd position [Key 2]'
+                    : 'Enter passkey to lock correct answers to position 2 for rapid playthroughs'}
+                </span>
+              </div>
+              {adminTestMode && (
+                <button
+                  type="button"
+                  className="btn-danger-outline"
+                  onClick={handleDisableAdminMode}
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.78rem' }}
+                >
+                  Disable
+                </button>
+              )}
+            </div>
+
+            {!adminTestMode && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem' }}>
+                <input
+                  type="password"
+                  placeholder="Enter admin passkey..."
+                  value={adminCodeInput}
+                  onChange={(e) => setAdminCodeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleVerifyCode();
+                    }
+                  }}
+                  className="admin-code-input"
+                />
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={() => handleVerifyCode()}
+                  style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
+                >
+                  Unlock
+                </button>
+              </div>
+            )}
+
+            {adminCodeFeedback && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.78rem',
+                  color: adminCodeFeedback.type === 'success' ? '#34d399' : '#f87171',
+                  marginTop: '0.1rem',
+                }}
+              >
+                {adminCodeFeedback.type === 'success' ? <ShieldCheck size={14} /> : <AlertCircle size={14} />}
+                <span>{adminCodeFeedback.message}</span>
+              </div>
+            )}
           </div>
 
           {/* Reset Score Action */}

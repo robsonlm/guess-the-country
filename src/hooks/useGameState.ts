@@ -229,14 +229,24 @@ export function useGameState() {
         }
       }
 
-      const options: ChoiceOption[] = [
+      let options: ChoiceOption[] = [
         { name: targetCountry.name, isCorrect: true, country: targetCountry },
         ...distractors.map((c) => ({ name: c.name, isCorrect: false, country: c })),
       ];
 
-      for (let i = options.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [options[i], options[j]] = [options[j], options[i]];
+      if (currentSettings.adminTestMode) {
+        // Admin Test Mode: ALWAYS place the correct answer on the 2nd position (index 1 / Key [2])
+        if (options.length >= 2) {
+          const correctOption = options[0];
+          const firstDistractor = options[1];
+          const otherDistractors = options.slice(2);
+          options = [firstDistractor, correctOption, ...otherDistractors];
+        }
+      } else {
+        for (let i = options.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [options[i], options[j]] = [options[j], options[i]];
+        }
       }
 
       setSelectedOptionIndex(null);
