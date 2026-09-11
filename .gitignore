@@ -15,3 +15,7 @@ styles/*.css.map
 .env.*.local
 *.local
 scripts/clear-firestore.js
+
+# Playwright
+playwright-report/
+test-results/
