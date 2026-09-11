@@ -56,9 +56,9 @@ export interface LastAnswer {
 }
 
 export interface LifelineState {
-  capitalUsed: boolean;
+  capitalCredits: number;
+  capitalUsedOnCurrentRound: boolean;
   fiftyFiftyUsed: boolean;
-  regionUsed: boolean;
   hiddenOptionIndices: number[];
   activeHintText: string | null;
 }

@@ -58,7 +58,6 @@ export function App() {
     initCountries,
     onUseCapital,
     onUseFiftyFifty,
-    onUseRegion,
   } = useGameState();
 
   const handleToggleSound = () => {
@@ -166,7 +165,6 @@ export function App() {
               streak={score.currentStreak}
               lifelineState={lifelineState}
               onUseCapital={onUseCapital}
-              onUseRegion={onUseRegion}
               disabled={isPaused}
               isFinalThree={currentRound.isFinalThree}
               finalThreeTargets={currentRound.finalThreeTargets}
@@ -189,7 +187,6 @@ export function App() {
                 disabled={isResolving || isPaused}
                 onUseCapital={onUseCapital}
                 onUseFiftyFifty={onUseFiftyFifty}
-                onUseRegion={onUseRegion}
               />
 
               {/* Choice Buttons */}

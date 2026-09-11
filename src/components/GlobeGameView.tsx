@@ -57,7 +57,6 @@ interface GlobeGameViewProps {
   streak: number;
   lifelineState: LifelineState;
   onUseCapital: () => void;
-  onUseRegion: () => void;
   disabled?: boolean;
   isFinalThree?: boolean;
   finalThreeTargets?: Country[];
@@ -81,7 +80,6 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   streak,
   lifelineState,
   onUseCapital,
-  onUseRegion,
   disabled = false,
   isFinalThree = false,
   finalThreeTargets = [],
@@ -573,7 +571,6 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
             </div>
             <div className="globe-target-subtext">
               Region: {currentFocusedCountry?.region}
-              {currentFocusedCountry?.subregion ? ` • ${currentFocusedCountry.subregion}` : ''}
               {lifelineState.activeHintText ? ` | ${lifelineState.activeHintText}` : ''}
             </div>
           </div>
@@ -604,30 +601,27 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
             : 'Choose the correct flag for the highlighted territory:'}
         </span>
         <div style={{ display: 'flex', gap: '8px' }}>
-          {!lifelineState.capitalUsed && (
-            <button
-              type="button"
-              className="action-btn"
-              onClick={onUseCapital}
-              disabled={isResolving || disabled}
-              style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              title="Reveal capital clue"
-            >
-              <HelpCircle size={13} /> Capital Clue
-            </button>
-          )}
-          {!lifelineState.regionUsed && (
-            <button
-              type="button"
-              className="action-btn"
-              onClick={onUseRegion}
-              disabled={isResolving || disabled}
-              style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              title="Reveal subregion clue"
-            >
-              <GlobeIcon size={13} /> Subregion Clue
-            </button>
-          )}
+          <button
+            type="button"
+            className="action-btn"
+            onClick={onUseCapital}
+            disabled={isResolving || disabled || lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound}
+            style={{
+              fontSize: '0.78rem',
+              padding: '4px 10px',
+              opacity: lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound ? 0.55 : 1,
+              cursor: lifelineState.capitalCredits <= 0 || lifelineState.capitalUsedOnCurrentRound ? 'not-allowed' : 'pointer',
+            }}
+            title={
+              lifelineState.capitalUsedOnCurrentRound
+                ? 'Capital clue already used this round'
+                : lifelineState.capitalCredits <= 0
+                ? 'No capital credits remaining (earn +1 every 5 correct streak)'
+                : `Reveal capital clue (${lifelineState.capitalCredits} credit${lifelineState.capitalCredits > 1 ? 's' : ''} available)`
+            }
+          >
+            <HelpCircle size={13} /> Capital Clue ({lifelineState.capitalCredits})
+          </button>
         </div>
       </div>
 

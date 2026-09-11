@@ -30,9 +30,9 @@ import { getNeighboringCountries } from '../services/countriesGeo';
 import { useSoundEffects } from './useSoundEffects';
 
 const INITIAL_LIFELINES: LifelineState = {
-  capitalUsed: false,
+  capitalCredits: 1,
+  capitalUsedOnCurrentRound: false,
   fiftyFiftyUsed: false,
-  regionUsed: false,
   hiddenOptionIndices: [],
   activeHintText: null,
 };
@@ -162,6 +162,7 @@ export function useGameState() {
         setIsResolving(false);
         setLifelineState((prev) => ({
           ...prev,
+          capitalUsedOnCurrentRound: false,
           hiddenOptionIndices: [],
           activeHintText: null,
         }));
@@ -249,6 +250,7 @@ export function useGameState() {
       setIsResolving(false);
       setLifelineState((prev) => ({
         ...prev,
+        capitalUsedOnCurrentRound: false,
         hiddenOptionIndices: [],
         activeHintText: null,
       }));
@@ -276,15 +278,24 @@ export function useGameState() {
 
   // Lifelines
   const onUseCapital = useCallback(() => {
-    if (lifelineState.capitalUsed || !currentRound || isResolving || isPaused) return;
+    if (
+      lifelineState.capitalCredits <= 0 ||
+      lifelineState.capitalUsedOnCurrentRound ||
+      !currentRound ||
+      isResolving ||
+      isPaused
+    ) {
+      return;
+    }
     playLifeline();
     const cap = currentRound.targetCountry.capital || 'Capital not recorded';
     setLifelineState((prev) => ({
       ...prev,
-      capitalUsed: true,
+      capitalCredits: Math.max(0, prev.capitalCredits - 1),
+      capitalUsedOnCurrentRound: true,
       activeHintText: `🏛️ Capital Clue: The capital is "${cap}"`,
     }));
-  }, [lifelineState.capitalUsed, currentRound, isResolving, isPaused, playLifeline]);
+  }, [lifelineState.capitalCredits, lifelineState.capitalUsedOnCurrentRound, currentRound, isResolving, isPaused, playLifeline]);
 
   const onUseFiftyFifty = useCallback(() => {
     if (lifelineState.fiftyFiftyUsed || !currentRound || isResolving || isPaused) return;
@@ -303,17 +314,6 @@ export function useGameState() {
       activeHintText: '✂️ 50/50: Removed half of the incorrect choices!',
     }));
   }, [lifelineState.fiftyFiftyUsed, currentRound, isResolving, isPaused, playLifeline]);
-
-  const onUseRegion = useCallback(() => {
-    if (lifelineState.regionUsed || !currentRound || isResolving || isPaused) return;
-    playLifeline();
-    const reg = currentRound.targetCountry.subregion || currentRound.targetCountry.region;
-    setLifelineState((prev) => ({
-      ...prev,
-      regionUsed: true,
-      activeHintText: `🌐 Region Clue: Located in "${reg}"`,
-    }));
-  }, [lifelineState.regionUsed, currentRound, isResolving, isPaused, playLifeline]);
 
   // Reset Score & Mastery
   const resetScore = useCallback(() => {
@@ -587,9 +587,15 @@ export function useGameState() {
         playStreakMilestone();
         triggerConfetti(false);
 
+        // Award +1 Capital Clue Credit
+        setLifelineState((prev) => ({
+          ...prev,
+          capitalCredits: prev.capitalCredits + 1,
+        }));
+
         const nextOptionsCount = Math.min(2 + Math.floor(nextStreak / 5) * 2, 10);
         const newLvl = 1 + Math.floor(nextStreak / 5);
-        setLevelUpNotice(`🔥 Streak ${nextStreak}! Level ${newLvl} unlocked (${nextOptionsCount} choices)`);
+        setLevelUpNotice(`🔥 Streak ${nextStreak}! Level ${newLvl} (${nextOptionsCount} choices) • +1 Capital Clue Credit 🏛️`);
         setTimeout(() => setLevelUpNotice(null), 3200);
       } else if (!isCorrect && prevScore.currentStreak >= 5) {
         setLevelUpNotice(`Difficulty reset to 2 choices`);
@@ -832,6 +838,5 @@ export function useGameState() {
     initCountries,
     onUseCapital,
     onUseFiftyFifty,
-    onUseRegion,
   };
 }

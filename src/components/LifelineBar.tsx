@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lightbulb, Scissors, Compass, Info } from 'lucide-react';
+import { Lightbulb, Scissors, Info } from 'lucide-react';
 import { LifelineState } from '../types/game';
 
 interface LifelineBarProps {
@@ -7,7 +7,6 @@ interface LifelineBarProps {
   disabled: boolean;
   onUseCapital: () => void;
   onUseFiftyFifty: () => void;
-  onUseRegion: () => void;
 }
 
 export const LifelineBar: React.FC<LifelineBarProps> = ({
@@ -15,9 +14,9 @@ export const LifelineBar: React.FC<LifelineBarProps> = ({
   disabled,
   onUseCapital,
   onUseFiftyFifty,
-  onUseRegion,
 }) => {
-  const { capitalUsed, fiftyFiftyUsed, regionUsed, activeHintText } = lifelineState;
+  const { capitalCredits, capitalUsedOnCurrentRound, fiftyFiftyUsed, activeHintText } = lifelineState;
+  const isCapitalDisabled = disabled || capitalCredits <= 0 || capitalUsedOnCurrentRound;
 
   return (
     <div className="lifelines-container">
@@ -27,13 +26,19 @@ export const LifelineBar: React.FC<LifelineBarProps> = ({
         <div className="lifelines-buttons">
           <button
             type="button"
-            className={`lifeline-btn ${capitalUsed ? 'used' : ''}`}
+            className={`lifeline-btn ${capitalCredits <= 0 || capitalUsedOnCurrentRound ? 'used' : ''}`}
             onClick={onUseCapital}
-            disabled={disabled || capitalUsed}
-            title={capitalUsed ? 'Capital hint used' : 'Reveal capital city clue'}
+            disabled={isCapitalDisabled}
+            title={
+              capitalUsedOnCurrentRound
+                ? 'Capital clue already used for this round'
+                : capitalCredits <= 0
+                ? 'No capital credits remaining (earn +1 every 5 correct answers in a row)'
+                : `Reveal capital city clue (${capitalCredits} credit${capitalCredits > 1 ? 's' : ''} available)`
+            }
           >
             <Lightbulb size={14} />
-            <span>Capital</span>
+            <span>Capital ({capitalCredits})</span>
           </button>
 
           <button
@@ -45,17 +50,6 @@ export const LifelineBar: React.FC<LifelineBarProps> = ({
           >
             <Scissors size={14} />
             <span>50/50</span>
-          </button>
-
-          <button
-            type="button"
-            className={`lifeline-btn ${regionUsed ? 'used' : ''}`}
-            onClick={onUseRegion}
-            disabled={disabled || regionUsed}
-            title={regionUsed ? 'Region clue used' : 'Reveal continent & subregion clue'}
-          >
-            <Compass size={14} />
-            <span>Region</span>
           </button>
         </div>
       </div>
