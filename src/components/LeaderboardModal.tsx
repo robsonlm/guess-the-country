@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Trophy,
   Zap,
   Target,
   Flame,
   Award,
-  RotateCcw,
   X,
   Compass,
   Layers,
+  Globe2,
 } from 'lucide-react';
 import { GameMode, ContinentFilter } from '../types/game';
 import {
   LeaderboardCategory,
   getFilteredLeaderboard,
   formatTimeElapsed,
-  clearLeaderboard,
+  syncGlobalLeaderboard,
 } from '../services/leaderboard';
 import '../styles/App.css';
 
@@ -61,19 +61,27 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<LeaderboardCategory>('fastest');
   const [selectedMode, setSelectedMode] = useState<GameMode | 'all'>(defaultGameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter | 'all'>(defaultContinent);
-  const [, setRefreshKey] = useState<number>(0);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [, setRefreshKey] = useState(0);
+
+  // Sync with global database on open
+  useEffect(() => {
+    if (isOpen) {
+      setIsSyncing(true);
+      syncGlobalLeaderboard()
+        .then(() => {
+          setRefreshKey((prev) => prev + 1);
+        })
+        .finally(() => {
+          setIsSyncing(false);
+        });
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   const entries = getFilteredLeaderboard(selectedCategory, selectedMode, selectedContinent);
   const topThree = entries.slice(0, 3);
-
-  const handleReset = () => {
-    clearLeaderboard();
-    setShowClearConfirm(false);
-    setRefreshKey((prev) => prev + 1);
-  };
 
   const getRankBadgeColor = (badge: string) => {
     switch (badge) {
@@ -115,9 +123,15 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               <Trophy size={20} style={{ color: '#ffd166' }} />
             </div>
             <div>
-              <h2 className="modal-title" style={{ margin: 0, fontSize: '1.25rem' }}>
-                Global Hall of Fame
-              </h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h2 className="modal-title" style={{ margin: 0, fontSize: '1.25rem' }}>
+                  Global Hall of Fame
+                </h2>
+                <div className="global-live-badge" title="Synchronized live across all players worldwide">
+                  <Globe2 size={11} />
+                  <span>{isSyncing ? 'Syncing...' : 'Live Global'}</span>
+                </div>
+              </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                 {CATEGORIES.find((c) => c.id === selectedCategory)?.desc}
               </div>
@@ -189,10 +203,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             <div className="leaderboard-empty-state">
               <Award size={42} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
               <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text)' }}>
-                No Expedition Records Found
+                No Records in This Category Yet
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '300px', margin: '0.4rem auto' }}>
-                Be the first pioneer to complete a game in this category and etch your name on the hall of fame!
+                Complete a game in this mode and be the first pioneer on the global hall of fame!
               </p>
             </div>
           ) : (
@@ -377,49 +391,20 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           )}
         </div>
 
-        {/* Footer actions */}
+        {/* Footer actions - No reset button allowed */}
         <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Showing <strong>{entries.length}</strong> hall of fame records
+            Showing <strong>{entries.length}</strong> persistent hall of fame records
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
-            {showClearConfirm ? (
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.75rem', color: '#f87171' }}>Reset to defaults?</span>
-                <button
-                  type="button"
-                  className="action-btn"
-                  onClick={handleReset}
-                  style={{ fontSize: '0.75rem', padding: '4px 8px', borderColor: '#ef4444', color: '#f87171' }}
-                >
-                  Yes, Reset
-                </button>
-                <button
-                  type="button"
-                  className="action-btn"
-                  onClick={() => setShowClearConfirm(false)}
-                  style={{ fontSize: '0.75rem', padding: '4px 8px' }}
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="action-btn"
-                onClick={() => setShowClearConfirm(true)}
-                title="Reset leaderboard records to default hall of fame"
-                style={{ fontSize: '0.75rem', padding: '4px 10px', color: 'var(--text-dim)' }}
-              >
-                <RotateCcw size={12} /> Reset Leaderboard
-              </button>
-            )}
-
-            <button type="button" className="btn-primary" onClick={onClose} style={{ padding: '6px 16px', fontSize: '0.85rem' }}>
-              Close
-            </button>
-          </div>
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={onClose}
+            style={{ padding: '6px 20px', fontSize: '0.85rem' }}
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

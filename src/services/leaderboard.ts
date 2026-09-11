@@ -26,10 +26,12 @@ export interface LeaderboardPlacementResult {
   totalParticipants: number;
 }
 
-const LEADERBOARD_KEY = 'guess_the_country_leaderboard_v1';
+const LEADERBOARD_KEY = 'guess_the_country_leaderboard_v2';
 const LAST_PLAYER_NAME_KEY = 'guess_the_country_last_player_name';
+const GLOBAL_CLOUD_BIN_ID = 'ff808181a067127101a08f93d81e7345';
+const CLOUD_API_URL = `https://api.restful-api.dev/objects/${GLOBAL_CLOUD_BIN_ID}`;
 
-// Default hall-of-fame records to populate initial leaderboards
+// Default hall-of-fame records to seed initially
 const SEEDED_LEADERBOARD: LeaderboardEntry[] = [
   {
     id: 'seed-1',
@@ -117,6 +119,33 @@ const SEEDED_LEADERBOARD: LeaderboardEntry[] = [
   },
 ];
 
+function mergeAndDeduplicate(local: LeaderboardEntry[], remote: LeaderboardEntry[]): LeaderboardEntry[] {
+  const map = new Map<string, LeaderboardEntry>();
+
+  // Add seeded first
+  SEEDED_LEADERBOARD.forEach((e) => map.set(e.id, e));
+
+  // Add remote entries
+  if (Array.isArray(remote)) {
+    remote.forEach((e) => {
+      if (e && e.id && e.playerName) {
+        map.set(e.id, e);
+      }
+    });
+  }
+
+  // Add local entries
+  if (Array.isArray(local)) {
+    local.forEach((e) => {
+      if (e && e.id && e.playerName) {
+        map.set(e.id, e);
+      }
+    });
+  }
+
+  return Array.from(map.values());
+}
+
 export function loadLeaderboard(): LeaderboardEntry[] {
   try {
     const raw = localStorage.getItem(LEADERBOARD_KEY);
@@ -126,7 +155,7 @@ export function loadLeaderboard(): LeaderboardEntry[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      return mergeAndDeduplicate(parsed, []);
     }
     return SEEDED_LEADERBOARD;
   } catch {
@@ -139,6 +168,62 @@ export function saveLeaderboard(entries: LeaderboardEntry[]): void {
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
   } catch {
     // ignore
+  }
+}
+
+/**
+ * Synchronizes the leaderboard with the global shared cloud database.
+ * Fetches all global entries submitted by all players worldwide,
+ * merges them with local records, and returns the unified list.
+ */
+export async function syncGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
+  const local = loadLeaderboard();
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+
+    const res = await fetch(CLOUD_API_URL, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const json = await res.json();
+      const remoteEntries: LeaderboardEntry[] = json?.data?.entries || [];
+      const merged = mergeAndDeduplicate(local, remoteEntries);
+      saveLeaderboard(merged);
+      return merged;
+    }
+  } catch {
+    // Offline or network fail: fallback to local cache
+  }
+
+  return local;
+}
+
+/**
+ * Asynchronously pushes updated leaderboard entries to the shared global cloud database.
+ */
+export async function pushGlobalLeaderboard(entries: LeaderboardEntry[]): Promise<void> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+
+    await fetch(CLOUD_API_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'guess-the-country-leaderboard',
+        data: { entries },
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+  } catch {
+    // safe background sync fail
   }
 }
 
@@ -185,6 +270,9 @@ export function addLeaderboardEntry(
 
   const updatedList = [newEntry, ...currentList];
   saveLeaderboard(updatedList);
+
+  // Trigger background cloud sync so all players across the world receive this score
+  pushGlobalLeaderboard(updatedList);
 
   // Compute player's ranks in the relevant category scope
   const sameScopeList = updatedList.filter(
@@ -275,15 +363,6 @@ export function getFilteredLeaderboard(
   });
 
   return sorted;
-}
-
-export function clearLeaderboard(): void {
-  try {
-    localStorage.removeItem(LEADERBOARD_KEY);
-    saveLeaderboard(SEEDED_LEADERBOARD);
-  } catch {
-    // ignore
-  }
 }
 
 export function formatTimeElapsed(totalSeconds: number): string {
