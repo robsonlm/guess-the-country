@@ -1,4 +1,4 @@
-import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck, Home } from 'lucide-react';
+import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck, Home, RotateCcw } from 'lucide-react';
 import { UserSettings } from '../types/game';
 
 interface HeaderProps {
@@ -10,7 +10,7 @@ interface HeaderProps {
   onOpenProfile?: () => void;
   onToggleSound: () => void;
   onOpenSettings: () => void;
-  onToggleMode?: () => void;
+  onNewGame?: () => void;
   onOpenLeaderboard?: () => void;
   onNavigateHome?: () => void;
   isInGame?: boolean;
@@ -23,43 +23,11 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenProfile,
   onToggleSound,
   onOpenSettings,
-  onToggleMode,
+  onNewGame,
   onOpenLeaderboard,
   onNavigateHome,
   isInGame = false,
 }) => {
-  const isGlobeMode = settings.gameMode === 'globe';
-
-  const getModeButtonInfo = () => {
-    switch (settings.gameMode) {
-      case 'globe':
-        return {
-          labelFull: '🌍 3D Globe',
-          labelCompact: '🌍 Globe',
-          title: 'Mode: 3D Earth Globe (Click to switch to Flag ➔ Name)',
-        };
-      case 'flag-to-name':
-        return {
-          labelFull: '🏁 Flag ➔ Name',
-          labelCompact: '🏁 Flags',
-          title: 'Mode: Flag ➔ Name (Click to switch to Name ➔ Flag)',
-        };
-      case 'name-to-flag':
-        return {
-          labelFull: '🔤 Name ➔ Flag',
-          labelCompact: '🔤 Reverse',
-          title: 'Mode: Name ➔ Flag (Click to switch to 3D Globe)',
-        };
-      default:
-        return {
-          labelFull: '🌍 3D Globe',
-          labelCompact: '🌍 Globe',
-          title: 'Switch mode',
-        };
-    }
-  };
-
-  const modeInfo = getModeButtonInfo();
 
   return (
     <header className="app-header">
@@ -128,24 +96,28 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
         )}
-        {isInGame && onToggleMode && (
+        {isInGame && onNewGame && (
           <button
             type="button"
-            className={`action-btn header-mode-toggle-btn ${isGlobeMode ? 'active' : ''}`}
-            onClick={onToggleMode}
-            title={modeInfo.title}
+            className="action-btn header-new-game-btn"
+            onClick={onNewGame}
+            title="Start a new game (choose mode, continent, timer)"
             style={{
               fontSize: '0.82rem',
               fontWeight: 700,
               padding: '6px 12px',
               borderRadius: '9999px',
-              border: isGlobeMode ? '1px solid rgba(42, 157, 143, 0.7)' : '1px solid var(--border)',
-              background: isGlobeMode ? 'rgba(42, 157, 143, 0.25)' : 'var(--bg-card)',
-              color: isGlobeMode ? '#48cae4' : 'var(--text)',
+              border: '1px solid rgba(42, 157, 143, 0.65)',
+              background: 'linear-gradient(135deg, rgba(42, 157, 143, 0.25), rgba(72, 202, 228, 0.2))',
+              color: '#48cae4',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
             }}
           >
-            <span className="header-mode-full-text">{modeInfo.labelFull}</span>
-            <span className="header-mode-compact-text">{modeInfo.labelCompact}</span>
+            <RotateCcw size={13} />
+            <span className="header-mode-full-text">New Game</span>
+            <span className="header-mode-compact-text">New</span>
           </button>
         )}
 

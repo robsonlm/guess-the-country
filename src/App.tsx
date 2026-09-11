@@ -19,6 +19,7 @@ import { LeaderboardModal } from './components/LeaderboardModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PauseModal } from './components/PauseModal';
 import { StartGameModal } from './components/StartGameModal';
+import { ConfirmNewGameModal } from './components/ConfirmNewGameModal';
 import './styles/App.css';
 
 export function App() {
@@ -26,6 +27,7 @@ export function App() {
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
   const [isGlobeExploreOpen, setIsGlobeExploreOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isConfirmNewGameOpen, setIsConfirmNewGameOpen] = useState(false);
   const [recentLeaderboardEntryId, setRecentLeaderboardEntryId] = useState<string | null>(null);
 
   const {
@@ -73,12 +75,17 @@ export function App() {
     updateSettings({ soundEnabled: !settings.soundEnabled });
   };
 
-  const handleToggleMode = () => {
-    let nextMode: 'globe' | 'flag-to-name' | 'name-to-flag' = 'globe';
-    if (settings.gameMode === 'globe') nextMode = 'flag-to-name';
-    else if (settings.gameMode === 'flag-to-name') nextMode = 'name-to-flag';
-    else nextMode = 'globe';
-    updateSettings({ gameMode: nextMode });
+  const handleNewGameClick = () => {
+    if (score.currentStreak > 0 || solvedAlphas.length > 0 || score.total > 0) {
+      setIsConfirmNewGameOpen(true);
+    } else {
+      openStartModal();
+    }
+  };
+
+  const handleConfirmNewGame = () => {
+    setIsConfirmNewGameOpen(false);
+    openStartModal();
   };
 
   const handleOpenLeaderboard = (entryId?: string) => {
@@ -99,7 +106,7 @@ export function App() {
         onOpenProfile={openStartModal}
         onToggleSound={handleToggleSound}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onToggleMode={handleToggleMode}
+        onNewGame={handleNewGameClick}
         onOpenLeaderboard={() => handleOpenLeaderboard()}
         onNavigateHome={navigateToHome}
         isInGame={isGameStarted}
@@ -339,6 +346,15 @@ export function App() {
         onReSyncData={reSyncData}
       />
 
+      {/* Confirm Stop Current Game Modal */}
+      <ConfirmNewGameModal
+        isOpen={isConfirmNewGameOpen}
+        onConfirm={handleConfirmNewGame}
+        onCancel={() => setIsConfirmNewGameOpen(false)}
+        streak={score.currentStreak}
+        solvedCount={solvedAlphas.length}
+      />
+
       {/* Explorer Call Sign & Game Start Modal (prompts player name when game starts) */}
       <StartGameModal
         isOpen={isStartModalOpen}
@@ -347,7 +363,10 @@ export function App() {
         gameMode={settings.gameMode}
         continentFilter={settings.continentFilter}
         timerMode={settings.timerMode}
-        onStart={(name) => startGame(name)}
+        onStart={(name, config) => {
+          resetScore();
+          startGame(name, config);
+        }}
         onEnableAdmin={() => updateSettings({ adminTestMode: true })}
         onClose={closeStartModal}
         allowClose={isGameStarted}

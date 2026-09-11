@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Globe,
-  Shield,
   KeyRound,
   Eye,
   EyeOff,
@@ -11,6 +10,9 @@ import {
   Lock,
   User,
   X,
+  Compass,
+  Layers,
+  Clock,
 } from 'lucide-react';
 import { verifyAdminPassword } from '../services/firebase';
 import { GameMode, ContinentFilter, TimerMode } from '../types/game';
@@ -22,11 +24,31 @@ interface StartGameModalProps {
   gameMode: GameMode;
   continentFilter: ContinentFilter;
   timerMode: TimerMode;
-  onStart: (playerName: string) => void;
+  onStart: (playerName: string, config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }) => void;
   onEnableAdmin: () => void;
   onClose?: () => void;
   allowClose?: boolean;
 }
+
+const GAME_MODES: { id: GameMode; label: string; icon: string }[] = [
+  { id: 'globe', label: '3D Globe', icon: '🌍' },
+  { id: 'flag-to-name', label: 'Flag ➔ Name', icon: '🏁' },
+  { id: 'name-to-flag', label: 'Name ➔ Flag', icon: '🔤' },
+];
+
+const CONTINENT_OPTIONS: { id: ContinentFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All World', icon: '🌍' },
+  { id: 'Africa', label: 'Africa', icon: '🌍' },
+  { id: 'Americas', label: 'Americas', icon: '🌎' },
+  { id: 'Asia', label: 'Asia', icon: '🌏' },
+  { id: 'Europe', label: 'Europe', icon: '🌍' },
+  { id: 'Oceania', label: 'Oceania', icon: '🌏' },
+];
+
+const TIMER_OPTIONS: { id: TimerMode; label: string; icon: string }[] = [
+  { id: 'timed', label: '10s Timed', icon: '⏱️' },
+  { id: 'relaxed', label: 'Relaxed', icon: '🧘' },
+];
 
 export const StartGameModal: React.FC<StartGameModalProps> = ({
   isOpen,
@@ -41,6 +63,10 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   allowClose = false,
 }) => {
   const [playerName, setPlayerName] = useState(initialPlayerName);
+  const [selectedMode, setSelectedMode] = useState<GameMode>(gameMode);
+  const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(continentFilter);
+  const [selectedTimer, setSelectedTimer] = useState<TimerMode>(timerMode);
+
   const [isAdminModeRequested, setIsAdminModeRequested] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -56,6 +82,9 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setPlayerName(initialPlayerName);
+      setSelectedMode(gameMode);
+      setSelectedContinent(continentFilter);
+      setSelectedTimer(timerMode);
       setIsAdminModeRequested(false);
       setAdminPassword('');
       setAdminFeedback(null);
@@ -64,7 +93,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
         inputRef.current?.select();
       }, 100);
     }
-  }, [isOpen, initialPlayerName]);
+  }, [isOpen, initialPlayerName, gameMode, continentFilter, timerMode]);
 
   if (!isOpen) return null;
 
@@ -81,8 +110,12 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
       return;
     }
 
-    // Normal game start
-    onStart(cleanName || 'World Explorer');
+    // Start game with selected configuration
+    onStart(cleanName || 'World Explorer', {
+      mode: selectedMode,
+      continent: selectedContinent,
+      timer: selectedTimer,
+    });
   };
 
   const handleVerifyAdminPassword = async (e: React.FormEvent) => {
@@ -118,21 +151,6 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
     }
   };
 
-  const handleLaunchAdminGame = () => {
-    onStart(playerName.trim() || 'Admin');
-  };
-
-  const getGameModeLabel = () => {
-    switch (gameMode) {
-      case 'globe':
-        return '🌍 3D Earth Globe';
-      case 'flag-to-name':
-        return '🏁 Flag ➔ Name';
-      case 'name-to-flag':
-        return '🔤 Name ➔ Flag';
-    }
-  };
-
   return (
     <div
       className="modal-overlay fade-in"
@@ -143,10 +161,11 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
     >
       <div
         className={`modal-content start-game-modal ${isAdminModeRequested ? 'admin-mode' : ''}`}
+        style={{ maxWidth: '520px' }}
         onClick={(e) => e.stopPropagation()}
       >
         {!isAdminModeRequested ? (
-          /* Normal View: Enter Explorer Name */
+          /* Normal View: Enter Explorer Name and pick Game Setup */
           <form onSubmit={handleNameSubmit}>
             <div className="start-modal-header">
               {allowClose && onClose && (
@@ -162,31 +181,83 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
               )}
 
               <div className="start-modal-icon">
-                <Globe size={30} />
+                <Globe size={28} />
               </div>
-              <h2 className="start-modal-title">Explorer Identification</h2>
+              <h2 className="start-modal-title">New Expedition Setup</h2>
               <p className="start-modal-subtitle">
-                Enter your explorer call sign to track your rank on the global leaderboard
+                Select your game mode, territory, and explorer name to launch
               </p>
+              {isAdmin && (
+                <div className="start-mode-pill admin" style={{ marginTop: '0.4rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <ShieldCheck size={13} />
+                  <span>Admin Mode Active</span>
+                </div>
+              )}
             </div>
 
-            <div className="start-modal-body">
-              {/* Game Setup Badges */}
-              <div className="start-mode-pill-row">
-                <span className="start-mode-pill">{getGameModeLabel()}</span>
-                <span className="start-mode-pill">
-                  🌍 {continentFilter === 'all' ? 'All Continents' : continentFilter}
+            <div className="start-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Game Mode Selector */}
+              <div className="main-config-row">
+                <span className="main-config-label">
+                  <Compass size={13} /> Mode:
                 </span>
-                <span
-                  className={`start-mode-pill ${timerMode === 'timed' ? 'timed' : 'relaxed'}`}
-                >
-                  {timerMode === 'timed' ? '⏱️ 10s Timed' : '☕ Relaxed'}
+                <div className="main-mode-pills">
+                  {GAME_MODES.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className={`main-mode-pill ${selectedMode === m.id ? 'active' : ''}`}
+                      onClick={() => setSelectedMode(m.id)}
+                    >
+                      <span>{m.icon}</span>
+                      <span>{m.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Continent Selector */}
+              <div className="main-config-row">
+                <span className="main-config-label">
+                  <Layers size={13} /> Region:
                 </span>
-                {isAdmin && <span className="start-mode-pill admin">⚡ Admin Active</span>}
+                <div className="main-continent-pills">
+                  {CONTINENT_OPTIONS.map((cont) => (
+                    <button
+                      key={cont.id}
+                      type="button"
+                      className={`main-continent-pill ${selectedContinent === cont.id ? 'active' : ''}`}
+                      onClick={() => setSelectedContinent(cont.id)}
+                    >
+                      <span>{cont.icon}</span>
+                      <span>{cont.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Timer Mode Selector */}
+              <div className="main-config-row">
+                <span className="main-config-label">
+                  <Clock size={13} /> Pacing:
+                </span>
+                <div className="main-timer-pills">
+                  {TIMER_OPTIONS.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`main-timer-pill ${selectedTimer === t.id ? 'active' : ''}`}
+                      onClick={() => setSelectedTimer(t.id)}
+                    >
+                      <span>{t.icon}</span>
+                      <span>{t.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Call Sign Input */}
-              <div className="start-input-group">
+              <div className="start-input-group" style={{ marginTop: '0.2rem' }}>
                 <label htmlFor="player-name-input" className="start-input-label">
                   <User size={14} style={{ color: 'var(--primary-light)' }} />
                   <span>Call Sign / Explorer Name:</span>
@@ -201,12 +272,11 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                   onChange={(e) => setPlayerName(e.target.value)}
                   maxLength={24}
                   required
-                  autoFocus
                 />
               </div>
 
               {/* Submit Button */}
-              <button type="submit" className="btn-primary start-btn-launch">
+              <button type="submit" className="btn-primary start-btn-launch" style={{ marginTop: '0.2rem' }}>
                 <span>Start Expedition</span>
                 <ArrowRight size={18} />
               </button>
@@ -218,18 +288,14 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                   onClick={onClose}
                   style={{
                     width: '100%',
-                    padding: '0.65rem',
-                    fontSize: '0.85rem',
+                    padding: '0.6rem',
+                    fontSize: '0.82rem',
                     borderRadius: 10,
                   }}
                 >
-                  Continue as {playerName || 'Explorer'}
+                  Cancel / Keep Playing
                 </button>
               )}
-
-              <div className="start-hint-text">
-                Tip: Press <kbd style={{ padding: '2px 5px', borderRadius: 4, background: 'rgba(255,255,255,0.1)' }}>Enter</kbd> to launch immediately
-              </div>
             </div>
           </form>
         ) : (
@@ -299,104 +365,58 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                         color: adminFeedback.type === 'success' ? '#34d399' : '#f87171',
                       }}
                     >
-                      <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                      {adminFeedback.type === 'success' ? (
+                        <ShieldCheck size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                      ) : (
+                        <AlertCircle size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                      )}
                       <span>{adminFeedback.message}</span>
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: '0.6rem', marginTop: '0.2rem' }}>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => {
-                        setIsAdminModeRequested(false);
-                        setPlayerName('World Explorer');
-                        setAdminFeedback(null);
-                      }}
-                      style={{ flex: 1, padding: '0.75rem', borderRadius: 10, fontSize: '0.88rem' }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="btn-primary"
-                      disabled={isVerifying || !adminPassword.trim()}
-                      style={{
-                        flex: 1.4,
-                        padding: '0.75rem',
-                        borderRadius: 10,
-                        fontSize: '0.88rem',
-                        fontWeight: 700,
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.4rem',
-                      }}
-                    >
-                      {isVerifying ? (
-                        <div className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
-                      ) : (
-                        <>
-                          <KeyRound size={15} />
-                          <span>Verify Password</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={isVerifying || !adminPassword.trim()}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: 10,
+                      fontWeight: 700,
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                    }}
+                  >
+                    {isVerifying ? 'Verifying Password…' : 'Authenticate as Admin'}
+                  </button>
                 </form>
               ) : (
-                /* Success View after unlocking Admin */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div
                     style={{
-                      padding: '0.85rem',
-                      borderRadius: 12,
+                      padding: '0.75rem',
+                      borderRadius: 10,
                       background: 'rgba(16, 185, 129, 0.15)',
-                      border: '1px solid rgba(16, 185, 129, 0.35)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
                       color: '#34d399',
+                      fontSize: '0.85rem',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.6rem',
-                      fontSize: '0.85rem',
+                      gap: '0.5rem',
                     }}
                   >
-                    <ShieldCheck size={22} style={{ flexShrink: 0 }} />
-                    <div>
-                      <strong>Admin Mode Activated!</strong>
-                      <div style={{ fontSize: '0.75rem', color: '#a7f3d0', marginTop: 2 }}>
-                        Option #2 answer locking and global leaderboard controls authorized.
-                      </div>
-                    </div>
+                    <ShieldCheck size={18} />
+                    <span>Admin Mode Activated</span>
                   </div>
-
-                  <div className="start-input-group">
-                    <label htmlFor="admin-display-name" className="start-input-label">
-                      <User size={14} style={{ color: '#34d399' }} />
-                      <span>Explorer Name for this session:</span>
-                    </label>
-                    <input
-                      id="admin-display-name"
-                      type="text"
-                      className="start-text-input"
-                      value={playerName}
-                      onChange={(e) => setPlayerName(e.target.value)}
-                      placeholder="Admin"
-                      maxLength={24}
-                    />
-                  </div>
-
                   <button
                     type="button"
-                    className="btn-primary start-btn-launch"
-                    onClick={handleLaunchAdminGame}
-                    style={{
-                      background: 'linear-gradient(135deg, #10b981, #059669)',
-                      boxShadow: '0 4px 15px rgba(16, 185, 129, 0.4)',
+                    className="btn-primary"
+                    onClick={() => {
+                      setIsAdminModeRequested(false);
+                      onStart('Admin', { mode: selectedMode, continent: selectedContinent, timer: selectedTimer });
                     }}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: 10 }}
                   >
-                    <Shield size={18} />
-                    <span>Launch Game as Admin</span>
+                    Launch Game as Admin
                   </button>
                 </div>
               )}
