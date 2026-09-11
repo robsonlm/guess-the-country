@@ -136,6 +136,48 @@ export function useGameState() {
         qType = Math.random() > 0.5 ? 'flag-to-name' : 'name-to-flag';
       }
 
+      // Special Globe Mode Final 3 Showdown condition (when 3 or fewer countries remain)
+      if (currentSettings.gameMode === 'globe' && unsolvedPool.length <= 3) {
+        const finalThreeTargets = [...unsolvedPool];
+        finalThreeTargets.forEach((c) => preloadFlag(c.flagUrl));
+
+        const options: ChoiceOption[] = finalThreeTargets.map((c) => ({
+          name: c.name,
+          isCorrect: true,
+          country: c,
+        }));
+
+        for (let i = options.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [options[i], options[j]] = [options[j], options[i]];
+        }
+
+        setSelectedOptionIndex(null);
+        setIsResolving(false);
+        setLifelineState((prev) => ({
+          ...prev,
+          hiddenOptionIndices: [],
+          activeHintText: null,
+        }));
+
+        if (currentSettings.timerMode === 'per-question') {
+          setTimeLeft(10);
+        }
+
+        setCurrentRound({
+          targetCountry: finalThreeTargets[0],
+          options,
+          level,
+          optionCount: finalThreeTargets.length,
+          remainingCount: unsolvedPool.length,
+          totalCount: pool.length,
+          questionType: 'flag-to-name',
+          isFinalThree: true,
+          finalThreeTargets,
+        });
+        return;
+      }
+
       let targetIdx: number;
       let attempts = 0;
       do {
@@ -156,8 +198,10 @@ export function useGameState() {
       let distractors: Country[] = [];
 
       if (currentSettings.gameMode === 'globe') {
-        // In globe mode, pick authentic neighboring & regional countries to make guessing challenging
-        distractors = getNeighboringCountries(targetCountry, countryList, optionCount - 1);
+        // In globe mode, pick authentic neighboring & regional countries STRICTLY from UNSOLVED pool
+        // This ensures flags of already guessed right countries are never shown
+        const distractorCandidates = unsolvedPool.filter((c) => c.alpha2 !== targetCountry.alpha2);
+        distractors = getNeighboringCountries(targetCountry, distractorCandidates, optionCount - 1);
         distractors.forEach((c) => preloadFlag(c.flagUrl));
       } else {
         // Classic / progressive random distractors
@@ -204,6 +248,7 @@ export function useGameState() {
         remainingCount: unsolvedPool.length,
         totalCount: pool.length,
         questionType: qType,
+        isFinalThree: false,
       });
     },
     []
@@ -610,10 +655,95 @@ export function useGameState() {
     initCountries();
   }, []);
 
+  // Handle Final 3 Showdown submission
+  const handleFinalThreeSubmit = useCallback(
+    (assignments: Record<string, string>): { success: boolean; results: Record<string, boolean> } => {
+      if (isResolvingRef.current || isPaused || !currentRound || !currentRound.finalThreeTargets) {
+        return { success: false, results: {} };
+      }
+
+      const targets = currentRound.finalThreeTargets;
+      const results: Record<string, boolean> = {};
+      let wrongCount = 0;
+
+      targets.forEach((t) => {
+        const isMatch = assignments[t.alpha2] === t.alpha2;
+        results[t.alpha2] = isMatch;
+        if (!isMatch) wrongCount++;
+      });
+
+      const isAllCorrect = wrongCount === 0;
+
+      if (isAllCorrect) {
+        setIsResolving(true);
+        playCorrect();
+        playStreakMilestone();
+        triggerConfetti(true);
+
+        const prevSolved = solvedAlphasRef.current;
+        const nextSolved = Array.from(new Set([...prevSolved, ...targets.map((t) => t.alpha2)]));
+        setSolvedAlphas(nextSolved);
+        saveSolvedCountryAlphas(nextSolved);
+
+        const prevScore = scoreRef.current;
+        const addedCount = targets.length;
+        const nextStreak = prevScore.currentStreak + addedCount;
+        const newScore: GameScore = {
+          right: prevScore.right + addedCount,
+          wrong: prevScore.wrong,
+          total: prevScore.total + addedCount,
+          currentStreak: nextStreak,
+          bestStreak: Math.max(prevScore.bestStreak, nextStreak),
+        };
+        setScore(newScore);
+        saveScore(newScore);
+
+        // Check achievements
+        const { updatedList, newlyUnlocked } = checkNewAchievements(
+          achievementsRef.current,
+          newScore,
+          nextSolved,
+          countriesRef.current
+        );
+        if (newlyUnlocked.length > 0) {
+          setAchievements(updatedList);
+          setAchievementNotice(newlyUnlocked[0]);
+          setTimeout(() => setAchievementNotice(null), 4000);
+        }
+
+        setTimeout(() => {
+          setIsGameComplete(true);
+          setIsResolving(false);
+        }, 700);
+
+        return { success: true, results };
+      } else {
+        playWrong();
+        const nextMistakes = globeMistakesRef.current + wrongCount;
+        setGlobeMistakes(nextMistakes);
+        saveGlobeMistakes(nextMistakes);
+
+        const prevScore = scoreRef.current;
+        const newScore: GameScore = {
+          right: prevScore.right,
+          wrong: prevScore.wrong + wrongCount,
+          total: prevScore.total + wrongCount,
+          currentStreak: 0,
+          bestStreak: prevScore.bestStreak,
+        };
+        setScore(newScore);
+        saveScore(newScore);
+
+        return { success: false, results };
+      }
+    },
+    [currentRound, isPaused, playCorrect, playWrong, playStreakMilestone, triggerConfetti]
+  );
+
   // Keyboard shortcut listener
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isResolving || !currentRound || isLoading || isGameComplete || isPaused) return;
+      if (isResolving || !currentRound || currentRound.isFinalThree || isLoading || isGameComplete || isPaused) return;
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
 
       const keyNum = parseInt(e.key, 10);
@@ -653,6 +783,7 @@ export function useGameState() {
     maxTime: settings.timerMode === 'blitz' ? 60 : 10,
     localInfo: getLocalDataInfo(),
     handleChoice,
+    handleFinalThreeSubmit,
     updateSettings,
     resetScore,
     resumeGame,

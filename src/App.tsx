@@ -46,6 +46,7 @@ export function App() {
     maxTime,
     localInfo,
     handleChoice,
+    handleFinalThreeSubmit,
     updateSettings,
     resetScore,
     resumeGame,
@@ -147,13 +148,18 @@ export function App() {
               selectedOptionIndex={selectedOptionIndex}
               isResolving={isResolving}
               conqueredAlphas={solvedAlphas}
-              totalCountriesCount={countries.length}
+              totalCountriesCount={currentRound.totalCount}
               mistakesCount={globeMistakes}
               streak={score.currentStreak}
               lifelineState={lifelineState}
               onUseCapital={onUseCapital}
               onUseRegion={onUseRegion}
               disabled={isPaused}
+              isFinalThree={currentRound.isFinalThree}
+              finalThreeTargets={currentRound.finalThreeTargets}
+              onFinalThreeSubmit={handleFinalThreeSubmit}
+              continentFilter={settings.continentFilter}
+              onSelectContinent={(continent) => updateSettings({ continentFilter: continent })}
             />
           ) : (
             <>

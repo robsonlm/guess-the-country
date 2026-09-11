@@ -30,6 +30,15 @@ const THEMES: { id: ThemeMode; name: string; color: string }[] = [
   { id: 'emerald-forest', name: 'Emerald', color: '#10b981' },
 ];
 
+const CONTINENTS: { id: ContinentFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All World', icon: '🌍' },
+  { id: 'Africa', label: 'Africa', icon: '🌍' },
+  { id: 'Americas', label: 'Americas', icon: '🌎' },
+  { id: 'Asia', label: 'Asia', icon: '🌏' },
+  { id: 'Europe', label: 'Europe', icon: '🌍' },
+  { id: 'Oceania', label: 'Oceania', icon: '🌏' },
+];
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
@@ -143,6 +152,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
+          {/* Continent / Region Filter */}
+          <div className="form-group">
+            <label className="form-label">
+              <Compass size={15} style={{ display: 'inline', marginRight: 5 }} />
+              Continent / Region Expedition
+            </label>
+            <div className="segmented-control" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+              {CONTINENTS.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`segment-btn ${continentFilter === c.id ? 'active' : ''}`}
+                  onClick={() => setContinentFilter(c.id)}
+                >
+                  {c.icon} {c.label}
+                </button>
+              ))}
+            </div>
+            <p className="form-help" style={{ marginTop: '0.2rem' }}>
+              {continentFilter === 'all'
+                ? '🌍 All 197 sovereign countries across Planet Earth.'
+                : `🎯 Focused expedition: Guess flags from ${continentFilter} only.`}
+            </p>
+          </div>
+
           {/* Game Progression Mode */}
           <div className="form-group">
             <label className="form-label">
@@ -181,7 +215,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <p className="form-help" style={{ marginTop: '0.2rem' }}>
               {gameMode === 'globe'
-                ? '🌍 3D Earth Globe: Highlighted territory with 3 flag options to conquer the whole globe with least mistakes.'
+                ? '🌍 3D Earth Globe: Highlighted territory with 3 flag options to conquer with least mistakes.'
                 : gameMode === 'progressive'
                 ? '⚡ Progressive: 2 choices → 4 choices at 5 streak → 6 at 10 streak!'
                 : gameMode === 'classic'

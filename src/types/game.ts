@@ -45,6 +45,8 @@ export interface Round {
   remainingCount: number;
   totalCount: number;
   questionType: 'flag-to-name' | 'name-to-flag';
+  isFinalThree?: boolean;
+  finalThreeTargets?: Country[];
 }
 
 export interface LastAnswer {
