@@ -13,11 +13,10 @@ import {
   X,
   Send,
   Flag,
-  Compass,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { Country, ChoiceOption, LifelineState, ContinentFilter } from '../types/game';
+import { Country, ChoiceOption, LifelineState } from '../types/game';
 import {
   loadGeoFeatures,
   getCountryCoordinates,
@@ -25,24 +24,6 @@ import {
   GeoFeature,
 } from '../services/countriesGeo';
 import '../styles/GlobeGame.css';
-
-export const CONTINENT_OPTIONS: { id: ContinentFilter; label: string; icon: string }[] = [
-  { id: 'all', label: 'All World', icon: '🌍' },
-  { id: 'Africa', label: 'Africa', icon: '🌍' },
-  { id: 'Americas', label: 'Americas', icon: '🌎' },
-  { id: 'Asia', label: 'Asia', icon: '🌏' },
-  { id: 'Europe', label: 'Europe', icon: '🌍' },
-  { id: 'Oceania', label: 'Oceania', icon: '🌏' },
-];
-
-export const CONTINENT_VIEWPOINTS: Record<ContinentFilter, { lat: number; lng: number; altitude: number }> = {
-  all: { lat: 20, lng: 0, altitude: 2.5 },
-  Africa: { lat: 3.0, lng: 20.0, altitude: 2.1 },
-  Americas: { lat: 10.0, lng: -85.0, altitude: 2.4 },
-  Asia: { lat: 34.0, lng: 95.0, altitude: 2.3 },
-  Europe: { lat: 50.0, lng: 15.0, altitude: 1.8 },
-  Oceania: { lat: -22.0, lng: 138.0, altitude: 2.2 },
-};
 
 interface GlobeGameViewProps {
   targetCountry: Country;
@@ -63,8 +44,6 @@ interface GlobeGameViewProps {
     success: boolean;
     results: Record<string, boolean>;
   };
-  continentFilter?: ContinentFilter;
-  onSelectContinent?: (continent: ContinentFilter) => void;
 }
 
 export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
@@ -83,8 +62,6 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   isFinalThree = false,
   finalThreeTargets = [],
   onFinalThreeSubmit,
-  continentFilter = 'all',
-  onSelectContinent,
 }) => {
   const globeContainerRef = useRef<HTMLDivElement | null>(null);
   const globeInstanceRef = useRef<any>(null);
@@ -440,38 +417,6 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
 
   return (
     <div className={`globe-game-container ${isFinalThree ? 'final-three-active' : ''}`}>
-      {/* Continent Expedition Quick Selector Bar (hidden during Final 3) */}
-      {onSelectContinent && !isFinalThree && (
-        <div className="globe-continent-selector-bar">
-          <div className="globe-continent-selector-label">
-            <Compass size={14} style={{ color: '#48cae4' }} />
-            <span>Expedition Continent:</span>
-          </div>
-          <div className="globe-continent-pills">
-            {CONTINENT_OPTIONS.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className={`globe-continent-pill ${continentFilter === c.id ? 'active' : ''}`}
-                onClick={() => {
-                  if (continentFilter === c.id) return;
-                  onSelectContinent(c.id);
-                  const view = CONTINENT_VIEWPOINTS[c.id];
-                  if (globeInstanceRef.current && view) {
-                    globeInstanceRef.current.pointOfView(view, 1000);
-                  }
-                }}
-                disabled={isResolving || disabled}
-                title={c.id === 'all' ? 'Conquer all 197 countries' : `Conquer ${c.label} only`}
-              >
-                <span>{c.icon}</span>
-                <span>{c.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* 3D Globe Stage Canvas */}
       <div className="globe-stage">
         <div ref={globeContainerRef} className="globe-canvas-wrapper" />

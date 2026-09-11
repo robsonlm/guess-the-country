@@ -208,8 +208,6 @@ export function App() {
               isFinalThree={currentRound.isFinalThree}
               finalThreeTargets={currentRound.finalThreeTargets}
               onFinalThreeSubmit={handleFinalThreeSubmit}
-              continentFilter={settings.continentFilter}
-              onSelectContinent={(continent) => updateSettings({ continentFilter: continent })}
             />
           ) : (
             <>
