@@ -57,6 +57,60 @@ if (isFirebaseConfigured()) {
 }
 
 /**
+ * Performs a lightweight ping against Firestore to verify the project is
+ * reachable and credentials are valid. Uses a hard timeout so a stalled
+ * network does not lock the app on a blank loader.
+ *
+ * Returns `{ success: true }` when the round-trip completes without an
+ * error, `{ success: false, error }` otherwise. A missing Firebase
+ * configuration is treated as a failure (the game refuses to boot).
+ */
+export async function testFirebaseConnection(
+  timeoutMs: number = 6000
+): Promise<{ success: boolean; error?: string }> {
+  if (!db || !isFirebaseConfigured()) {
+    return {
+      success: false,
+      error:
+        'Firebase is not configured. Set VITE_FIREBASE_* environment variables before starting the game.',
+    };
+  }
+
+  let timedOut = false;
+  const timeout = new Promise<{ success: boolean; error: string }>((resolve) => {
+    setTimeout(() => {
+      timedOut = true;
+      resolve({
+        success: false,
+        error: `Could not reach Firebase within ${timeoutMs}ms. Check your network connection.`,
+      });
+    }, timeoutMs);
+  });
+
+  const ping = (async () => {
+    try {
+      // Tiny read against a collection the rules allow reading.
+      // limit(1) keeps the payload negligible.
+      const q = query(collection(db!, 'leaderboard'), limit(1));
+      await getDocs(q);
+      return { success: true as const };
+    } catch (err: any) {
+      const message =
+        err?.code === 'permission-denied'
+          ? "Firebase denied the request. Update Firestore rules to allow reading the 'leaderboard' collection."
+          : err?.message || 'Unknown Firebase error.';
+      return { success: false as const, error: message };
+    }
+  })();
+
+  const result = await Promise.race([ping, timeout]);
+  if (timedOut) return result;
+
+  if (result.success) return { success: true };
+  return { success: false, error: result.error };
+}
+
+/**
  * Listens in real-time to global leaderboard updates from Firebase Firestore.
  * Triggers callback immediately and on every new score submitted worldwide.
  */
