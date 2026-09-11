@@ -195,6 +195,12 @@ export async function syncGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
         const merged = mergeAndDeduplicate(local, firebaseEntries);
         saveLeaderboard(merged);
         return merged;
+      } else if (firebaseEntries && firebaseEntries.length === 0) {
+        // Firestore is newly provisioned and empty. Seed the initial hall of fame entries!
+        for (const entry of SEEDED_LEADERBOARD) {
+          saveEntryToFirebase(entry).catch(() => {});
+        }
+        return local;
       }
     } catch (err) {
       console.warn('[Leaderboard] Firebase sync notice:', err);

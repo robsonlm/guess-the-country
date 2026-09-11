@@ -15,23 +15,19 @@ import { LeaderboardEntry } from './leaderboard';
 
 /**
  * ============================================================================
- * FIREBASE CONFIGURATION TEMPLATE
+ * FIREBASE CONFIGURATION — guess-the-country-7d719
  * ============================================================================
- * To connect your live global leaderboard across all devices and players:
- * 1. Go to https://console.firebase.google.com/
- * 2. Create or select a project (e.g. "guess-the-country")
- * 3. In the project dashboard, add a Web App (</>) and copy the `firebaseConfig` keys.
- * 4. In the Firestore Database tab, click "Create Database" (start in test mode or open rules).
- * 5. Replace the placeholder values below (or define them in a .env.local file).
+ * Connected to Firebase project: guess-the-country-7d719
+ * Web App: guess-the-country-web (1:218564015880:web:a507448942db60c0095ebd)
  * ============================================================================
  */
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'YOUR_API_KEY_HERE',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'YOUR_PROJECT_ID.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'YOUR_PROJECT_ID',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'YOUR_PROJECT_ID.appspot.com',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || 'YOUR_MESSAGING_SENDER_ID',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || 'YOUR_APP_ID',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'guess-the-country-7d719.firebaseapp.com',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'guess-the-country-7d719',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'guess-the-country-7d719.firebasestorage.app',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '218564015880',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:218564015880:web:a507448942db60c0095ebd',
 };
 
 /**
