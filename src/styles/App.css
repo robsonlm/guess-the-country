@@ -1553,7 +1553,7 @@
 }
 
 /* ==========================================================================
-   Global Hall of Fame & Leaderboards
+   Global Hall of Fame & Leaderboards (Mobile-First & Collapsible Filters)
    ========================================================================== */
 
 .leaderboard-modal-content {
@@ -1564,22 +1564,28 @@
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  background: rgba(13, 22, 38, 0.95);
+  background: rgba(13, 22, 38, 0.96);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 215, 0, 0.25);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.15);
 }
 
+.leaderboard-header-bar {
+  padding: 0.75rem 1rem 0.6rem;
+  border-bottom: 1px solid var(--border-card);
+  background: rgba(255, 255, 255, 0.02);
+}
+
 .leaderboard-trophy-icon {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 215, 0, 0.25) 0%, rgba(13, 22, 38, 0.8) 100%);
   border: 1px solid rgba(255, 215, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.25);
 }
 
 .global-live-badge {
@@ -1589,63 +1595,118 @@
   background: rgba(16, 185, 129, 0.2);
   border: 1px solid rgba(16, 185, 129, 0.5);
   color: #34d399;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 700;
-  padding: 2px 7px;
+  padding: 1px 6px;
   border-radius: 9999px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
-/* Category Tabs */
-.leaderboard-category-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.25);
-  border-bottom: 1px solid var(--border-card);
-}
-
-.leaderboard-category-tab {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-md);
-  padding: 8px 6px;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.leaderboard-category-tab:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.leaderboard-category-tab.active {
-  background: linear-gradient(135deg, rgba(255, 209, 102, 0.2), rgba(247, 127, 0, 0.2));
-  border-color: #ffd166;
-  color: #ffd166;
-  box-shadow: 0 0 12px rgba(255, 209, 102, 0.25);
-}
-
-/* Sub-Filters Bar */
-.leaderboard-filters-bar {
+/* --- Active Filters Strip (Collapsible Summary) --- */
+.leaderboard-active-filter-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 16px;
-  background: rgba(10, 18, 32, 0.6);
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.35);
   border-bottom: 1px solid var(--border-card);
-  gap: 12px;
+  gap: 8px;
+}
+
+.leaderboard-summary-chips {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   flex-wrap: wrap;
+  flex: 1;
+  cursor: pointer;
+  user-select: none;
+}
+
+.leaderboard-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text);
+  transition: all var(--transition-fast);
+}
+
+.leaderboard-summary-chip.mode {
+  border-color: rgba(72, 202, 228, 0.35);
+  color: #48cae4;
+  background: rgba(72, 202, 228, 0.1);
+}
+
+.leaderboard-summary-chip.scope {
+  border-color: rgba(42, 157, 143, 0.35);
+  color: #2a9d8f;
+  background: rgba(42, 157, 143, 0.1);
+}
+
+.leaderboard-summary-chip.timer {
+  border-color: rgba(233, 196, 106, 0.35);
+  color: #ffd166;
+  background: rgba(233, 196, 106, 0.1);
+}
+
+.leaderboard-filter-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(42, 157, 143, 0.15);
+  border: 1px solid rgba(42, 157, 143, 0.4);
+  color: #48cae4;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.leaderboard-filter-toggle-btn:hover {
+  background: rgba(42, 157, 143, 0.3);
+  border-color: #2a9d8f;
+  color: #fff;
+}
+
+.leaderboard-filter-toggle-btn.active {
+  background: rgba(42, 157, 143, 0.35);
+  border-color: #2a9d8f;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(42, 157, 143, 0.3);
+}
+
+/* --- Expandable Filter Drawer --- */
+.leaderboard-filters-drawer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(8, 14, 26, 0.98);
+  border-bottom: 1.5px solid rgba(42, 157, 143, 0.4);
+  animation: slideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .leaderboard-filter-group {
@@ -1656,7 +1717,7 @@
 }
 
 .leaderboard-filter-label {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1664,6 +1725,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  min-width: 58px;
 }
 
 .leaderboard-filter-pills {
@@ -1671,6 +1733,7 @@
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
+  flex: 1;
 }
 
 .leaderboard-filter-pill {
@@ -1683,11 +1746,15 @@
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.leaderboard-filter-pill:hover {
+.leaderboard-filter-pill:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .leaderboard-filter-pill.active {
@@ -1695,6 +1762,7 @@
   border-color: #2a9d8f;
   color: #48cae4;
   font-weight: 700;
+  box-shadow: 0 0 8px rgba(42, 157, 143, 0.3);
 }
 
 .leaderboard-filter-pill.empty-disabled {
@@ -1705,67 +1773,116 @@
   border-color: rgba(255, 255, 255, 0.08);
 }
 
-.leaderboard-filter-pill.empty-disabled:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text-muted);
-}
-
 .leaderboard-filter-pill .pill-count-badge {
-  margin-left: 4px;
-  font-size: 0.65rem;
+  font-size: 0.64rem;
   opacity: 0.75;
 }
 
-/* Scrollable Body */
+/* --- Category Tabs & Count Bar --- */
+.leaderboard-category-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-card);
+  gap: 6px;
+}
+
+.leaderboard-category-tabs-row {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.leaderboard-category-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 4px 9px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.leaderboard-category-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.leaderboard-category-tab.active {
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.25), rgba(247, 127, 0, 0.25));
+  border-color: #ffd166;
+  color: #ffd166;
+  box-shadow: 0 0 10px rgba(255, 209, 102, 0.25);
+}
+
+.leaderboard-records-count {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 7px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* --- Scrollable Body --- */
 .leaderboard-body-scrollable {
   flex: 1;
   overflow-y: auto;
-  padding: 14px 16px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
-/* Podium Cards (Top 3) */
+/* --- Podium Cards (Top 3) --- */
 .leaderboard-podium-container {
   display: grid;
   grid-template-columns: 1fr 1.15fr 1fr;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-end;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .podium-card {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius-md);
-  padding: 12px 8px;
+  border-radius: 10px;
+  padding: 8px 6px;
   text-align: center;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   transition: all var(--transition-fast);
 }
 
 .podium-card.gold {
   border-color: rgba(255, 215, 0, 0.6);
-  background: radial-gradient(circle at top, rgba(255, 215, 0, 0.15) 0%, rgba(13, 22, 38, 0.8) 100%);
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.25);
-  transform: translateY(-4px);
+  background: radial-gradient(circle at top, rgba(255, 215, 0, 0.15) 0%, rgba(13, 22, 38, 0.85) 100%);
+  box-shadow: 0 0 16px rgba(255, 215, 0, 0.2);
+  transform: translateY(-2px);
 }
 
 .podium-card.silver {
   border-color: rgba(203, 213, 225, 0.5);
-  background: radial-gradient(circle at top, rgba(203, 213, 225, 0.12) 0%, rgba(13, 22, 38, 0.8) 100%);
-  box-shadow: 0 0 15px rgba(203, 213, 225, 0.15);
+  background: radial-gradient(circle at top, rgba(203, 213, 225, 0.12) 0%, rgba(13, 22, 38, 0.85) 100%);
+  box-shadow: 0 0 12px rgba(203, 213, 225, 0.15);
 }
 
 .podium-card.bronze {
   border-color: rgba(245, 158, 11, 0.5);
-  background: radial-gradient(circle at top, rgba(245, 158, 11, 0.12) 0%, rgba(13, 22, 38, 0.8) 100%);
-  box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+  background: radial-gradient(circle at top, rgba(245, 158, 11, 0.12) 0%, rgba(13, 22, 38, 0.85) 100%);
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.15);
 }
 
 .podium-card.highlight-recent {
@@ -1773,21 +1890,21 @@
 }
 
 @keyframes recent-podium-glow {
-  from { box-shadow: 0 0 10px rgba(72, 202, 228, 0.4); }
-  to { box-shadow: 0 0 25px rgba(72, 202, 228, 0.8); }
+  from { box-shadow: 0 0 8px rgba(72, 202, 228, 0.4); }
+  to { box-shadow: 0 0 20px rgba(72, 202, 228, 0.8); }
 }
 
 .podium-crown {
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   line-height: 1;
-  margin-top: -8px;
+  margin-top: -6px;
 }
 
 .podium-medal {
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   color: var(--text);
 }
 
@@ -1796,14 +1913,14 @@
 .podium-card.bronze .podium-medal { color: #f59e0b; }
 
 .podium-badge {
-  font-size: 1.15rem;
+  font-size: 1rem;
   font-weight: 900;
   line-height: 1;
 }
 
 .podium-name {
   font-weight: 700;
-  font-size: 0.88rem;
+  font-size: 0.8rem;
   color: #fff;
   white-space: nowrap;
   overflow: hidden;
@@ -1811,45 +1928,40 @@
   max-width: 100%;
 }
 
-.podium-mode {
-  font-size: 0.68rem;
-  color: var(--text-muted);
-}
-
 .podium-primary-stat {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   color: #48cae4;
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
-/* Rankings Table */
+/* --- Rankings Table --- */
 .leaderboard-table-wrapper {
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--border-card);
-  border-radius: var(--radius-md);
+  border-radius: 8px;
   overflow-x: auto;
 }
 
 .leaderboard-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
 }
 
 .leaderboard-table th {
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: rgba(255, 255, 255, 0.04);
   border-bottom: 1px solid var(--border-card);
   font-weight: 700;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .leaderboard-table td {
-  padding: 8px 10px;
+  padding: 6px 8px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   color: var(--text);
 }
@@ -1870,8 +1982,8 @@
 .rank-pill {
   display: inline-block;
   font-weight: 800;
-  font-size: 0.75rem;
-  padding: 2px 6px;
+  font-size: 0.72rem;
+  padding: 1px 5px;
   border-radius: 4px;
 }
 
@@ -1883,29 +1995,30 @@
 .player-info {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .player-badge {
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 800;
   border: 1px solid;
   border-radius: 4px;
-  padding: 1px 4px;
+  padding: 1px 3px;
   line-height: 1;
 }
 
 .player-name {
   font-weight: 600;
   color: #fff;
+  font-size: 0.78rem;
 }
 
 .you-pill {
   background: #2a9d8f;
   color: #fff;
-  font-size: 0.62rem;
+  font-size: 0.58rem;
   font-weight: 800;
-  padding: 1px 5px;
+  padding: 1px 4px;
   border-radius: 9999px;
   text-transform: uppercase;
 }
@@ -1915,7 +2028,12 @@
 
 .leaderboard-empty-state {
   text-align: center;
-  padding: 2.5rem 1rem;
+  padding: 2rem 1rem;
+}
+
+.leaderboard-footer {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-card);
 }
 
 /* Post-Game Victory Leaderboard Claim Box */
@@ -2598,72 +2716,139 @@
     width: 96% !important;
   }
 
-  .leaderboard-header {
-    padding: 0.8rem 1rem 0.5rem !important;
+  .leaderboard-header-bar {
+    padding: 0.6rem 0.85rem 0.45rem !important;
   }
 
-  .leaderboard-title {
-    font-size: 1.15rem !important;
+  .leaderboard-trophy-icon {
+    width: 26px !important;
+    height: 26px !important;
   }
 
-  .leaderboard-category-tabs {
+  .leaderboard-trophy-icon svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .leaderboard-active-filter-strip {
+    padding: 4px 8px !important;
+    gap: 5px !important;
+  }
+
+  .leaderboard-summary-chips {
     gap: 3px !important;
   }
 
-  .leaderboard-category-tab {
-    padding: 4px 8px !important;
-    font-size: 0.7rem !important;
+  .leaderboard-summary-chip {
+    font-size: 0.64rem !important;
+    padding: 1px 6px !important;
   }
 
-  .leaderboard-filters-bar {
-    padding: 4px 6px !important;
-    gap: 4px !important;
+  .leaderboard-filter-toggle-btn {
+    font-size: 0.68rem !important;
+    padding: 3px 7px !important;
   }
 
-  .leaderboard-filter-group {
-    gap: 2px !important;
+  .leaderboard-filters-drawer {
+    padding: 8px 10px !important;
+    gap: 6px !important;
   }
 
   .leaderboard-filter-label {
-    font-size: 0.65rem !important;
+    font-size: 0.62rem !important;
+    min-width: 48px !important;
   }
 
   .leaderboard-filter-pill {
     padding: 2px 6px !important;
-    font-size: 0.66rem !important;
+    font-size: 0.65rem !important;
   }
 
-  .leaderboard-podium-container {
-    gap: 5px !important;
-    grid-template-columns: 1fr 1.15fr 1fr !important;
+  .leaderboard-category-tabs-bar {
+    padding: 4px 8px !important;
+    gap: 4px !important;
   }
 
-  .podium-card {
-    padding: 6px 3px !important;
+  .leaderboard-category-tabs-row {
     gap: 2px !important;
   }
 
-  .podium-crown {
-    font-size: 1rem !important;
-    margin-top: -4px !important;
+  .leaderboard-category-tab {
+    padding: 3px 5px !important;
+    font-size: 0.66rem !important;
+    flex: 1 !important;
+    text-align: center !important;
+    justify-content: center !important;
   }
 
-  .podium-name {
-    font-size: 0.72rem !important;
+  .leaderboard-tab-icon svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .leaderboard-records-count {
+    display: none !important;
+  }
+
+  .leaderboard-body-scrollable {
+    padding: 6px 8px !important;
+    gap: 6px !important;
+  }
+
+  .leaderboard-podium-container {
+    gap: 4px !important;
+    grid-template-columns: 1fr 1.15fr 1fr !important;
+    margin-bottom: 2px !important;
+  }
+
+  .podium-card {
+    padding: 5px 2px !important;
+    gap: 1px !important;
+    border-radius: 8px !important;
+  }
+
+  .podium-crown {
+    font-size: 0.9rem !important;
+    margin-top: -3px !important;
+  }
+
+  .podium-medal {
+    font-size: 0.6rem !important;
   }
 
   .podium-badge {
-    font-size: 0.9rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  .podium-name {
+    font-size: 0.68rem !important;
   }
 
   .podium-primary-stat {
-    font-size: 0.66rem !important;
+    font-size: 0.62rem !important;
+  }
+
+  .leaderboard-table-wrapper {
+    border-radius: 6px !important;
   }
 
   .leaderboard-table th,
   .leaderboard-table td {
-    padding: 5px 6px !important;
-    font-size: 0.7rem !important;
+    padding: 4px 5px !important;
+    font-size: 0.68rem !important;
+  }
+
+  .rank-pill {
+    font-size: 0.65rem !important;
+    padding: 1px 3px !important;
+  }
+
+  .player-name {
+    font-size: 0.72rem !important;
+  }
+
+  .leaderboard-footer {
+    padding: 6px 10px !important;
   }
 
   /* Achievements Modal on Mobile */

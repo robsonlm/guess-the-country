@@ -13,6 +13,10 @@ import {
   Trash2,
   KeyRound,
   ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  SlidersHorizontal,
+  Check,
 } from 'lucide-react';
 import { GameMode, ContinentFilter, TimerMode } from '../types/game';
 import {
@@ -41,9 +45,9 @@ interface LeaderboardModalProps {
 }
 
 const CATEGORIES: { id: LeaderboardCategory; label: string; icon: React.ReactNode; desc: string }[] = [
-  { id: 'least-mistakes', label: 'Fewest Mistakes', icon: <Target size={14} />, desc: 'Ranked by highest accuracy & fewest errors' },
-  { id: 'fastest', label: 'Fastest Speed', icon: <Zap size={14} />, desc: 'Ranked by lowest elapsed completion time' },
-  { id: 'highest-streak', label: 'Best Streak', icon: <Flame size={14} />, desc: 'Ranked by longest consecutive streak' },
+  { id: 'least-mistakes', label: 'Fewest Mistakes', icon: <Target size={13} />, desc: 'Ranked by highest accuracy & fewest errors' },
+  { id: 'fastest', label: 'Fastest Speed', icon: <Zap size={13} />, desc: 'Ranked by lowest elapsed completion time' },
+  { id: 'highest-streak', label: 'Best Streak', icon: <Flame size={13} />, desc: 'Ranked by longest consecutive streak' },
 ];
 
 const GAME_MODES: { id: GameMode; label: string; icon: string }[] = [
@@ -82,6 +86,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes'
   );
 
+  // Hidden filters state - collapsed by default for clean mobile layout
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+
   const [isSessionAdmin, setIsSessionAdmin] = useState(isAdmin);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -96,6 +103,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       setSelectedTimerMode(defaultTimerMode);
       setSelectedCategory(defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes');
       setIsSessionAdmin(isAdmin);
+      setIsFiltersOpen(false);
     }
   }, [isOpen, defaultGameMode, defaultContinent, defaultTimerMode, isAdmin]);
 
@@ -210,13 +218,26 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const getModeLabel = (mode: GameMode) => {
     switch (mode) {
       case 'globe':
-        return '🌍 3D Globe';
+        return '3D Globe';
       case 'flag-to-name':
-        return '🏁 Flag ➔ Name';
+        return 'Flag ➔ Name';
       case 'name-to-flag':
-        return '🔤 Name ➔ Flag';
+        return 'Name ➔ Flag';
       default:
         return mode;
+    }
+  };
+
+  const getModeIcon = (mode: GameMode) => {
+    switch (mode) {
+      case 'globe':
+        return '🌍';
+      case 'flag-to-name':
+        return '🏁';
+      case 'name-to-flag':
+        return '🔤';
+      default:
+        return '🌍';
     }
   };
 
@@ -224,14 +245,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     <div className="modal-overlay fade-in" style={{ zIndex: 110 }} role="dialog" aria-modal="true">
       <div className="modal-content leaderboard-modal-content">
         {/* Header */}
-        <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="modal-header leaderboard-header-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <div className="leaderboard-trophy-icon">
-              <Trophy size={20} style={{ color: '#ffd166' }} />
+              <Trophy size={18} style={{ color: '#ffd166' }} />
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 className="modal-title" style={{ margin: 0, fontSize: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <h2 className="modal-title" style={{ margin: 0, fontSize: '1.15rem' }}>
                   Leaderboard
                 </h2>
                 <div
@@ -247,18 +268,15 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       : 'Global cloud sync active'
                   }
                 >
-                  <Globe2 size={11} />
+                  <Globe2 size={10} />
                   <span>
                     {isSyncing
                       ? 'Syncing...'
                       : isFirebaseActive
-                      ? '🟢 Live Firebase'
-                      : '🌐 Cloud Sync'}
+                      ? 'Live'
+                      : 'Sync'}
                   </span>
                 </div>
-              </div>
-              <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                Dedicated standalone board for every game type combination
               </div>
             </div>
           </div>
@@ -267,173 +285,180 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           </button>
         </div>
 
-        {/* Filter Controls: Mode, Continent, Timer Mode */}
-        <div className="leaderboard-filters-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
-          {/* Row 1: Game Mode */}
-          <div className="leaderboard-filter-group">
-            <span className="leaderboard-filter-label" style={{ minWidth: '70px' }}>
-              <Layers size={12} /> Mode:
+        {/* Collapsible Active Filter Summary Bar */}
+        <div className="leaderboard-active-filter-strip">
+          <div className="leaderboard-summary-chips" onClick={() => setIsFiltersOpen(!isFiltersOpen)}>
+            <span className="leaderboard-summary-chip mode">
+              {getModeIcon(selectedMode)} {getModeLabel(selectedMode)}
             </span>
-            <div className="leaderboard-filter-pills">
-              {GAME_MODES.map((m) => {
-                const count = getModeCount(m.id);
-                const isSelected = selectedMode === m.id;
-                const isGreyedOut = count === 0 && !isSelected;
-
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    disabled={isGreyedOut}
-                    className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
-                      isGreyedOut ? 'empty-disabled' : ''
-                    }`}
-                    onClick={() => {
-                      if (!isGreyedOut) {
-                        setSelectedMode(m.id);
-                      }
-                    }}
-                    title={
-                      isGreyedOut
-                        ? 'No leaderboard records for this mode yet'
-                        : `${m.label} (${count} record${count === 1 ? '' : 's'})`
-                    }
-                  >
-                    <span>{m.icon}</span>
-                    <span>{m.label}</span>
-                    {count > 0 && <span className="pill-count-badge">({count})</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Row 2: Scope / Continent */}
-          <div className="leaderboard-filter-group">
-            <span className="leaderboard-filter-label" style={{ minWidth: '70px' }}>
-              <Compass size={12} /> Scope:
+            <span className="leaderboard-summary-chip scope">
+              {selectedContinent === 'all' ? '🌍 All World' : `📍 ${selectedContinent}`}
             </span>
-            <div className="leaderboard-filter-pills">
-              {CONTINENT_FILTERS.map((cont) => {
-                const count = getContinentCount(cont.id);
-                const isSelected = selectedContinent === cont.id;
-                const isGreyedOut = count === 0 && !isSelected;
-
-                return (
-                  <button
-                    key={cont.id}
-                    type="button"
-                    disabled={isGreyedOut}
-                    className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
-                      isGreyedOut ? 'empty-disabled' : ''
-                    }`}
-                    onClick={() => {
-                      if (!isGreyedOut) {
-                        setSelectedContinent(cont.id);
-                      }
-                    }}
-                    title={
-                      isGreyedOut
-                        ? `No records for ${cont.label} in ${getModeLabel(selectedMode)}`
-                        : `${cont.label} (${count} record${count === 1 ? '' : 's'})`
-                    }
-                  >
-                    <span>{cont.icon}</span>
-                    <span>{cont.label}</span>
-                    {count > 0 && <span className="pill-count-badge">({count})</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Row 3: Timer Mode */}
-          <div className="leaderboard-filter-group">
-            <span className="leaderboard-filter-label" style={{ minWidth: '70px' }}>
-              <Clock size={12} /> Pacing:
-            </span>
-            <div className="leaderboard-filter-pills">
-              {TIMER_MODES.map((t) => {
-                const count = getTimerCount(t.id);
-                const isSelected = selectedTimerMode === t.id;
-                const isGreyedOut = count === 0 && !isSelected;
-
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    disabled={isGreyedOut}
-                    className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
-                      isGreyedOut ? 'empty-disabled' : ''
-                    }`}
-                    onClick={() => {
-                      if (!isGreyedOut) {
-                        setSelectedTimerMode(t.id);
-                      }
-                    }}
-                    title={
-                      isGreyedOut
-                        ? `No records for ${t.label} in this combination`
-                        : `${t.label} (${count} record${count === 1 ? '' : 's'})`
-                    }
-                  >
-                    <span>{t.icon}</span>
-                    <span>{t.label}</span>
-                    {count > 0 && <span className="pill-count-badge">({count})</span>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* Combination Title Banner & Sort Criteria Tabs */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '8px 16px',
-            background: 'rgba(255, 255, 255, 0.02)',
-            borderBottom: '1px solid var(--border-card)',
-            flexWrap: 'wrap',
-            gap: '8px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600 }}>
-            <span style={{ color: 'var(--primary-light)' }}>
-              {getModeLabel(selectedMode)}
-            </span>
-            <span style={{ color: 'var(--text-dim)' }}>•</span>
-            <span style={{ color: 'var(--text)' }}>
-              {selectedContinent === 'all' ? 'All World' : selectedContinent}
-            </span>
-            <span style={{ color: 'var(--text-dim)' }}>•</span>
-            <span style={{ color: '#e9c46a' }}>
+            <span className="leaderboard-summary-chip timer">
               {selectedTimerMode === 'timed' ? '⏱️ 10s Timed' : '🧘 Relaxed'}
             </span>
-            <span
-              style={{
-                marginLeft: '6px',
-                fontSize: '0.7rem',
-                background: 'rgba(255, 255, 255, 0.08)',
-                padding: '2px 6px',
-                borderRadius: '999px',
-                color: 'var(--text-muted)',
-              }}
-            >
-              {entries.length} record{entries.length === 1 ? '' : 's'}
-            </span>
           </div>
 
-          {/* Sort Tabs */}
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <button
+            type="button"
+            className={`leaderboard-filter-toggle-btn ${isFiltersOpen ? 'active' : ''}`}
+            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+            title={isFiltersOpen ? 'Close filters' : 'Change game mode or scope filters'}
+            aria-expanded={isFiltersOpen}
+          >
+            <SlidersHorizontal size={12} />
+            <span>{isFiltersOpen ? 'Hide' : 'Filter'}</span>
+            {isFiltersOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        </div>
+
+        {/* Expandable Filter Drawer (Hidden after selection for clean screen) */}
+        {isFiltersOpen && (
+          <div className="leaderboard-filters-drawer fade-in">
+            {/* Row 1: Game Mode */}
+            <div className="leaderboard-filter-group">
+              <span className="leaderboard-filter-label">
+                <Layers size={11} /> Mode:
+              </span>
+              <div className="leaderboard-filter-pills">
+                {GAME_MODES.map((m) => {
+                  const count = getModeCount(m.id);
+                  const isSelected = selectedMode === m.id;
+                  const isGreyedOut = count === 0 && !isSelected;
+
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      disabled={isGreyedOut}
+                      className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
+                        isGreyedOut ? 'empty-disabled' : ''
+                      }`}
+                      onClick={() => {
+                        if (!isGreyedOut) {
+                          setSelectedMode(m.id);
+                          setIsFiltersOpen(false); // Auto-hide filters on selection
+                        }
+                      }}
+                      title={
+                        isGreyedOut
+                          ? 'No leaderboard records for this mode yet'
+                          : `${m.label} (${count} records)`
+                      }
+                    >
+                      <span>{m.icon}</span>
+                      <span>{m.label}</span>
+                      {count > 0 && <span className="pill-count-badge">({count})</span>}
+                      {isSelected && <Check size={11} style={{ marginLeft: 3 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Row 2: Scope / Continent */}
+            <div className="leaderboard-filter-group">
+              <span className="leaderboard-filter-label">
+                <Compass size={11} /> Scope:
+              </span>
+              <div className="leaderboard-filter-pills">
+                {CONTINENT_FILTERS.map((cont) => {
+                  const count = getContinentCount(cont.id);
+                  const isSelected = selectedContinent === cont.id;
+                  const isGreyedOut = count === 0 && !isSelected;
+
+                  return (
+                    <button
+                      key={cont.id}
+                      type="button"
+                      disabled={isGreyedOut}
+                      className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
+                        isGreyedOut ? 'empty-disabled' : ''
+                      }`}
+                      onClick={() => {
+                        if (!isGreyedOut) {
+                          setSelectedContinent(cont.id);
+                          setIsFiltersOpen(false); // Auto-hide filters on selection
+                        }
+                      }}
+                      title={
+                        isGreyedOut
+                          ? `No records for ${cont.label}`
+                          : `${cont.label} (${count} records)`
+                      }
+                    >
+                      <span>{cont.icon}</span>
+                      <span>{cont.label}</span>
+                      {count > 0 && <span className="pill-count-badge">({count})</span>}
+                      {isSelected && <Check size={11} style={{ marginLeft: 3 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Row 3: Timer Mode */}
+            <div className="leaderboard-filter-group">
+              <span className="leaderboard-filter-label">
+                <Clock size={11} /> Pacing:
+              </span>
+              <div className="leaderboard-filter-pills">
+                {TIMER_MODES.map((t) => {
+                  const count = getTimerCount(t.id);
+                  const isSelected = selectedTimerMode === t.id;
+                  const isGreyedOut = count === 0 && !isSelected;
+
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      disabled={isGreyedOut}
+                      className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
+                        isGreyedOut ? 'empty-disabled' : ''
+                      }`}
+                      onClick={() => {
+                        if (!isGreyedOut) {
+                          setSelectedTimerMode(t.id);
+                          setIsFiltersOpen(false); // Auto-hide filters on selection
+                        }
+                      }}
+                      title={
+                        isGreyedOut
+                          ? `No records for ${t.label}`
+                          : `${t.label} (${count} records)`
+                      }
+                    >
+                      <span>{t.icon}</span>
+                      <span>{t.label}</span>
+                      {count > 0 && <span className="pill-count-badge">({count})</span>}
+                      {isSelected && <Check size={11} style={{ marginLeft: 3 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2px' }}>
+              <button
+                type="button"
+                className="action-btn"
+                style={{ fontSize: '0.72rem', padding: '3px 10px', borderRadius: '6px' }}
+                onClick={() => setIsFiltersOpen(false)}
+              >
+                Close Filters ▴
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sort Ranking Category Tabs & Count */}
+        <div className="leaderboard-category-tabs-bar">
+          <div className="leaderboard-category-tabs-row">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 type="button"
                 className={`leaderboard-category-tab ${selectedCategory === cat.id ? 'active' : ''}`}
-                style={{ padding: '3px 8px', fontSize: '0.72rem' }}
                 onClick={() => setSelectedCategory(cat.id)}
                 title={cat.desc}
               >
@@ -442,18 +467,22 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               </button>
             ))}
           </div>
+
+          <div className="leaderboard-records-count">
+            {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
+          </div>
         </div>
 
-        {/* Body content */}
+        {/* Scrollable Leaderboard Data */}
         <div className="leaderboard-body-scrollable">
           {entries.length === 0 ? (
             <div className="leaderboard-empty-state">
-              <Award size={42} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
-              <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text)' }}>
+              <Award size={36} style={{ color: 'var(--text-dim)', marginBottom: '0.5rem' }} />
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)' }}>
                 No Records for This Combination Yet
               </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '360px', margin: '0.4rem auto' }}>
-                Play a game in <strong>{getModeLabel(selectedMode)}</strong> ({selectedContinent === 'all' ? 'All World' : selectedContinent}, {selectedTimerMode === 'timed' ? '10s Timed' : 'Relaxed'}) and be the first to set the world record!
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: '320px', margin: '0.3rem auto' }}>
+                Play a game in <strong>{getModeLabel(selectedMode)}</strong> ({selectedContinent === 'all' ? 'All World' : selectedContinent}, {selectedTimerMode === 'timed' ? '10s Timed' : 'Relaxed'}) and set the first record!
               </p>
             </div>
           ) : (
@@ -473,15 +502,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <div className="podium-name" title={topThree[1].playerName}>
                         {topThree[1].playerName}
                       </div>
-                      <div className="podium-mode">
-                        {topThree[1].mistakesCount === 0 ? '🎯 Flawless' : `${topThree[1].mistakesCount} errors`} • {topThree[1].accuracy}%
-                      </div>
                       <div className="podium-primary-stat">
                         {selectedCategory === 'fastest' && (
                           <span>⚡ {formatTimeElapsed(topThree[1].timeElapsedSeconds)}</span>
                         )}
                         {selectedCategory === 'least-mistakes' && (
-                          <span>🎯 {topThree[1].mistakesCount} errors ({formatTimeElapsed(topThree[1].timeElapsedSeconds)})</span>
+                          <span>🎯 {topThree[1].mistakesCount} err ({formatTimeElapsed(topThree[1].timeElapsedSeconds)})</span>
                         )}
                         {selectedCategory === 'highest-streak' && (
                           <span>🔥 {topThree[1].bestStreak} streak</span>
@@ -498,22 +524,19 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       className={`podium-card gold ${recentSubmittedEntryId === topThree[0].id ? 'highlight-recent' : ''}`}
                     >
                       <div className="podium-crown">👑</div>
-                      <div className="podium-medal">🥇 1st Champion</div>
+                      <div className="podium-medal">🥇 1st</div>
                       <div className="podium-badge" style={{ color: getRankBadgeColor(topThree[0].rankBadge) }}>
                         {topThree[0].rankBadge}
                       </div>
                       <div className="podium-name" title={topThree[0].playerName}>
                         {topThree[0].playerName}
                       </div>
-                      <div className="podium-mode">
-                        {topThree[0].mistakesCount === 0 ? '🎯 Flawless' : `${topThree[0].mistakesCount} errors`} • {topThree[0].accuracy}%
-                      </div>
                       <div className="podium-primary-stat">
                         {selectedCategory === 'fastest' && (
                           <span>⚡ {formatTimeElapsed(topThree[0].timeElapsedSeconds)}</span>
                         )}
                         {selectedCategory === 'least-mistakes' && (
-                          <span>🎯 {topThree[0].mistakesCount} errors ({formatTimeElapsed(topThree[0].timeElapsedSeconds)})</span>
+                          <span>🎯 {topThree[0].mistakesCount} err ({formatTimeElapsed(topThree[0].timeElapsedSeconds)})</span>
                         )}
                         {selectedCategory === 'highest-streak' && (
                           <span>🔥 {topThree[0].bestStreak} streak</span>
@@ -534,15 +557,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <div className="podium-name" title={topThree[2].playerName}>
                         {topThree[2].playerName}
                       </div>
-                      <div className="podium-mode">
-                        {topThree[2].mistakesCount === 0 ? '🎯 Flawless' : `${topThree[2].mistakesCount} errors`} • {topThree[2].accuracy}%
-                      </div>
                       <div className="podium-primary-stat">
                         {selectedCategory === 'fastest' && (
                           <span>⚡ {formatTimeElapsed(topThree[2].timeElapsedSeconds)}</span>
                         )}
                         {selectedCategory === 'least-mistakes' && (
-                          <span>🎯 {topThree[2].mistakesCount} errors ({formatTimeElapsed(topThree[2].timeElapsedSeconds)})</span>
+                          <span>🎯 {topThree[2].mistakesCount} err ({formatTimeElapsed(topThree[2].timeElapsedSeconds)})</span>
                         )}
                         {selectedCategory === 'highest-streak' && (
                           <span>🔥 {topThree[2].bestStreak} streak</span>
@@ -555,18 +575,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 </div>
               )}
 
-              {/* Complete Rankings Table */}
+              {/* Rankings Table / List */}
               <div className="leaderboard-table-wrapper">
                 <table className="leaderboard-table">
                   <thead>
                     <tr>
-                      <th style={{ width: '50px' }}>Rank</th>
-                      <th>Player Name</th>
-                      <th style={{ textAlign: 'center' }}>Errors</th>
+                      <th style={{ width: '42px', textAlign: 'center' }}>Rank</th>
+                      <th>Player</th>
+                      <th style={{ textAlign: 'center' }}>
+                        {selectedCategory === 'fastest' ? 'Time' : selectedCategory === 'least-mistakes' ? 'Errors' : 'Streak'}
+                      </th>
                       <th style={{ textAlign: 'center' }}>Accuracy</th>
-                      <th style={{ textAlign: 'center' }}>Time</th>
-                      <th style={{ textAlign: 'center' }}>Streak</th>
-                      <th style={{ textAlign: 'right' }}>Date</th>
+                      <th style={{ textAlign: 'right' }}>Time</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -574,15 +594,15 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       const isRecent = recentSubmittedEntryId === item.id;
                       const rankNum = index + 1;
                       let rankIcon = `#${rankNum}`;
-                      if (rankNum === 1) rankIcon = '🥇 #1';
-                      else if (rankNum === 2) rankIcon = '🥈 #2';
-                      else if (rankNum === 3) rankIcon = '🥉 #3';
+                      if (rankNum === 1) rankIcon = '🥇';
+                      else if (rankNum === 2) rankIcon = '🥈';
+                      else if (rankNum === 3) rankIcon = '🥉';
 
                       return (
                         <tr key={item.id} className={isRecent ? 'recent-submission-row' : ''}>
                           <td className="rank-cell">
                             <span className={`rank-pill rank-${rankNum <= 3 ? rankNum : 'other'}`}>
-                              {rankIcon}
+                              {rankIcon} {rankNum > 3 ? rankNum : ''}
                             </span>
                           </td>
                           <td className="player-cell">
@@ -597,23 +617,29 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                                 {item.rankBadge}
                               </span>
                               <span className="player-name">{item.playerName}</span>
-                              {isRecent && <span className="you-pill">Your Run</span>}
+                              {isRecent && <span className="you-pill">You</span>}
                             </div>
                           </td>
-                          <td style={{ textAlign: 'center' }} className={item.mistakesCount === 0 ? 'text-success' : 'text-danger'}>
-                            {item.mistakesCount}
+                          <td style={{ textAlign: 'center', fontWeight: 700 }}>
+                            {selectedCategory === 'least-mistakes' ? (
+                              <span className={item.mistakesCount === 0 ? 'text-success' : 'text-danger'}>
+                                {item.mistakesCount} err
+                              </span>
+                            ) : selectedCategory === 'highest-streak' ? (
+                              <span style={{ color: '#f59e0b' }}>
+                                🔥 {item.bestStreak}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#48cae4', fontFamily: 'monospace' }}>
+                                ⚡ {formatTimeElapsed(item.timeElapsedSeconds)}
+                              </span>
+                            )}
                           </td>
-                          <td style={{ textAlign: 'center', fontWeight: 600, color: '#ffd166' }}>
+                          <td style={{ textAlign: 'center', fontWeight: 600, color: '#ffd166', fontSize: '0.75rem' }}>
                             {item.accuracy}%
                           </td>
-                          <td style={{ textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: '#48cae4' }}>
+                          <td style={{ textAlign: 'right', fontFamily: 'monospace', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                             {formatTimeElapsed(item.timeElapsedSeconds)}
-                          </td>
-                          <td style={{ textAlign: 'center', color: '#f59e0b', fontWeight: 600 }}>
-                            {item.bestStreak > 0 ? `🔥 ${item.bestStreak}` : '-'}
-                          </td>
-                          <td style={{ textAlign: 'right', fontSize: '0.72rem', color: 'var(--text-dim)' }}>
-                            {item.date ? new Date(item.date).toLocaleDateString() : 'Recent'}
                           </td>
                         </tr>
                       );
@@ -626,7 +652,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         </div>
 
         {/* Footer actions - Protected for Admin only */}
-        <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="modal-footer leaderboard-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
           {isSessionAdmin ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span
@@ -639,7 +665,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   fontWeight: 600,
                 }}
               >
-                <ShieldCheck size={13} /> Admin Mode
+                <ShieldCheck size={13} /> Admin
               </span>
               <button
                 type="button"
@@ -655,7 +681,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 title="Admin: Clear all leaderboard records globally"
               >
                 <Trash2 size={12} />
-                <span>{isClearing ? 'Clearing...' : 'Clear All (Admin)'}</span>
+                <span>{isClearing ? 'Clearing...' : 'Clear All'}</span>
               </button>
             </div>
           ) : (
@@ -685,7 +711,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             type="button"
             className="btn-primary"
             onClick={onClose}
-            style={{ padding: '6px 22px', fontSize: '0.85rem' }}
+            style={{ padding: '5px 18px', fontSize: '0.82rem', borderRadius: '8px' }}
           >
             Close
           </button>
