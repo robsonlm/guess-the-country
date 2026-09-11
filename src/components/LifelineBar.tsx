@@ -15,8 +15,15 @@ export const LifelineBar: React.FC<LifelineBarProps> = ({
   onUseCapital,
   onUseFiftyFifty,
 }) => {
-  const { capitalCredits, capitalUsedOnCurrentRound, fiftyFiftyUsed, activeHintText } = lifelineState;
+  const {
+    capitalCredits,
+    capitalUsedOnCurrentRound,
+    fiftyFiftyCredits,
+    fiftyFiftyUsedOnCurrentRound,
+    activeHintText,
+  } = lifelineState;
   const isCapitalDisabled = disabled || capitalCredits <= 0 || capitalUsedOnCurrentRound;
+  const isFiftyFiftyDisabled = disabled || fiftyFiftyCredits <= 0 || fiftyFiftyUsedOnCurrentRound;
 
   return (
     <div className="lifelines-container">
@@ -43,13 +50,19 @@ export const LifelineBar: React.FC<LifelineBarProps> = ({
 
           <button
             type="button"
-            className={`lifeline-btn ${fiftyFiftyUsed ? 'used' : ''}`}
+            className={`lifeline-btn ${fiftyFiftyCredits <= 0 || fiftyFiftyUsedOnCurrentRound ? 'used' : ''}`}
             onClick={onUseFiftyFifty}
-            disabled={disabled || fiftyFiftyUsed}
-            title={fiftyFiftyUsed ? '50/50 lifeline used' : 'Eliminate half of the incorrect choices'}
+            disabled={isFiftyFiftyDisabled}
+            title={
+              fiftyFiftyUsedOnCurrentRound
+                ? '50/50 lifeline already used for this round'
+                : fiftyFiftyCredits <= 0
+                ? 'No 50/50 credits remaining (earn +1 every 5 correct answers in a row)'
+                : `Eliminate half of the incorrect choices (${fiftyFiftyCredits} credit${fiftyFiftyCredits > 1 ? 's' : ''} available)`
+            }
           >
             <Scissors size={14} />
-            <span>50/50</span>
+            <span>50/50 ({fiftyFiftyCredits})</span>
           </button>
         </div>
       </div>

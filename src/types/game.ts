@@ -58,7 +58,9 @@ export interface LastAnswer {
 export interface LifelineState {
   capitalCredits: number;
   capitalUsedOnCurrentRound: boolean;
-  fiftyFiftyUsed: boolean;
+  fiftyFiftyCredits: number;
+  fiftyFiftyUsedOnCurrentRound: boolean;
+  fiftyFiftyUsed?: boolean;
   hiddenOptionIndices: number[];
   activeHintText: string | null;
 }

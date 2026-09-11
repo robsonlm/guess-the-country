@@ -33,6 +33,8 @@ import { useSoundEffects } from './useSoundEffects';
 const INITIAL_LIFELINES: LifelineState = {
   capitalCredits: 1,
   capitalUsedOnCurrentRound: false,
+  fiftyFiftyCredits: 1,
+  fiftyFiftyUsedOnCurrentRound: false,
   fiftyFiftyUsed: false,
   hiddenOptionIndices: [],
   activeHintText: null,
@@ -169,6 +171,7 @@ export function useGameState() {
         setLifelineState((prev) => ({
           ...prev,
           capitalUsedOnCurrentRound: false,
+          fiftyFiftyUsedOnCurrentRound: false,
           hiddenOptionIndices: [],
           activeHintText: null,
         }));
@@ -257,6 +260,7 @@ export function useGameState() {
       setLifelineState((prev) => ({
         ...prev,
         capitalUsedOnCurrentRound: false,
+        fiftyFiftyUsedOnCurrentRound: false,
         hiddenOptionIndices: [],
         activeHintText: null,
       }));
@@ -304,22 +308,49 @@ export function useGameState() {
   }, [lifelineState.capitalCredits, lifelineState.capitalUsedOnCurrentRound, currentRound, isResolving, isPaused, playLifeline]);
 
   const onUseFiftyFifty = useCallback(() => {
-    if (lifelineState.fiftyFiftyUsed || !currentRound || isResolving || isPaused) return;
+    if (
+      lifelineState.fiftyFiftyCredits <= 0 ||
+      lifelineState.fiftyFiftyUsedOnCurrentRound ||
+      !currentRound ||
+      isResolving ||
+      isPaused
+    ) {
+      return;
+    }
     playLifeline();
+
     const wrongIndices = currentRound.options
       .map((opt, idx) => (!opt.isCorrect ? idx : -1))
       .filter((idx) => idx !== -1);
 
-    const countToRemove = Math.max(1, Math.floor(wrongIndices.length / 2));
-    const toHide = wrongIndices.slice(0, countToRemove);
+    // Eliminate half of the total choices:
+    // With 4 choices (1 correct, 3 wrong), eliminate 2 wrong choices (leaving 1 correct and 1 wrong -> 50/50).
+    const totalOptions = currentRound.options.length;
+    const countToRemove = Math.min(
+      wrongIndices.length,
+      Math.max(1, Math.floor(totalOptions / 2))
+    );
+
+    // Shuffle wrong choices so eliminated options are randomized
+    const shuffledWrong = [...wrongIndices].sort(() => Math.random() - 0.5);
+    const toHide = shuffledWrong.slice(0, countToRemove);
 
     setLifelineState((prev) => ({
       ...prev,
+      fiftyFiftyCredits: Math.max(0, prev.fiftyFiftyCredits - 1),
+      fiftyFiftyUsedOnCurrentRound: true,
       fiftyFiftyUsed: true,
       hiddenOptionIndices: toHide,
-      activeHintText: '✂️ 50/50: Removed half of the incorrect choices!',
+      activeHintText: `✂️ 50/50: Eliminated half of the choices! (${Math.max(0, prev.fiftyFiftyCredits - 1)} left)`,
     }));
-  }, [lifelineState.fiftyFiftyUsed, currentRound, isResolving, isPaused, playLifeline]);
+  }, [
+    lifelineState.fiftyFiftyCredits,
+    lifelineState.fiftyFiftyUsedOnCurrentRound,
+    currentRound,
+    isResolving,
+    isPaused,
+    playLifeline,
+  ]);
 
   // Reset Score & Mastery
   const resetScore = useCallback((promptNewName: boolean = false) => {
@@ -598,17 +629,24 @@ export function useGameState() {
         playStreakMilestone();
         triggerConfetti(false);
 
-        // Award +1 Capital Clue Credit
-        setLifelineState((prev) => ({
-          ...prev,
-          capitalCredits: prev.capitalCredits + 1,
-        }));
-
         const isGlobe = settingsRef.current.gameMode === 'globe';
-        const streakNotice = isGlobe
-          ? `🔥 ${nextStreak} Conquered in a Row! • +1 Capital Clue Credit 🏛️`
-          : `🔥 Streak ${nextStreak}! • +1 Capital Clue Credit 🏛️`;
-        setLevelUpNotice(streakNotice);
+
+        if (isGlobe) {
+          // Award +1 Capital Clue Credit in Globe mode
+          setLifelineState((prev) => ({
+            ...prev,
+            capitalCredits: prev.capitalCredits + 1,
+          }));
+          setLevelUpNotice(`🔥 ${nextStreak} Conquered in a Row! • +1 Capital Clue Credit 🏛️`);
+        } else {
+          // For flag-to-name and name-to-flag: Award +1 to Atlas lifelines (both 50/50 and Capital)
+          setLifelineState((prev) => ({
+            ...prev,
+            capitalCredits: prev.capitalCredits + 1,
+            fiftyFiftyCredits: prev.fiftyFiftyCredits + 1,
+          }));
+          setLevelUpNotice(`🔥 Streak ${nextStreak}! • +1 Atlas Credits (50/50 ✂️ & Capital 🏛️)`);
+        }
         setTimeout(() => setLevelUpNotice(null), 3200);
       } else if (!isCorrect && prevScore.currentStreak >= 5) {
         const isGlobe = settingsRef.current.gameMode === 'globe';
