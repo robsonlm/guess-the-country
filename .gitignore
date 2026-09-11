@@ -8,3 +8,10 @@ Thumbs.db
 
 styles/*.css.map
 *.tsbuildinfo
+
+# Environment variables & secret keys
+.env
+.env.local
+.env.*.local
+*.local
+scripts/clear-firestore.js

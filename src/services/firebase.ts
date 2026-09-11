@@ -24,11 +24,11 @@ import { LeaderboardEntry } from './leaderboard';
  */
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'guess-the-country-7d719.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'guess-the-country-7d719',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'guess-the-country-7d719.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '218564015880',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:218564015880:web:a507448942db60c0095ebd',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
 };
 
 /**
