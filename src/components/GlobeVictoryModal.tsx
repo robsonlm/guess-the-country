@@ -1,14 +1,32 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
-import { Globe, RefreshCw, Eye } from 'lucide-react';
+import {
+  Globe,
+  RefreshCw,
+  Eye,
+  Trophy,
+  Send,
+  CheckCircle2,
+} from 'lucide-react';
+import { ContinentFilter } from '../types/game';
+import {
+  getLastPlayerName,
+  addLeaderboardEntry,
+  LeaderboardPlacementResult,
+  formatTimeElapsed,
+} from '../services/leaderboard';
 
 interface GlobeVictoryModalProps {
   isOpen: boolean;
   conqueredCount: number;
   totalCountries: number;
   mistakesCount: number;
+  timeElapsedSeconds?: number;
+  bestStreak?: number;
+  continentFilter?: ContinentFilter;
   onPlayAgain: () => void;
   onExplore: () => void;
+  onOpenLeaderboard?: (entryId?: string) => void;
 }
 
 export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
@@ -16,9 +34,17 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
   conqueredCount,
   totalCountries,
   mistakesCount,
+  timeElapsedSeconds = 0,
+  bestStreak = 0,
+  continentFilter = 'all',
   onPlayAgain,
   onExplore,
+  onOpenLeaderboard,
 }) => {
+  const [playerName, setPlayerName] = useState(getLastPlayerName());
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [placementResult, setPlacementResult] = useState<LeaderboardPlacementResult | null>(null);
+
   useEffect(() => {
     if (isOpen) {
       try {
@@ -62,22 +88,44 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
     rankColor = '#818cf8';
   }
 
+  const handleLeaderboardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitted) return;
+
+    const result = addLeaderboardEntry({
+      playerName: playerName.trim() || 'World Explorer',
+      gameMode: 'globe',
+      continentFilter,
+      totalCountries,
+      conqueredCount,
+      mistakesCount,
+      accuracy,
+      timeElapsedSeconds,
+      bestStreak: Math.max(bestStreak, conqueredCount),
+    });
+
+    setPlacementResult(result);
+    setIsSubmitted(true);
+  };
+
   return (
     <div className="modal-overlay fade-in" style={{ zIndex: 100 }} role="dialog" aria-modal="true">
       <div
         className="modal-content victory-content"
         style={{
-          maxWidth: '520px',
+          maxWidth: '540px',
           textAlign: 'center',
           borderColor: 'rgba(42, 157, 143, 0.6)',
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(42, 157, 143, 0.3)',
+          maxHeight: '92vh',
+          overflowY: 'auto',
         }}
       >
-        <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: '0.75rem' }}>
           <div
             style={{
-              width: '72px',
-              height: '72px',
+              width: '64px',
+              height: '64px',
               borderRadius: '50%',
               background: 'radial-gradient(circle, rgba(42,157,143,0.3) 0%, rgba(13,22,38,0.8) 100%)',
               border: '2px solid #2a9d8f',
@@ -87,15 +135,15 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
               boxShadow: '0 0 25px rgba(42,157,143,0.5)',
             }}
           >
-            <Globe size={38} style={{ color: '#48cae4' }} />
+            <Globe size={32} style={{ color: '#48cae4' }} />
           </div>
         </div>
 
-        <h2 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.35rem' }}>
+        <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.2rem' }}>
           Entire Globe Conquered!
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-          You have successfully identified every sovereign territory and country across Planet Earth!
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '1rem' }}>
+          You have successfully identified every territory across Planet Earth!
         </p>
 
         {/* Rank Showcase */}
@@ -103,19 +151,19 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
           style={{
             background: 'rgba(255, 255, 255, 0.04)',
             border: `1px solid ${rankColor}`,
-            borderRadius: '12px',
-            padding: '1rem',
-            marginBottom: '1.5rem',
+            borderRadius: '10px',
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '1.25rem',
-            boxShadow: `0 0 20px ${rankColor}33`,
+            gap: '1rem',
+            boxShadow: `0 0 16px ${rankColor}33`,
           }}
         >
           <div
             style={{
-              fontSize: '2.5rem',
+              fontSize: '2.2rem',
               fontWeight: 900,
               color: rankColor,
               lineHeight: 1,
@@ -124,10 +172,10 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
             {rank}
           </div>
           <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)' }}>
+            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-dim)' }}>
               Cartographer Rank
             </div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{rankTitle}</div>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>{rankTitle}</div>
           </div>
         </div>
 
@@ -135,77 +183,126 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '0.75rem',
-            marginBottom: '1.75rem',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '0.5rem',
+            marginBottom: '1rem',
           }}
         >
-          <div
-            style={{
-              background: 'var(--bg-glass)',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              padding: '0.75rem 0.5rem',
-            }}
-          >
-            <div style={{ color: '#48cae4', fontWeight: 800, fontSize: '1.2rem' }}>
-              {conqueredCount} / {totalCountries}
+          <div className="victory-stat-box-mini">
+            <div style={{ color: '#48cae4', fontWeight: 800, fontSize: '1.1rem' }}>
+              {conqueredCount}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Conquered</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Conquered</div>
           </div>
 
-          <div
-            style={{
-              background: 'var(--bg-glass)',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              padding: '0.75rem 0.5rem',
-            }}
-          >
+          <div className="victory-stat-box-mini">
             <div
               style={{
                 color: mistakesCount === 0 ? '#10b981' : '#f87171',
                 fontWeight: 800,
-                fontSize: '1.3rem',
+                fontSize: '1.1rem',
               }}
             >
               {mistakesCount}
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Mistakes</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Mistakes</div>
           </div>
 
-          <div
-            style={{
-              background: 'var(--bg-glass)',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              padding: '0.75rem 0.5rem',
-            }}
-          >
-            <div style={{ color: '#ffd166', fontWeight: 800, fontSize: '1.3rem' }}>
+          <div className="victory-stat-box-mini">
+            <div style={{ color: '#ffd166', fontWeight: 800, fontSize: '1.1rem' }}>
               {accuracy}%
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Accuracy</div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Accuracy</div>
+          </div>
+
+          <div className="victory-stat-box-mini">
+            <div style={{ color: '#38bdf8', fontWeight: 800, fontSize: '1.1rem', fontFamily: 'monospace' }}>
+              {formatTimeElapsed(timeElapsedSeconds)}
+            </div>
+            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Time</div>
           </div>
         </div>
 
+        {/* Claim Spot on Leaderboard Box */}
+        <div className="leaderboard-claim-box">
+          {!isSubmitted ? (
+            <form onSubmit={handleLeaderboardSubmit} className="leaderboard-claim-form">
+              <div className="leaderboard-claim-header">
+                <Trophy size={16} style={{ color: '#ffd166' }} />
+                <span>Submit Score to Global Leaderboard</span>
+              </div>
+              <div className="leaderboard-input-row">
+                <input
+                  type="text"
+                  className="leaderboard-name-input"
+                  placeholder="Enter your explorer name..."
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  maxLength={24}
+                  required
+                />
+                <button type="submit" className="btn-primary" style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem' }}>
+                  <Send size={13} />
+                  <span>Submit</span>
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="leaderboard-submitted-badge fade-in">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#10b981', fontWeight: 700, fontSize: '0.9rem' }}>
+                <CheckCircle2 size={16} />
+                <span>Score Registered to Leaderboard!</span>
+              </div>
+
+              {placementResult && (
+                <div className="leaderboard-placements-grid">
+                  <div className="placement-pill">
+                    <span className="placement-label">⚡ Speedrun:</span>
+                    <strong className="placement-value">#{placementResult.fastestRank}</strong>
+                  </div>
+                  <div className="placement-pill">
+                    <span className="placement-label">🎯 Least Errors:</span>
+                    <strong className="placement-value">#{placementResult.leastMistakesRank}</strong>
+                  </div>
+                  <div className="placement-pill">
+                    <span className="placement-label">🏆 Overall:</span>
+                    <strong className="placement-value">#{placementResult.overallRank}</strong>
+                  </div>
+                </div>
+              )}
+
+              {onOpenLeaderboard && (
+                <button
+                  type="button"
+                  className="action-btn"
+                  onClick={() => onOpenLeaderboard(placementResult?.entry.id)}
+                  style={{ marginTop: '0.5rem', width: '100%', fontSize: '0.82rem', padding: '6px 12px' }}
+                >
+                  <Trophy size={14} style={{ color: '#ffd166' }} />
+                  <span>View Your Rank on Leaderboard</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center', marginTop: '1rem' }}>
           <button
             type="button"
             className="action-btn"
             onClick={onExplore}
-            style={{ flex: 1, padding: '0.75rem' }}
+            style={{ flex: 1, padding: '0.65rem', fontSize: '0.85rem' }}
           >
-            <Eye size={16} /> Explore Globe
+            <Eye size={15} /> Explore Globe
           </button>
           <button
             type="button"
             className="btn-primary"
             onClick={onPlayAgain}
-            style={{ flex: 1, padding: '0.75rem' }}
+            style={{ flex: 1, padding: '0.65rem', fontSize: '0.85rem' }}
           >
-            <RefreshCw size={16} /> New Expedition
+            <RefreshCw size={15} /> New Expedition
           </button>
         </div>
       </div>

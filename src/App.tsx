@@ -14,6 +14,7 @@ import { VictoryModal } from './components/VictoryModal';
 import { GlobeVictoryModal } from './components/GlobeVictoryModal';
 import { GlobeGameView } from './components/GlobeGameView';
 import { AchievementsModal } from './components/AchievementsModal';
+import { LeaderboardModal } from './components/LeaderboardModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PauseModal } from './components/PauseModal';
 import './styles/App.css';
@@ -22,6 +23,8 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAchievementsOpen, setIsAchievementsOpen] = useState(false);
   const [isGlobeExploreOpen, setIsGlobeExploreOpen] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [recentLeaderboardEntryId, setRecentLeaderboardEntryId] = useState<string | null>(null);
 
   const {
     settings,
@@ -43,6 +46,7 @@ export function App() {
     levelUpNotice,
     lifelineState,
     timeLeft,
+    gameElapsedSeconds,
     maxTime,
     localInfo,
     handleChoice,
@@ -66,6 +70,11 @@ export function App() {
     updateSettings({ gameMode: nextMode });
   };
 
+  const handleOpenLeaderboard = (entryId?: string) => {
+    setRecentLeaderboardEntryId(entryId || null);
+    setIsLeaderboardOpen(true);
+  };
+
   const unlockedCount = achievements.filter((a) => a.unlockedAt !== null).length;
 
   return (
@@ -78,6 +87,7 @@ export function App() {
         onToggleSound={handleToggleSound}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onToggleMode={handleToggleMode}
+        onOpenLeaderboard={() => handleOpenLeaderboard()}
       />
 
       {/* Achievement Unlocked Toast Notification */}
@@ -229,28 +239,46 @@ export function App() {
       {/* 3-Consecutive-Timeout Pause Modal */}
       <PauseModal isOpen={isPaused} onResume={resumeGame} />
 
-      {/* Victory Modal when all flags are conquered */}
+      {/* Victory Modal when all flags are conquered (Globe Mode) */}
       {isGameComplete && settings.gameMode === 'globe' && (
         <GlobeVictoryModal
           isOpen={!isGlobeExploreOpen}
           conqueredCount={solvedAlphas.length}
           totalCountries={countries.length}
           mistakesCount={globeMistakes}
+          timeElapsedSeconds={gameElapsedSeconds}
+          bestStreak={score.bestStreak}
+          continentFilter={settings.continentFilter}
           onPlayAgain={() => {
             setIsGlobeExploreOpen(false);
             resetScore();
           }}
           onExplore={() => setIsGlobeExploreOpen(true)}
+          onOpenLeaderboard={handleOpenLeaderboard}
         />
       )}
 
+      {/* Victory Modal when all flags are conquered (Cards Mode) */}
       {isGameComplete && settings.gameMode !== 'globe' && (
         <VictoryModal
           score={score}
           totalCountries={countries.length}
+          timeElapsedSeconds={gameElapsedSeconds}
+          gameMode={settings.gameMode}
+          continentFilter={settings.continentFilter}
           onPlayAgain={resetScore}
+          onOpenLeaderboard={handleOpenLeaderboard}
         />
       )}
+
+      {/* Global Hall of Fame & Leaderboard Modal */}
+      <LeaderboardModal
+        isOpen={isLeaderboardOpen}
+        onClose={() => setIsLeaderboardOpen(false)}
+        recentSubmittedEntryId={recentLeaderboardEntryId}
+        defaultGameMode={settings.gameMode}
+        defaultContinent={settings.continentFilter}
+      />
 
       {/* Trophy Shelf & Achievements Modal */}
       <AchievementsModal

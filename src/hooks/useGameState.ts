@@ -55,11 +55,23 @@ export function useGameState() {
   const [achievementNotice, setAchievementNotice] = useState<Achievement | null>(null);
   const [isGameComplete, setIsGameComplete] = useState<boolean>(false);
   const [lifelineState, setLifelineState] = useState<LifelineState>(INITIAL_LIFELINES);
+  const [gameElapsedSeconds, setGameElapsedSeconds] = useState<number>(0);
 
   // Timer state
   const [timeLeft, setTimeLeft] = useState<number>(settings.timerMode === 'blitz' ? 60 : 10);
   const timerIntervalRef = useRef<any>(null);
   const consecutiveTimeoutsRef = useRef<number>(0);
+
+  // Active gameplay elapsed time ticker
+  useEffect(() => {
+    if (isLoading || isPaused || isGameComplete || !currentRound) return;
+
+    const interval = setInterval(() => {
+      setGameElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isLoading, isPaused, isGameComplete, currentRound]);
 
   // Stable references
   const lastTargetAlphaRef = useRef<string>('');
@@ -309,6 +321,7 @@ export function useGameState() {
     setLifelineState(INITIAL_LIFELINES);
     setIsGameComplete(false);
     setIsPaused(false);
+    setGameElapsedSeconds(0);
     consecutiveTimeoutsRef.current = 0;
 
     if (settingsRef.current.timerMode === 'blitz') setTimeLeft(60);
@@ -352,6 +365,7 @@ export function useGameState() {
           setLifelineState(INITIAL_LIFELINES);
           setIsGameComplete(false);
           setIsPaused(false);
+          setGameElapsedSeconds(0);
           consecutiveTimeoutsRef.current = 0;
 
           if (updated.timerMode === 'blitz') setTimeLeft(60);
@@ -780,6 +794,7 @@ export function useGameState() {
     levelUpNotice,
     lifelineState,
     timeLeft,
+    gameElapsedSeconds,
     maxTime: settings.timerMode === 'blitz' ? 60 : 10,
     localInfo: getLocalDataInfo(),
     handleChoice,

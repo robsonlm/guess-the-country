@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe2, Flame, Volume2, VolumeX, Settings as SettingsIcon, Zap } from 'lucide-react';
+import { Globe2, Flame, Volume2, VolumeX, Settings as SettingsIcon, Zap, Trophy } from 'lucide-react';
 import { UserSettings } from '../types/game';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   onToggleSound: () => void;
   onOpenSettings: () => void;
   onToggleMode?: () => void;
+  onOpenLeaderboard?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSound,
   onOpenSettings,
   onToggleMode,
+  onOpenLeaderboard,
 }) => {
   const isGlobeMode = settings.gameMode === 'globe';
 
@@ -72,6 +74,19 @@ export const Header: React.FC<HeaderProps> = ({
             <Flame size={16} className="streak-flame" />
             <span>{currentStreak}</span>
           </div>
+        )}
+
+        {onOpenLeaderboard && (
+          <button
+            className="icon-btn"
+            onClick={onOpenLeaderboard}
+            title="Global Leaderboards & Hall of Fame"
+            aria-label="Global Leaderboards"
+            type="button"
+            style={{ color: '#ffd166' }}
+          >
+            <Trophy size={18} />
+          </button>
         )}
 
         <button
