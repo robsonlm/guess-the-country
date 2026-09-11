@@ -593,12 +593,18 @@ export function useGameState() {
           capitalCredits: prev.capitalCredits + 1,
         }));
 
-        const nextOptionsCount = Math.min(2 + Math.floor(nextStreak / 5) * 2, 10);
-        const newLvl = 1 + Math.floor(nextStreak / 5);
-        setLevelUpNotice(`🔥 Streak ${nextStreak}! Level ${newLvl} (${nextOptionsCount} choices) • +1 Capital Clue Credit 🏛️`);
+        const isGlobe = settingsRef.current.gameMode === 'globe';
+        const streakNotice = isGlobe
+          ? `🔥 ${nextStreak} Conquered in a Row! • +1 Capital Clue Credit 🏛️`
+          : `🔥 Streak ${nextStreak}! • +1 Capital Clue Credit 🏛️`;
+        setLevelUpNotice(streakNotice);
         setTimeout(() => setLevelUpNotice(null), 3200);
       } else if (!isCorrect && prevScore.currentStreak >= 5) {
-        setLevelUpNotice(`Difficulty reset to 2 choices`);
+        const isGlobe = settingsRef.current.gameMode === 'globe';
+        const resetNotice = isGlobe
+          ? `Streak ended at ${prevScore.currentStreak}. Keep conquering!`
+          : `Streak ended at ${prevScore.currentStreak}. Keep going!`;
+        setLevelUpNotice(resetNotice);
         setTimeout(() => setLevelUpNotice(null), 2500);
       }
 
