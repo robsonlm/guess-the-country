@@ -173,10 +173,44 @@
   color: #ffd166;
 }
 
-/* --- Floating Globe Action Buttons (Focus, Rotate) --- */
+/* --- Floating Globe Action Buttons (Focus, Rotate, Zoom) --- */
 .globe-actions-group {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.globe-zoom-group {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(13, 22, 38, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.globe-zoom-btn {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 7px 10px;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.globe-zoom-btn:last-child {
+  border-right: none;
+}
+
+.island-zoom-btn {
+  background: rgba(247, 127, 0, 0.15);
+  color: #ffd166;
+  font-weight: 700;
+}
+
+.island-zoom-btn:hover {
+  background: rgba(247, 127, 0, 0.35);
+  color: #fff;
 }
 
 .globe-action-btn {
@@ -225,6 +259,36 @@
   z-index: 10;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(42, 157, 143, 0.3);
   pointer-events: none;
+  max-width: 90%;
+}
+
+.globe-island-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(247, 127, 0, 0.25);
+  border: 1px solid rgba(247, 127, 0, 0.6);
+  color: #ffd166;
+  border-radius: 9999px;
+  padding: 3px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  animation: island-glow 2s infinite ease-in-out alternate;
+}
+
+.globe-island-badge:hover {
+  background: rgba(247, 127, 0, 0.45);
+  color: #fff;
+  transform: scale(1.04);
+}
+
+@keyframes island-glow {
+  0% { box-shadow: 0 0 4px rgba(247, 127, 0, 0.2); }
+  100% { box-shadow: 0 0 12px rgba(247, 127, 0, 0.6); }
 }
 
 .pulse-dot {

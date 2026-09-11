@@ -14,9 +14,17 @@ import {
   Send,
   Flag,
   Compass,
+  ZoomIn,
+  ZoomOut,
+  Search,
 } from 'lucide-react';
 import { Country, ChoiceOption, LifelineState, ContinentFilter } from '../types/game';
-import { loadGeoFeatures, getCountryCoordinates, GeoFeature } from '../services/countriesGeo';
+import {
+  loadGeoFeatures,
+  getCountryCoordinates,
+  getCountryZoomProfile,
+  GeoFeature,
+} from '../services/countriesGeo';
 import '../styles/GlobeGame.css';
 
 export const CONTINENT_OPTIONS: { id: ContinentFilter; label: string; icon: string }[] = [
@@ -150,8 +158,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       controls.autoRotateSpeed = 0.8;
       controls.enableDamping = true;
       controls.dampingFactor = 0.1;
-      controls.minDistance = 140;
-      controls.maxDistance = 500;
+      controls.minDistance = 120;
+      controls.maxDistance = 550;
     }
 
     globeInstanceRef.current = globe;
@@ -193,22 +201,24 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       .polygonCapColor((d: any) => {
         const a = (d.alpha2 || '').toUpperCase();
         if (a === activeTargetAlpha) {
-          return 'rgba(247, 127, 0, 0.92)'; // Active focused target: Neon amber gold
+          const profile = getCountryZoomProfile(a);
+          // For small countries/islands, use semi-translucent fill so coastlines & topography stay visible
+          return profile.isSmall ? 'rgba(247, 127, 0, 0.62)' : 'rgba(247, 127, 0, 0.88)';
         }
         if (finalTargetAlphas.has(a)) {
-          return 'rgba(56, 189, 248, 0.85)'; // Other remaining final targets: Neon sky cyan
+          return 'rgba(56, 189, 248, 0.82)'; // Other remaining final targets: Neon sky cyan
         }
         if (conqueredSet.has(a)) {
-          return 'rgba(16, 185, 129, 0.68)'; // Conquered country: Emerald green
+          return 'rgba(16, 185, 129, 0.65)'; // Conquered country: Emerald green
         }
-        return 'rgba(25, 45, 75, 0.45)'; // Default neutral territory
+        return 'rgba(25, 45, 75, 0.42)'; // Default neutral territory
       })
       .polygonSideColor((d: any) => {
         const a = (d.alpha2 || '').toUpperCase();
-        if (a === activeTargetAlpha) return 'rgba(247, 127, 0, 0.55)';
-        if (finalTargetAlphas.has(a)) return 'rgba(56, 189, 248, 0.45)';
-        if (conqueredSet.has(a)) return 'rgba(16, 185, 129, 0.3)';
-        return 'rgba(20, 35, 60, 0.15)';
+        if (a === activeTargetAlpha) return 'rgba(247, 127, 0, 0.45)';
+        if (finalTargetAlphas.has(a)) return 'rgba(56, 189, 248, 0.40)';
+        if (conqueredSet.has(a)) return 'rgba(16, 185, 129, 0.25)';
+        return 'rgba(20, 35, 60, 0.12)';
       })
       .polygonStrokeColor((d: any) => {
         const a = (d.alpha2 || '').toUpperCase();
@@ -219,8 +229,11 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       })
       .polygonAltitude((d: any) => {
         const a = (d.alpha2 || '').toUpperCase();
-        if (a === activeTargetAlpha) return 0.065;
-        if (finalTargetAlphas.has(a)) return 0.045;
+        if (a === activeTargetAlpha) {
+          const profile = getCountryZoomProfile(a);
+          return profile.isSmall ? 0.025 : 0.06;
+        }
+        if (finalTargetAlphas.has(a)) return 0.04;
         if (conqueredSet.has(a)) return 0.015;
         return 0.005;
       });
@@ -230,11 +243,13 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       const rings = finalThreeTargets.map((country) => {
         const coords = getCountryCoordinates(country.alpha2);
         const isActive = country.alpha2.toUpperCase() === activeTargetAlpha;
+        const profile = getCountryZoomProfile(country.alpha2);
+        const maxR = isActive ? profile.ringMaxRadius : Math.max(1.0, profile.ringMaxRadius * 0.7);
         return {
           lat: coords.lat,
           lng: coords.lng,
-          maxR: isActive ? 5.5 : 3.5,
-          propagationSpeed: isActive ? 2.4 : 1.6,
+          maxR,
+          propagationSpeed: isActive ? 2.2 : 1.5,
           repeatPeriod: isActive ? 1000 : 1500,
           color: () => (isActive ? '#f77f00' : '#38bdf8'),
         };
@@ -248,13 +263,14 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         .ringRepeatPeriod('repeatPeriod');
     } else if (targetCountry) {
       const coords = getCountryCoordinates(targetCountry.alpha2);
+      const profile = getCountryZoomProfile(targetCountry.alpha2);
       globe
         .ringsData([
           {
             lat: coords.lat,
             lng: coords.lng,
-            maxR: 4.5,
-            propagationSpeed: 2,
+            maxR: profile.ringMaxRadius,
+            propagationSpeed: profile.isSmall ? 1.4 : 2,
             repeatPeriod: 1200,
             color: () => '#f77f00',
           },
@@ -266,19 +282,22 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     }
   }, [geoFeatures, currentFocusedCountry, targetCountry, conqueredAlphas, isFinalThree, finalThreeTargets, isGlobeReady]);
 
-  // 4. Smooth camera fly-to on target country change
+  // 4. Smooth camera fly-to on target country change with automatic country-adaptive zoom
   const focusTargetCountry = useCallback(
-    (countryToFocus?: Country, duration = 1000) => {
+    (countryToFocus?: Country, duration = 1000, customAltitude?: number) => {
       const globe = globeInstanceRef.current;
       const target = countryToFocus || currentFocusedCountry;
       if (!globe || !target) return;
 
       const coords = getCountryCoordinates(target.alpha2);
+      const profile = getCountryZoomProfile(target.alpha2);
+      const altitude = customAltitude !== undefined ? customAltitude : profile.altitude;
+
       globe.pointOfView(
         {
           lat: coords.lat,
           lng: coords.lng,
-          altitude: 1.85,
+          altitude,
         },
         duration
       );
@@ -302,6 +321,26 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       controls.autoRotate = next;
       setIsAutoRotating(next);
     }
+  };
+
+  // Interactive Zoom actions
+  const handleZoomIn = () => {
+    const globe = globeInstanceRef.current;
+    if (!globe) return;
+    const pov = globe.pointOfView();
+    globe.pointOfView({ ...pov, altitude: Math.max(0.18, pov.altitude * 0.65) }, 400);
+  };
+
+  const handleZoomOut = () => {
+    const globe = globeInstanceRef.current;
+    if (!globe) return;
+    const pov = globe.pointOfView();
+    globe.pointOfView({ ...pov, altitude: Math.min(3.5, pov.altitude * 1.5) }, 400);
+  };
+
+  const handleCloseUpZoom = () => {
+    if (!currentFocusedCountry) return;
+    focusTargetCountry(currentFocusedCountry, 700, 0.28);
   };
 
   // Final 3 flag assignment logic
@@ -450,8 +489,36 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
             )}
           </div>
 
-          {/* Action buttons (Focus country, rotate) */}
+          {/* Action buttons (Focus country, Zoom controls, rotate) */}
           <div className="globe-actions-group">
+            <div className="globe-zoom-group">
+              <button
+                type="button"
+                className="globe-action-btn globe-zoom-btn"
+                onClick={handleZoomIn}
+                title="Zoom in closer (+)"
+              >
+                <ZoomIn size={14} />
+              </button>
+              <button
+                type="button"
+                className="globe-action-btn globe-zoom-btn"
+                onClick={handleZoomOut}
+                title="Zoom out (-)"
+              >
+                <ZoomOut size={14} />
+              </button>
+              <button
+                type="button"
+                className="globe-action-btn globe-zoom-btn island-zoom-btn"
+                onClick={handleCloseUpZoom}
+                title="Macro Close-Up: view island / country shape in high detail"
+              >
+                <Search size={13} />
+                <span>Close-Up</span>
+              </button>
+            </div>
+
             <button
               type="button"
               className="globe-action-btn"
@@ -498,7 +565,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         {/* Target Country Clue Pill at Bottom of Globe */}
         <div className="globe-target-banner">
           <div className="pulse-dot" />
-          <div>
+          <div style={{ flex: 1 }}>
             <div className="globe-target-text">
               {isFinalThree
                 ? `Final ${finalThreeTargets.length} Showdown • Active Target: ${currentFocusedCountry?.name}`
@@ -510,6 +577,17 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               {lifelineState.activeHintText ? ` | ${lifelineState.activeHintText}` : ''}
             </div>
           </div>
+          {currentFocusedCountry && getCountryZoomProfile(currentFocusedCountry.alpha2).isSmall && (
+            <button
+              type="button"
+              className="globe-island-badge"
+              onClick={handleCloseUpZoom}
+              title="Small Island / Micro-State: Auto-zoomed for maximum shape visibility. Click to re-center close-up."
+            >
+              <Search size={11} />
+              <span>Island Zoom Active</span>
+            </button>
+          )}
         </div>
       </div>
 
