@@ -24,7 +24,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   score,
   totalCountries,
   timeElapsedSeconds = 0,
-  gameMode = 'progressive',
+  gameMode = 'flag-to-name',
   continentFilter = 'all',
   onPlayAgain,
   onOpenLeaderboard,

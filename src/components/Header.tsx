@@ -1,11 +1,11 @@
 import React from 'react';
-import { Globe2, Flame, Volume2, VolumeX, Settings as SettingsIcon, Zap, Trophy } from 'lucide-react';
+import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon } from 'lucide-react';
 import { UserSettings } from '../types/game';
 
 interface HeaderProps {
   currentStreak: number;
-  level: number;
-  optionCount: number;
+  level?: number;
+  optionCount?: number;
   settings: UserSettings;
   onToggleSound: () => void;
   onOpenSettings: () => void;
@@ -15,8 +15,6 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentStreak,
-  level,
-  optionCount,
   settings,
   onToggleSound,
   onOpenSettings,
@@ -24,6 +22,21 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenLeaderboard,
 }) => {
   const isGlobeMode = settings.gameMode === 'globe';
+
+  const getModeButtonInfo = () => {
+    switch (settings.gameMode) {
+      case 'globe':
+        return { label: '🌍 3D Globe', title: 'Mode: 3D Earth Globe (Click to switch to Flag ➔ Name)' };
+      case 'flag-to-name':
+        return { label: '🏁 Flag ➔ Name', title: 'Mode: Flag ➔ Name (Click to switch to Name ➔ Flag)' };
+      case 'name-to-flag':
+        return { label: '🔤 Name ➔ Flag', title: 'Mode: Name ➔ Flag (Click to switch to 3D Globe)' };
+      default:
+        return { label: '🌍 3D Globe', title: 'Switch mode' };
+    }
+  };
+
+  const modeInfo = getModeButtonInfo();
 
   return (
     <header className="app-header">
@@ -42,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             className={`action-btn ${isGlobeMode ? 'active' : ''}`}
             onClick={onToggleMode}
-            title={isGlobeMode ? 'Switch to Classic Cards Mode' : 'Switch to 3D Globe Mode'}
+            title={modeInfo.title}
             style={{
               fontSize: '0.82rem',
               fontWeight: 700,
@@ -53,17 +66,8 @@ export const Header: React.FC<HeaderProps> = ({
               color: isGlobeMode ? '#48cae4' : 'var(--text)',
             }}
           >
-            {isGlobeMode ? '🌍 3D Globe' : '🎴 Cards'}
+            {modeInfo.label}
           </button>
-        )}
-        {settings.gameMode === 'progressive' && (
-          <div
-            className="level-badge"
-            title={`Level ${level}: ${optionCount} country choices`}
-          >
-            <Zap size={13} style={{ color: '#818cf8' }} />
-            <span>Lvl {level} ({optionCount})</span>
-          </div>
         )}
 
         {currentStreak > 0 && (

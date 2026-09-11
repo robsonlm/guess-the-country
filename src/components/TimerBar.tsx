@@ -1,5 +1,5 @@
 import React from 'react';
-import { Timer, Zap } from 'lucide-react';
+import { Timer } from 'lucide-react';
 import { TimerMode } from '../types/game';
 
 interface TimerBarProps {
@@ -9,17 +9,17 @@ interface TimerBarProps {
 }
 
 export const TimerBar: React.FC<TimerBarProps> = ({ timerMode, timeLeft, maxTime }) => {
-  if (timerMode === 'none') return null;
+  if (timerMode === 'relaxed') return null;
 
-  const percentage = Math.max(0, Math.min(100, (timeLeft / maxTime) * 100));
-  const isCritical = timeLeft <= 3 || (timerMode === 'blitz' && timeLeft <= 10);
+  const percentage = Math.max(0, Math.min(100, (timeLeft / (maxTime || 10)) * 100));
+  const isCritical = timeLeft <= 3;
 
   return (
     <div className={`timer-bar-container ${isCritical ? 'critical' : ''}`}>
       <div className="timer-info-row">
         <div className="timer-label">
-          {timerMode === 'blitz' ? <Zap size={14} className="timer-icon" /> : <Timer size={14} className="timer-icon" />}
-          <span>{timerMode === 'blitz' ? 'Blitz 60s Mode' : 'Flag Timer'}</span>
+          <Timer size={14} className="timer-icon" />
+          <span>10s Speed Timer</span>
         </div>
         <span className="timer-digits">{timeLeft}s</span>
       </div>

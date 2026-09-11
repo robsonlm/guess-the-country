@@ -42,9 +42,8 @@ const CATEGORIES: { id: LeaderboardCategory; label: string; icon: React.ReactNod
 const GAME_MODES: { id: GameMode | 'all'; label: string; icon: string }[] = [
   { id: 'all', label: 'All Modes', icon: '🌐' },
   { id: 'globe', label: '3D Globe', icon: '🌍' },
-  { id: 'progressive', label: 'Progressive', icon: '⚡' },
-  { id: 'classic', label: 'Classic', icon: '🎴' },
-  { id: 'challenger', label: 'Challenger', icon: '⚔️' },
+  { id: 'flag-to-name', label: 'Flag ➔ Name', icon: '🏁' },
+  { id: 'name-to-flag', label: 'Name ➔ Flag', icon: '🔤' },
 ];
 
 const CONTINENT_FILTERS: { id: ContinentFilter | 'all'; label: string }[] = [
@@ -119,12 +118,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     switch (mode) {
       case 'globe':
         return '🌍 3D Globe';
-      case 'progressive':
-        return '⚡ Progressive';
-      case 'classic':
-        return '🎴 Classic';
-      case 'challenger':
-        return '⚔️ Challenger';
+      case 'flag-to-name':
+        return '🏁 Flag ➔ Name';
+      case 'name-to-flag':
+        return '🔤 Name ➔ Flag';
       default:
         return mode;
     }

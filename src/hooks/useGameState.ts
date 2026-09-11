@@ -58,8 +58,8 @@ export function useGameState() {
   const [lifelineState, setLifelineState] = useState<LifelineState>(INITIAL_LIFELINES);
   const [gameElapsedSeconds, setGameElapsedSeconds] = useState<number>(0);
 
-  // Timer state
-  const [timeLeft, setTimeLeft] = useState<number>(settings.timerMode === 'blitz' ? 60 : 10);
+  // Timer state (10s per flag in 'timed' mode, untimed in 'relaxed')
+  const [timeLeft, setTimeLeft] = useState<number>(settings.timerMode === 'timed' ? 10 : 0);
   const timerIntervalRef = useRef<any>(null);
   const consecutiveTimeoutsRef = useRef<number>(0);
 
@@ -100,13 +100,10 @@ export function useGameState() {
     img.src = url;
   };
 
-  const calculateDifficulty = (mode: GameMode, streak: number) => {
+  const calculateDifficulty = (mode: GameMode) => {
     if (mode === 'globe') return { optionCount: 3, level: 1 };
-    if (mode === 'classic') return { optionCount: 2, level: 1 };
-    if (mode === 'challenger') return { optionCount: 4, level: 2 };
-    const level = 1 + Math.floor(streak / 5);
-    const optionCount = Math.min(2 + Math.floor(streak / 5) * 2, 10);
-    return { optionCount, level };
+    // For 'flag-to-name' and 'name-to-flag', standard 4 options
+    return { optionCount: 4, level: 1 };
   };
 
   // Generate round
@@ -114,7 +111,7 @@ export function useGameState() {
     (
       countryList: Country[],
       currentSettings: UserSettings,
-      streak: number,
+      _streak: number,
       solvedList: string[]
     ) => {
       if (!countryList || countryList.length === 0) return;
@@ -139,15 +136,11 @@ export function useGameState() {
       }
 
       setIsGameComplete(false);
-      const { optionCount, level } = calculateDifficulty(currentSettings.gameMode, streak);
+      const { optionCount, level } = calculateDifficulty(currentSettings.gameMode);
 
-      // Determine question style
-      let qType: 'flag-to-name' | 'name-to-flag' = 'flag-to-name';
-      if (currentSettings.questionType === 'name-to-flag') {
-        qType = 'name-to-flag';
-      } else if (currentSettings.questionType === 'mixed') {
-        qType = Math.random() > 0.5 ? 'flag-to-name' : 'name-to-flag';
-      }
+      // Determine question style directly from the 3 game modes
+      const qType: 'flag-to-name' | 'name-to-flag' =
+        currentSettings.gameMode === 'name-to-flag' ? 'name-to-flag' : 'flag-to-name';
 
       // Special Globe Mode Final 3 Showdown condition (when 3 or fewer countries remain)
       if (currentSettings.gameMode === 'globe' && unsolvedPool.length <= 3) {
@@ -173,8 +166,10 @@ export function useGameState() {
           activeHintText: null,
         }));
 
-        if (currentSettings.timerMode === 'per-question') {
+        if (currentSettings.timerMode === 'timed') {
           setTimeLeft(10);
+        } else {
+          setTimeLeft(0);
         }
 
         setCurrentRound({
@@ -259,8 +254,10 @@ export function useGameState() {
       }));
 
       // Reset per-question timer
-      if (currentSettings.timerMode === 'per-question') {
+      if (currentSettings.timerMode === 'timed') {
         setTimeLeft(10);
+      } else {
+        setTimeLeft(0);
       }
 
       setCurrentRound({
@@ -336,15 +333,15 @@ export function useGameState() {
     setGameElapsedSeconds(0);
     consecutiveTimeoutsRef.current = 0;
 
-    if (settingsRef.current.timerMode === 'blitz') setTimeLeft(60);
-    else if (settingsRef.current.timerMode === 'per-question') setTimeLeft(10);
+    if (settingsRef.current.timerMode === 'timed') setTimeLeft(10);
+    else setTimeLeft(0);
 
     if (countriesRef.current.length > 0) {
       generateRound(countriesRef.current, settingsRef.current, 0, []);
     }
   }, [generateRound]);
 
-  // Update Settings: restarts game from 0 if game type / mode / format / timer changed
+  // Update Settings: restarts game from 0 if game mode / timer / continent changed
   const updateSettings = useCallback(
     (newSettings: Partial<UserSettings>) => {
       setSettingsState((prev) => {
@@ -358,7 +355,6 @@ export function useGameState() {
 
         const gameTypeChanged =
           (newSettings.gameMode !== undefined && newSettings.gameMode !== prev.gameMode) ||
-          (newSettings.questionType !== undefined && newSettings.questionType !== prev.questionType) ||
           (newSettings.timerMode !== undefined && newSettings.timerMode !== prev.timerMode) ||
           (newSettings.continentFilter !== undefined && newSettings.continentFilter !== prev.continentFilter);
 
@@ -372,7 +368,7 @@ export function useGameState() {
           setGlobeMistakes(0);
           saveGlobeMistakes(0);
           setLastAnswer(null);
-          setLevelUpNotice('🔄 Game restarted from 0 for the new game mode.');
+          setLevelUpNotice('🔄 Game restarted from 0 for the selected settings.');
           setTimeout(() => setLevelUpNotice(null), 3000);
           setLifelineState(INITIAL_LIFELINES);
           setIsGameComplete(false);
@@ -380,16 +376,15 @@ export function useGameState() {
           setGameElapsedSeconds(0);
           consecutiveTimeoutsRef.current = 0;
 
-          if (updated.timerMode === 'blitz') setTimeLeft(60);
-          else if (updated.timerMode === 'per-question') setTimeLeft(10);
+          if (updated.timerMode === 'timed') setTimeLeft(10);
           else setTimeLeft(0);
 
           if (countriesRef.current.length > 0) {
             generateRound(countriesRef.current, updated, 0, []);
           }
         } else {
-          if (updated.timerMode === 'blitz') setTimeLeft(60);
-          else if (updated.timerMode === 'per-question') setTimeLeft(10);
+          if (updated.timerMode === 'timed') setTimeLeft(10);
+          else setTimeLeft(0);
 
           generateRound(
             countriesRef.current,
@@ -411,8 +406,8 @@ export function useGameState() {
     consecutiveTimeoutsRef.current = 0;
     setIsResolving(false);
     setSelectedOptionIndex(null);
-    if (settingsRef.current.timerMode === 'blitz') setTimeLeft(60);
-    else if (settingsRef.current.timerMode === 'per-question') setTimeLeft(10);
+    if (settingsRef.current.timerMode === 'timed') setTimeLeft(10);
+    else setTimeLeft(0);
 
     generateRound(
       countriesRef.current,
@@ -672,9 +667,9 @@ export function useGameState() {
     }, 700);
   }, [currentRound, isPaused, playWrong, generateRound]);
 
-  // Timer countdown hook
+  // Timer countdown hook (10s per flag in 'timed' mode)
   useEffect(() => {
-    if (settings.timerMode === 'none' || isGameComplete || isLoading || isPaused) {
+    if (settings.timerMode === 'relaxed' || isGameComplete || isLoading || isPaused) {
       clearInterval(timerIntervalRef.current);
       return;
     }
@@ -684,15 +679,9 @@ export function useGameState() {
     timerIntervalRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          if (settings.timerMode === 'blitz') {
-            clearInterval(timerIntervalRef.current);
-            setIsGameComplete(true);
-            return 0;
-          } else {
-            // Per-question timer expired
-            handleTimeout();
-            return 10;
-          }
+          // 10s timer expired
+          handleTimeout();
+          return 10;
         }
         return prev - 1;
       });
@@ -832,7 +821,7 @@ export function useGameState() {
     lifelineState,
     timeLeft,
     gameElapsedSeconds,
-    maxTime: settings.timerMode === 'blitz' ? 60 : 10,
+    maxTime: 10,
     localInfo: getLocalDataInfo(),
     handleChoice,
     handleFinalThreeSubmit,

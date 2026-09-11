@@ -16,16 +16,14 @@ export interface GameScore {
   bestStreak: number;
 }
 
-export type GameMode = 'globe' | 'progressive' | 'classic' | 'challenger';
-export type QuestionType = 'flag-to-name' | 'name-to-flag' | 'mixed';
-export type TimerMode = 'none' | 'blitz' | 'per-question'; // none = untimed, blitz = 60s total, per-question = 10s per flag
+export type GameMode = 'globe' | 'flag-to-name' | 'name-to-flag';
+export type TimerMode = 'timed' | 'relaxed'; // timed = 10s per flag, relaxed = untimed
 export type ThemeMode = 'deep-space' | 'cyberpunk' | 'vintage-atlas' | 'emerald-forest';
 export type ContinentFilter = 'all' | 'Africa' | 'Americas' | 'Asia' | 'Europe' | 'Oceania';
 
 export interface UserSettings {
   soundEnabled: boolean;
   gameMode: GameMode;
-  questionType: QuestionType;
   timerMode: TimerMode;
   theme: ThemeMode;
   continentFilter: ContinentFilter;

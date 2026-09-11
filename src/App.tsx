@@ -66,7 +66,10 @@ export function App() {
   };
 
   const handleToggleMode = () => {
-    const nextMode = settings.gameMode === 'globe' ? 'progressive' : 'globe';
+    let nextMode: 'globe' | 'flag-to-name' | 'name-to-flag' = 'globe';
+    if (settings.gameMode === 'globe') nextMode = 'flag-to-name';
+    else if (settings.gameMode === 'flag-to-name') nextMode = 'name-to-flag';
+    else nextMode = 'globe';
     updateSettings({ gameMode: nextMode });
   };
 
@@ -144,8 +147,8 @@ export function App() {
       {/* Active gameplay workspace */}
       {!isLoading && currentRound && !isGameComplete && (
         <main className="game-workspace">
-          {/* Active Timer Bar in Blitz or Per-question modes */}
-          {settings.timerMode !== 'none' && (
+          {/* Active Timer Bar in 10s Timed mode */}
+          {settings.timerMode !== 'relaxed' && (
             <TimerBar timerMode={settings.timerMode} timeLeft={timeLeft} maxTime={maxTime} />
           )}
 

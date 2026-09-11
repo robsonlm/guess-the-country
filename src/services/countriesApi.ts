@@ -1,4 +1,4 @@
-import { Country, GameScore, UserSettings } from '../types/game';
+import { Country, GameScore, UserSettings, GameMode, TimerMode } from '../types/game';
 import BUNDLED_COUNTRIES from '../data/countriesData.json';
 
 export const STORAGE_KEYS = {
@@ -20,11 +20,24 @@ export function loadSettings(): UserSettings {
     const raw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
     if (raw) {
       const parsed = JSON.parse(raw);
+      let mode: GameMode = 'globe';
+      if (parsed.gameMode === 'flag-to-name' || parsed.gameMode === 'name-to-flag') {
+        mode = parsed.gameMode;
+      } else if (parsed.questionType === 'name-to-flag') {
+        mode = 'name-to-flag';
+      } else if (parsed.gameMode === 'globe') {
+        mode = 'globe';
+      }
+
+      let timer: TimerMode = 'relaxed';
+      if (parsed.timerMode === 'timed' || parsed.timerMode === 'per-question' || parsed.timerMode === 'blitz') {
+        timer = 'timed';
+      }
+
       return {
         soundEnabled: parsed.soundEnabled ?? true,
-        gameMode: parsed.gameMode || 'globe',
-        questionType: parsed.questionType || 'flag-to-name',
-        timerMode: parsed.timerMode || 'none',
+        gameMode: mode,
+        timerMode: timer,
         theme: parsed.theme || 'deep-space',
         continentFilter: parsed.continentFilter || 'all',
         adminTestMode: parsed.adminTestMode ?? false,
@@ -37,8 +50,7 @@ export function loadSettings(): UserSettings {
   return {
     soundEnabled: true,
     gameMode: 'globe',
-    questionType: 'flag-to-name',
-    timerMode: 'none',
+    timerMode: 'relaxed',
     theme: 'deep-space',
     continentFilter: 'all',
     adminTestMode: false,

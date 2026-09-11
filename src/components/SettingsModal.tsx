@@ -14,7 +14,7 @@ import {
   KeyRound,
   AlertCircle,
 } from 'lucide-react';
-import { UserSettings, GameMode, QuestionType, TimerMode, ThemeMode, ContinentFilter } from '../types/game';
+import { UserSettings, GameMode, TimerMode, ThemeMode, ContinentFilter } from '../types/game';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -53,7 +53,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [gameMode, setGameMode] = useState<GameMode>(settings.gameMode);
-  const [questionType, setQuestionType] = useState<QuestionType>(settings.questionType);
   const [timerMode, setTimerMode] = useState<TimerMode>(settings.timerMode);
   const [theme, setTheme] = useState<ThemeMode>(settings.theme);
   const [continentFilter, setContinentFilter] = useState<ContinentFilter>(settings.continentFilter);
@@ -67,7 +66,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (isOpen) {
       setSoundEnabled(settings.soundEnabled);
       setGameMode(settings.gameMode);
-      setQuestionType(settings.questionType);
       setTimerMode(settings.timerMode);
       setTheme(settings.theme);
       setContinentFilter(settings.continentFilter);
@@ -96,7 +94,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onSaveSettings({
       soundEnabled,
       gameMode,
-      questionType,
       timerMode,
       theme,
       continentFilter,
@@ -155,42 +152,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <form className="modal-body" onSubmit={handleSubmit} style={{ maxHeight: '72vh', overflowY: 'auto' }}>
-          {/* Question Style / Reverse Mode */}
+          {/* Game Mode: Exactly 3 Modes */}
           <div className="form-group">
             <label className="form-label">
-              <Compass size={15} style={{ display: 'inline', marginRight: 5 }} />
-              Trivia Format
+              <Zap size={15} style={{ display: 'inline', marginRight: 5 }} />
+              Game Mode
             </label>
-            <div className="segmented-control">
+            <div className="segmented-control" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <button
                 type="button"
-                className={`segment-btn ${questionType === 'flag-to-name' ? 'active' : ''}`}
-                onClick={() => setQuestionType('flag-to-name')}
+                className={`segment-btn ${gameMode === 'globe' ? 'active' : ''}`}
+                onClick={() => setGameMode('globe')}
               >
-                Flag ➔ Name
+                🌍 3D Globe
               </button>
               <button
                 type="button"
-                className={`segment-btn ${questionType === 'name-to-flag' ? 'active' : ''}`}
-                onClick={() => setQuestionType('name-to-flag')}
+                className={`segment-btn ${gameMode === 'flag-to-name' ? 'active' : ''}`}
+                onClick={() => setGameMode('flag-to-name')}
               >
-                🔄 Name ➔ Flag
+                🏁 Flag ➔ Name
               </button>
               <button
                 type="button"
-                className={`segment-btn ${questionType === 'mixed' ? 'active' : ''}`}
-                onClick={() => setQuestionType('mixed')}
+                className={`segment-btn ${gameMode === 'name-to-flag' ? 'active' : ''}`}
+                onClick={() => setGameMode('name-to-flag')}
               >
-                🔀 Mixed Mode
+                🔤 Name ➔ Flag
               </button>
             </div>
+            <p className="form-help" style={{ marginTop: '0.35rem' }}>
+              {gameMode === 'globe'
+                ? '🌍 3D Globe: Target country territory is highlighted on the 3D Earth globe; pick the matching flag.'
+                : gameMode === 'flag-to-name'
+                ? '🏁 Flag ➔ Name: Inspect the flag image and pick the correct country name from 4 choices.'
+                : '🔤 Name ➔ Flag: Read the country name and pick the correct official national flag from 4 choices.'}
+            </p>
           </div>
 
           {/* Continent / Region Filter */}
           <div className="form-group">
             <label className="form-label">
               <Compass size={15} style={{ display: 'inline', marginRight: 5 }} />
-              Continent / Region Expedition
+              Continent / Scope
             </label>
             <div className="segmented-control" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               {CONTINENTS.map((c) => (
@@ -204,89 +208,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </button>
               ))}
             </div>
-            <p className="form-help" style={{ marginTop: '0.2rem' }}>
+            <p className="form-help" style={{ marginTop: '0.35rem' }}>
               {continentFilter === 'all'
                 ? '🌍 All 197 sovereign countries across Planet Earth.'
-                : `🎯 Focused expedition: Guess flags from ${continentFilter} only.`}
+                : `🎯 Focused expedition: Play flags from ${continentFilter} only.`}
             </p>
           </div>
 
-          {/* Game Progression Mode */}
-          <div className="form-group">
-            <label className="form-label">
-              <Zap size={15} style={{ display: 'inline', marginRight: 5 }} />
-              Game Mode & Choices
-            </label>
-            <div className="segmented-control" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-              <button
-                type="button"
-                className={`segment-btn ${gameMode === 'globe' ? 'active' : ''}`}
-                onClick={() => setGameMode('globe')}
-              >
-                🌍 3D Globe (3)
-              </button>
-              <button
-                type="button"
-                className={`segment-btn ${gameMode === 'progressive' ? 'active' : ''}`}
-                onClick={() => setGameMode('progressive')}
-              >
-                ⚡ Progressive
-              </button>
-              <button
-                type="button"
-                className={`segment-btn ${gameMode === 'classic' ? 'active' : ''}`}
-                onClick={() => setGameMode('classic')}
-              >
-                Classic (2)
-              </button>
-              <button
-                type="button"
-                className={`segment-btn ${gameMode === 'challenger' ? 'active' : ''}`}
-                onClick={() => setGameMode('challenger')}
-              >
-                Challenger (4)
-              </button>
-            </div>
-            <p className="form-help" style={{ marginTop: '0.2rem' }}>
-              {gameMode === 'globe'
-                ? '🌍 3D Earth Globe: Highlighted territory with 3 flag options to conquer with least mistakes.'
-                : gameMode === 'progressive'
-                ? '⚡ Progressive: 2 choices → 4 choices at 5 streak → 6 at 10 streak!'
-                : gameMode === 'classic'
-                ? 'Fixed at 2 country choices per round.'
-                : 'Fixed at 4 country choices per round.'}
-            </p>
-          </div>
-
-          {/* Timer & Speedrun Mode */}
+          {/* Pacing & Timer: 10s Timed or Relaxed */}
           <div className="form-group">
             <label className="form-label">
               <Timer size={15} style={{ display: 'inline', marginRight: 5 }} />
-              Speed & Timer Mode
+              Speed & Timer
             </label>
-            <div className="segmented-control">
+            <div className="segmented-control" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
               <button
                 type="button"
-                className={`segment-btn ${timerMode === 'none' ? 'active' : ''}`}
-                onClick={() => setTimerMode('none')}
+                className={`segment-btn ${timerMode === 'timed' ? 'active' : ''}`}
+                onClick={() => setTimerMode('timed')}
               >
-                Casual (No Timer)
+                ⏱️ 10s Timed
               </button>
               <button
                 type="button"
-                className={`segment-btn ${timerMode === 'blitz' ? 'active' : ''}`}
-                onClick={() => setTimerMode('blitz')}
+                className={`segment-btn ${timerMode === 'relaxed' ? 'active' : ''}`}
+                onClick={() => setTimerMode('relaxed')}
               >
-                ⚡ 60s Blitz
-              </button>
-              <button
-                type="button"
-                className={`segment-btn ${timerMode === 'per-question' ? 'active' : ''}`}
-                onClick={() => setTimerMode('per-question')}
-              >
-                ⏱️ 10s Per Flag
+                ☕ Relaxed (Untimed)
               </button>
             </div>
+            <p className="form-help" style={{ marginTop: '0.35rem' }}>
+              {timerMode === 'timed'
+                ? '⏱️ 10 seconds per question: Speedrun adrenaline challenge!'
+                : '☕ Relaxed mode: No timer countdown, play leisurely at your own pace.'}
+            </p>
           </div>
 
           {/* Theme Selector */}

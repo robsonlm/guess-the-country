@@ -86,7 +86,7 @@ const SEEDED_LEADERBOARD: LeaderboardEntry[] = [
   {
     id: 'seed-4',
     playerName: 'Captain Cook',
-    gameMode: 'progressive',
+    gameMode: 'flag-to-name',
     continentFilter: 'all',
     totalCountries: 197,
     conqueredCount: 197,
@@ -114,7 +114,7 @@ const SEEDED_LEADERBOARD: LeaderboardEntry[] = [
   {
     id: 'seed-6',
     playerName: 'Amelia Air',
-    gameMode: 'classic',
+    gameMode: 'name-to-flag',
     continentFilter: 'Americas',
     totalCountries: 35,
     conqueredCount: 35,
