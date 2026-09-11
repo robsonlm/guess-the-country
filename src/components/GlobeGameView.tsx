@@ -568,8 +568,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
           <div style={{ flex: 1 }}>
             <div className="globe-target-text">
               {isFinalThree
-                ? `Final ${finalThreeTargets.length} Showdown • Active Target: ${currentFocusedCountry?.name}`
-                : `Highlighted Territory: ${currentFocusedCountry?.name || 'On Globe'}`}
+                ? `Final ${finalThreeTargets.length} Showdown • Active Target: Target #${activeTargetIndex + 1}`
+                : 'Highlighted Territory'}
             </div>
             <div className="globe-target-subtext">
               Region: {currentFocusedCountry?.region}
@@ -600,7 +600,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
         <span style={{ fontSize: '0.88rem', color: 'var(--text-muted)', fontWeight: 600 }}>
           {isFinalThree
-            ? `Select and match all ${finalThreeTargets.length} remaining countries at once:`
+            ? `Select and match all ${finalThreeTargets.length} remaining territories to their flags:`
             : 'Choose the correct flag for the highlighted territory:'}
         </span>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -611,7 +611,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               onClick={onUseCapital}
               disabled={isResolving || disabled}
               style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              title={`Reveal capital for ${currentFocusedCountry?.name}`}
+              title="Reveal capital clue"
             >
               <HelpCircle size={13} /> Capital Clue
             </button>
@@ -623,7 +623,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               onClick={onUseRegion}
               disabled={isResolving || disabled}
               style={{ fontSize: '0.78rem', padding: '4px 10px' }}
-              title={`Reveal subregion for ${currentFocusedCountry?.name}`}
+              title="Reveal subregion clue"
             >
               <GlobeIcon size={13} /> Subregion Clue
             </button>
@@ -640,7 +640,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               <span>FINAL {finalThreeTargets.length} CONQUEST</span>
             </div>
             <p className="final-three-instruction">
-              Click a country target card to activate it, then select its matching flag below.
+              Click a target territory card to activate camera, then select its matching flag below.
             </p>
           </div>
 
@@ -683,13 +683,15 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                         setActiveTargetIndex(idx);
                         focusTargetCountry(country, 800);
                       }}
-                      title={`Focus camera on ${country.name}`}
+                      title={`Focus camera on Target #${idx + 1}`}
                     >
                       <Target size={12} />
                     </button>
                   </div>
 
-                  <div className="final-target-name">{country.name}</div>
+                  <div className="final-target-name">
+                    {isValidated ? country.name : `Territory #${idx + 1}`}
+                  </div>
                   <div className="final-target-region">{country.subregion || country.region}</div>
 
                   {/* Assigned Flag Slot Preview */}
@@ -728,12 +730,12 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                       {isCorrect ? (
                         <>
                           <Check size={13} />
-                          <span>Correct</span>
+                          <span>Correct ({country.name})</span>
                         </>
                       ) : (
                         <>
                           <X size={13} />
-                          <span>Mismatch</span>
+                          <span>Mismatch ({country.name})</span>
                         </>
                       )}
                     </div>
@@ -757,6 +759,10 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               if (isAssignedToActive) cardClass = 'assigned-active';
               else if (assignedTarget) cardClass = 'assigned-other';
 
+              const assignedTargetIdx = assignedTarget
+                ? finalThreeTargets.findIndex((t) => t.alpha2 === assignedTarget.alpha2)
+                : -1;
+
               return (
                 <button
                   key={`${option.country.alpha2}-${index}`}
@@ -767,9 +773,9 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                 >
                   <span className="globe-choice-keybadge">[{index + 1}]</span>
 
-                  {assignedTarget && (
+                  {assignedTargetIdx !== -1 && (
                     <span className="globe-assigned-pill">
-                      <Check size={11} /> {assignedTarget.name}
+                      <Check size={11} /> Target #{assignedTargetIdx + 1}
                     </span>
                   )}
 
