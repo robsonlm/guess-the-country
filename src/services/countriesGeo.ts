@@ -299,6 +299,10 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
     return props.ISO_A2.toUpperCase();
   }
 
+  if (props.ISO_A2_EH && props.ISO_A2_EH !== '-99' && props.ISO_A2_EH.length === 2) {
+    return props.ISO_A2_EH.toUpperCase();
+  }
+
   if (props.WB_A2 && props.WB_A2 !== '-99' && props.WB_A2.length === 2) {
     return props.WB_A2.toUpperCase();
   }
@@ -325,24 +329,38 @@ export async function loadGeoFeatures(): Promise<GeoFeature[]> {
   try {
     const base = import.meta.env.BASE_URL || '/';
     const cleanBase = base.endsWith('/') ? base : `${base}/`;
-    const res = await fetch(`${cleanBase}ne_110m_admin_0_countries.geojson`);
+    // High-definition 50m Natural Earth dataset includes detailed polygons for small island nations and micro-states
+    const res = await fetch(`${cleanBase}ne_50m_admin_0_countries.geojson`);
     if (res.ok) {
       geojson = await res.json();
     }
   } catch (err) {
-    console.warn('Local geojson fetch failed, trying fallback CDN:', err);
+    console.warn('Local 50m geojson fetch failed, trying fallbacks:', err);
+  }
+
+  if (!geojson) {
+    try {
+      const base = import.meta.env.BASE_URL || '/';
+      const cleanBase = base.endsWith('/') ? base : `${base}/`;
+      const res = await fetch(`${cleanBase}ne_110m_admin_0_countries.geojson`);
+      if (res.ok) {
+        geojson = await res.json();
+      }
+    } catch {
+      // ignore
+    }
   }
 
   if (!geojson) {
     try {
       const res = await fetch(
-        'https://raw.githubusercontent.com/vasturiano/globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson'
+        'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson'
       );
       if (res.ok) {
         geojson = await res.json();
       }
     } catch (err) {
-      console.error('Remote geojson fetch also failed:', err);
+      console.error('Remote 50m geojson fetch also failed:', err);
     }
   }
 

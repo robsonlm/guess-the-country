@@ -145,8 +145,14 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       .showAtmosphere(true)
       .atmosphereColor('#2a9d8f')
       .atmosphereAltitude(0.22)
-      .globeImageUrl(`${cleanBase}textures/earth-night.jpg`)
-      .bumpImageUrl(`${cleanBase}textures/earth-topology.png`);
+      .globeImageUrl(`${cleanBase}textures/earth-blue-marble.jpg`)
+      .bumpImageUrl(`${cleanBase}textures/earth-topology.png`)
+      .pointLat('lat')
+      .pointLng('lng')
+      .pointColor('color')
+      .pointAltitude('altitude')
+      .pointRadius('radius')
+      .pointResolution(24);
 
     const controls = globe.controls();
     if (controls) {
@@ -227,7 +233,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         return 0.005;
       });
 
-    // Pulsing Rings data
+    // Pulsing Rings & Target Beacons
     if (isFinalThree && finalThreeTargets.length > 0) {
       const rings = finalThreeTargets.map((country) => {
         const coords = getCountryCoordinates(country.alpha2);
@@ -235,10 +241,22 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         return {
           lat: coords.lat,
           lng: coords.lng,
-          maxR: isActive ? 5.5 : 3.5,
-          propagationSpeed: isActive ? 2.2 : 1.5,
+          maxR: isActive ? 6.0 : 3.8,
+          propagationSpeed: isActive ? 2.4 : 1.5,
           repeatPeriod: isActive ? 1000 : 1500,
-          color: () => (isActive ? '#f77f00' : '#38bdf8'),
+          color: () => (isActive ? '#ff9e00' : '#38bdf8'),
+        };
+      });
+
+      const points = finalThreeTargets.map((country) => {
+        const coords = getCountryCoordinates(country.alpha2);
+        const isActive = country.alpha2.toUpperCase() === activeTargetAlpha;
+        return {
+          lat: coords.lat,
+          lng: coords.lng,
+          color: isActive ? '#ffb703' : '#38bdf8',
+          radius: isActive ? 0.45 : 0.28,
+          altitude: 0.05,
         };
       });
 
@@ -247,7 +265,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         .ringColor((t: any) => (typeof t.color === 'function' ? t.color(t) : t.color))
         .ringMaxRadius('maxR')
         .ringPropagationSpeed('propagationSpeed')
-        .ringRepeatPeriod('repeatPeriod');
+        .ringRepeatPeriod('repeatPeriod')
+        .pointsData(points);
     } else if (targetCountry) {
       const coords = getCountryCoordinates(targetCountry.alpha2);
       globe
@@ -255,16 +274,27 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
           {
             lat: coords.lat,
             lng: coords.lng,
-            maxR: 4.5,
-            propagationSpeed: 2,
-            repeatPeriod: 1200,
-            color: () => '#f77f00',
+            maxR: 5.5,
+            propagationSpeed: 2.2,
+            repeatPeriod: 1000,
+            color: () => '#ff9e00',
           },
         ])
         .ringColor((t: any) => (typeof t.color === 'function' ? t.color(t) : t.color))
         .ringMaxRadius('maxR')
         .ringPropagationSpeed('propagationSpeed')
-        .ringRepeatPeriod('repeatPeriod');
+        .ringRepeatPeriod('repeatPeriod')
+        .pointsData([
+          {
+            lat: coords.lat,
+            lng: coords.lng,
+            color: '#ffb703',
+            radius: 0.45,
+            altitude: 0.05,
+          },
+        ]);
+    } else {
+      globe.ringsData([]).pointsData([]);
     }
   }, [geoFeatures, currentFocusedCountry, targetCountry, conqueredAlphas, isFinalThree, finalThreeTargets, isGlobeReady]);
 
