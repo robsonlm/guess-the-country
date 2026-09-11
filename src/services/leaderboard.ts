@@ -293,21 +293,37 @@ export function addLeaderboardEntry(
   const trimmedName = entryData.playerName?.trim() || 'Anonymous Explorer';
   setLastPlayerName(trimmedName);
 
-  const rankBadge = calculateRankBadge(entryData.mistakesCount, entryData.accuracy);
+  // Check for duplicate submission within recent timeframe (last 3 minutes)
+  const existingDuplicate = currentList.find((e) => {
+    const isSamePlayer = e.playerName.trim().toLowerCase() === trimmedName.toLowerCase();
+    const isSameGame =
+      e.gameMode === entryData.gameMode &&
+      e.continentFilter === entryData.continentFilter &&
+      e.timeElapsedSeconds === entryData.timeElapsedSeconds &&
+      e.mistakesCount === entryData.mistakesCount &&
+      e.conqueredCount === entryData.conqueredCount &&
+      e.accuracy === entryData.accuracy;
+    if (!isSamePlayer || !isSameGame) return false;
 
-  const newEntry: LeaderboardEntry = {
+    const diffMs = Math.abs(Date.now() - new Date(e.date).getTime());
+    return diffMs < 180000; // 3 minutes window
+  });
+
+  const entryToRank = existingDuplicate || {
     ...entryData,
     id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     playerName: trimmedName,
     date: new Date().toISOString(),
-    rankBadge,
+    rankBadge: calculateRankBadge(entryData.mistakesCount, entryData.accuracy),
   };
 
-  const updatedList = [newEntry, ...currentList];
-  saveLeaderboard(updatedList);
-
-  // Trigger background cloud sync so all players across the world receive this score
-  pushGlobalLeaderboard(newEntry, updatedList);
+  let updatedList = currentList;
+  if (!existingDuplicate) {
+    updatedList = [entryToRank, ...currentList];
+    saveLeaderboard(updatedList);
+    // Trigger background cloud sync so all players across the world receive this score
+    pushGlobalLeaderboard(entryToRank, updatedList);
+  }
 
   // Compute player's ranks in the relevant category scope
   const sameScopeList = updatedList.filter(
@@ -335,13 +351,13 @@ export function addLeaderboardEntry(
 
   const overallSorted = [...sameScopeList].sort((a, b) => computeOverallScore(b) - computeOverallScore(a));
 
-  const fastestRank = fastestSorted.findIndex((e) => e.id === newEntry.id) + 1;
-  const leastMistakesRank = leastMistakesSorted.findIndex((e) => e.id === newEntry.id) + 1;
-  const highestStreakRank = highestStreakSorted.findIndex((e) => e.id === newEntry.id) + 1;
-  const overallRank = overallSorted.findIndex((e) => e.id === newEntry.id) + 1;
+  const fastestRank = fastestSorted.findIndex((e) => e.id === entryToRank.id) + 1;
+  const leastMistakesRank = leastMistakesSorted.findIndex((e) => e.id === entryToRank.id) + 1;
+  const highestStreakRank = highestStreakSorted.findIndex((e) => e.id === entryToRank.id) + 1;
+  const overallRank = overallSorted.findIndex((e) => e.id === entryToRank.id) + 1;
 
   return {
-    entry: newEntry,
+    entry: entryToRank,
     fastestRank: fastestRank > 0 ? fastestRank : 1,
     leastMistakesRank: leastMistakesRank > 0 ? leastMistakesRank : 1,
     highestStreakRank: highestStreakRank > 0 ? highestStreakRank : 1,

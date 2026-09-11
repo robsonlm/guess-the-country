@@ -23,6 +23,7 @@ import {
   saveSolvedCountryAlphas,
   loadGlobeMistakes,
   saveGlobeMistakes,
+  clearGameProgress,
 } from '../services/countriesApi';
 import { loadAchievements, checkNewAchievements } from '../services/achievements';
 import { getNeighboringCountries } from '../services/countriesGeo';
@@ -319,6 +320,7 @@ export function useGameState() {
 
   // Reset Score & Mastery
   const resetScore = useCallback(() => {
+    clearGameProgress();
     const emptyScore: GameScore = { right: 0, wrong: 0, total: 0, currentStreak: 0, bestStreak: 0 };
     setScore(emptyScore);
     saveScore(emptyScore);
@@ -433,12 +435,37 @@ export function useGameState() {
       const res = await loadCountries();
       setCountries(res.countries);
       setDataSource(res.source);
-      generateRound(
-        res.countries,
-        settingsRef.current,
-        scoreRef.current.currentStreak,
-        solvedAlphasRef.current
-      );
+
+      // Check if previous session was already completed (e.g. user refreshed after victory)
+      const currentSolved = solvedAlphasRef.current;
+      const continent = settingsRef.current.continentFilter;
+      const pool =
+        continent === 'all'
+          ? res.countries
+          : res.countries.filter((c) => c.region === continent);
+      const unsolved = pool.filter((c) => !currentSolved.includes(c.alpha2));
+
+      if (currentSolved.length > 0 && unsolved.length === 0) {
+        // Clear cached progress so the game starts a clean new expedition
+        clearGameProgress();
+        setSolvedAlphas([]);
+        saveSolvedCountryAlphas([]);
+        setGlobeMistakes(0);
+        saveGlobeMistakes(0);
+        const emptyScore: GameScore = { right: 0, wrong: 0, total: 0, currentStreak: 0, bestStreak: 0 };
+        setScore(emptyScore);
+        saveScore(emptyScore);
+        setIsGameComplete(false);
+        setGameElapsedSeconds(0);
+        generateRound(res.countries, settingsRef.current, 0, []);
+      } else {
+        generateRound(
+          res.countries,
+          settingsRef.current,
+          scoreRef.current.currentStreak,
+          solvedAlphasRef.current
+        );
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load local country data');
     } finally {

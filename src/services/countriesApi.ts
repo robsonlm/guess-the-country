@@ -116,6 +116,20 @@ export function saveSolvedCountryAlphas(alphas: string[]): void {
   }
 }
 
+/**
+ * Completely clears active game progress (scores, solved countries, mistakes)
+ * so a completed session never persists or duplicates on refresh.
+ */
+export function clearGameProgress(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.SCORE);
+    localStorage.removeItem(STORAGE_KEYS.SOLVED_COUNTRIES);
+    localStorage.removeItem(STORAGE_KEYS.GLOBE_MISTAKES);
+  } catch {
+    // ignore
+  }
+}
+
 export function getLocalDataInfo(): { count: number; downloadedAt: string | null } {
   return {
     count: (BUNDLED_COUNTRIES as Country[]).length,

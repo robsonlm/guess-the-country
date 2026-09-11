@@ -255,6 +255,7 @@ export function App() {
           }}
           onExplore={() => setIsGlobeExploreOpen(true)}
           onOpenLeaderboard={handleOpenLeaderboard}
+          onSubmitSuccess={resetScore}
         />
       )}
 
@@ -268,6 +269,7 @@ export function App() {
           continentFilter={settings.continentFilter}
           onPlayAgain={resetScore}
           onOpenLeaderboard={handleOpenLeaderboard}
+          onSubmitSuccess={resetScore}
         />
       )}
 

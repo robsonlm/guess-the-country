@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, Send } from 'lucide-react';
-import { GameScore, GameMode, ContinentFilter } from '../types/game';
+import { GameMode, ContinentFilter, GameScore } from '../types/game';
+import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
   addLeaderboardEntry,
@@ -16,6 +17,7 @@ interface VictoryModalProps {
   continentFilter?: ContinentFilter;
   onPlayAgain: () => void;
   onOpenLeaderboard?: (entryId?: string) => void;
+  onSubmitSuccess?: () => void;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -26,6 +28,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   continentFilter = 'all',
   onPlayAgain,
   onOpenLeaderboard,
+  onSubmitSuccess,
 }) => {
   const [playerName, setPlayerName] = useState(getLastPlayerName());
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -37,6 +40,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   const handleLeaderboardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitted) return;
+
+    // 1. Instantly clear browser cached game progress so refresh never re-submits
+    clearGameProgress();
 
     const result = addLeaderboardEntry({
       playerName: playerName.trim() || 'World Master',
@@ -52,6 +58,18 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
     setPlacementResult(result);
     setIsSubmitted(true);
+
+    // 2. Clear parent game state
+    if (onSubmitSuccess) {
+      onSubmitSuccess();
+    }
+
+    // 3. Automatically redirect player to the Leaderboard modal
+    setTimeout(() => {
+      if (onOpenLeaderboard) {
+        onOpenLeaderboard(result.entry.id);
+      }
+    }, 1000);
   };
 
   return (
@@ -132,7 +150,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             <div className="leaderboard-submitted-badge fade-in">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: '#10b981', fontWeight: 700, fontSize: '0.9rem' }}>
                 <CheckCircle2 size={16} />
-                <span>Score Registered to Leaderboard!</span>
+                <span>Score Registered! Opening Leaderboard...</span>
               </div>
 
               {placementResult && (
