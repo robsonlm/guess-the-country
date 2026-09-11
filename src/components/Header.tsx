@@ -1,5 +1,6 @@
-import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck, Home, RotateCcw } from 'lucide-react';
+import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck, Home, RotateCcw, Clock } from 'lucide-react';
 import { UserSettings } from '../types/game';
+import { formatTimeElapsed } from '../services/leaderboard';
 
 interface HeaderProps {
   currentStreak: number;
@@ -7,6 +8,7 @@ interface HeaderProps {
   optionCount?: number;
   settings: UserSettings;
   playerName?: string;
+  gameElapsedSeconds?: number;
   onOpenProfile?: () => void;
   onToggleSound: () => void;
   onOpenSettings: () => void;
@@ -20,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentStreak,
   settings,
   playerName,
+  gameElapsedSeconds,
   onOpenProfile,
   onToggleSound,
   onOpenSettings,
@@ -96,6 +99,17 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
         )}
+
+        {isInGame && typeof gameElapsedSeconds === 'number' && (
+          <div
+            className="header-timer-badge"
+            title={`Elapsed match time: ${formatTimeElapsed(gameElapsedSeconds)} (Pauses when any menu or modal is open)`}
+          >
+            <Clock size={13} className="header-timer-icon" />
+            <span className="header-timer-text">{formatTimeElapsed(gameElapsedSeconds)}</span>
+          </div>
+        )}
+
         {isInGame && onNewGame && (
           <button
             type="button"

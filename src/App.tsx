@@ -30,6 +30,13 @@ export function App() {
   const [isConfirmNewGameOpen, setIsConfirmNewGameOpen] = useState(false);
   const [recentLeaderboardEntryId, setRecentLeaderboardEntryId] = useState<string | null>(null);
 
+  const isAnyModalOpen =
+    isSettingsOpen ||
+    isAchievementsOpen ||
+    isGlobeExploreOpen ||
+    isLeaderboardOpen ||
+    isConfirmNewGameOpen;
+
   const {
     settings,
     score,
@@ -69,7 +76,7 @@ export function App() {
     initCountries,
     onUseCapital,
     onUseFiftyFifty,
-  } = useGameState();
+  } = useGameState(isAnyModalOpen);
 
   const handleToggleSound = () => {
     updateSettings({ soundEnabled: !settings.soundEnabled });
@@ -103,6 +110,7 @@ export function App() {
         optionCount={currentRound?.optionCount ?? 2}
         settings={settings}
         playerName={currentPlayerName}
+        gameElapsedSeconds={gameElapsedSeconds}
         onOpenProfile={openStartModal}
         onToggleSound={handleToggleSound}
         onOpenSettings={() => setIsSettingsOpen(true)}

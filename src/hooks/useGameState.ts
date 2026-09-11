@@ -43,7 +43,7 @@ const INITIAL_LIFELINES: LifelineState = {
   activeHintText: null,
 };
 
-export function useGameState() {
+export function useGameState(isExternalModalOpen: boolean = false) {
   const [settings, setSettingsState] = useState<UserSettings>(loadSettings);
   const [score, setScore] = useState<GameScore>(loadScore);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -69,6 +69,9 @@ export function useGameState() {
   const [isGameStarted, setIsGameStarted] = useState<boolean>(() => getCurrentRoute() === 'play');
   const [isStartModalOpen, setIsStartModalOpen] = useState<boolean>(false);
 
+  // Composite modal active state (any modal pauses timer and gameplay)
+  const isModalActive = isExternalModalOpen || isStartModalOpen || isPaused || isGameComplete;
+
   // Synchronize browser URL navigation (popstate & hashchange)
   useEffect(() => {
     const handleLocationChange = () => {
@@ -93,16 +96,16 @@ export function useGameState() {
   const timerIntervalRef = useRef<any>(null);
   const consecutiveTimeoutsRef = useRef<number>(0);
 
-  // Active gameplay elapsed time ticker (only runs when game has started)
+  // Active gameplay elapsed time ticker (only runs when game has started and no modal is open)
   useEffect(() => {
-    if (!isGameStarted || isLoading || isPaused || isGameComplete || !currentRound) return;
+    if (!isGameStarted || isLoading || isPaused || isGameComplete || isModalActive || !currentRound) return;
 
     const interval = setInterval(() => {
       setGameElapsedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isGameStarted, isLoading, isPaused, isGameComplete, currentRound]);
+  }, [isGameStarted, isLoading, isPaused, isGameComplete, isModalActive, currentRound]);
 
   // Stable references
   const lastTargetAlphaRef = useRef<string>('');
@@ -319,7 +322,8 @@ export function useGameState() {
       lifelineState.capitalUsedOnCurrentRound ||
       !currentRound ||
       isResolving ||
-      isPaused
+      isPaused ||
+      isModalActive
     ) {
       return;
     }
@@ -331,7 +335,7 @@ export function useGameState() {
       capitalUsedOnCurrentRound: true,
       activeHintText: `🏛️ Capital Clue: The capital is "${cap}"`,
     }));
-  }, [lifelineState.capitalCredits, lifelineState.capitalUsedOnCurrentRound, currentRound, isResolving, isPaused, playLifeline]);
+  }, [lifelineState.capitalCredits, lifelineState.capitalUsedOnCurrentRound, currentRound, isResolving, isPaused, isModalActive, playLifeline]);
 
   const onUseFiftyFifty = useCallback(() => {
     if (
@@ -339,7 +343,8 @@ export function useGameState() {
       lifelineState.fiftyFiftyUsedOnCurrentRound ||
       !currentRound ||
       isResolving ||
-      isPaused
+      isPaused ||
+      isModalActive
     ) {
       return;
     }
@@ -375,6 +380,7 @@ export function useGameState() {
     currentRound,
     isResolving,
     isPaused,
+    isModalActive,
     playLifeline,
   ]);
 
@@ -573,7 +579,7 @@ export function useGameState() {
   // Answer handler
   const handleChoice = useCallback(
     (index: number) => {
-      if (isResolvingRef.current || isPaused || !currentRound || index < 0 || index >= currentRound.options.length) {
+      if (isResolvingRef.current || isPaused || isModalActive || !currentRound || index < 0 || index >= currentRound.options.length) {
         return;
       }
 
@@ -701,12 +707,12 @@ export function useGameState() {
         );
       }, 550);
     },
-    [currentRound, isPaused, playCorrect, playWrong, playStreakMilestone, triggerConfetti, generateRound]
+    [currentRound, isPaused, isModalActive, playCorrect, playWrong, playStreakMilestone, triggerConfetti, generateRound]
   );
 
   // Handle Timeout (when timer hits 0 in Per-Question mode)
   const handleTimeout = useCallback(() => {
-    if (isResolvingRef.current || !currentRound || isPaused) return;
+    if (isResolvingRef.current || !currentRound || isPaused || isModalActive) return;
 
     consecutiveTimeoutsRef.current += 1;
     const timeouts = consecutiveTimeoutsRef.current;
@@ -761,11 +767,11 @@ export function useGameState() {
         solvedAlphasRef.current
       );
     }, 700);
-  }, [currentRound, isPaused, playWrong, generateRound]);
+  }, [currentRound, isPaused, isModalActive, playWrong, generateRound]);
 
-  // Timer countdown hook (10s per flag in 'timed' mode, only when game has started)
+  // Timer countdown hook (10s per flag in 'timed' mode, only when game has started and no modal is active)
   useEffect(() => {
-    if (!isGameStarted || settings.timerMode === 'relaxed' || isGameComplete || isLoading || isPaused) {
+    if (!isGameStarted || settings.timerMode === 'relaxed' || isGameComplete || isLoading || isPaused || isModalActive) {
       clearInterval(timerIntervalRef.current);
       return;
     }
@@ -784,7 +790,7 @@ export function useGameState() {
     }, 1000);
 
     return () => clearInterval(timerIntervalRef.current);
-  }, [isGameStarted, settings.timerMode, isGameComplete, isLoading, isPaused, currentRound, handleTimeout]);
+  }, [isGameStarted, settings.timerMode, isGameComplete, isLoading, isPaused, isModalActive, currentRound, handleTimeout]);
 
   // Initial load strictly once
   useEffect(() => {
@@ -794,7 +800,7 @@ export function useGameState() {
   // Handle Final 3 Showdown submission
   const handleFinalThreeSubmit = useCallback(
     (assignments: Record<string, string>): { success: boolean; results: Record<string, boolean> } => {
-      if (isResolvingRef.current || isPaused || !currentRound || !currentRound.finalThreeTargets) {
+      if (isResolvingRef.current || isPaused || isModalActive || !currentRound || !currentRound.finalThreeTargets) {
         return { success: false, results: {} };
       }
 
@@ -873,10 +879,10 @@ export function useGameState() {
         return { success: false, results };
       }
     },
-    [currentRound, isPaused, playCorrect, playWrong, playStreakMilestone, triggerConfetti]
+    [currentRound, isPaused, isModalActive, playCorrect, playWrong, playStreakMilestone, triggerConfetti]
   );
 
-  // Keyboard shortcut listener (only when game has started)
+  // Keyboard shortcut listener (only when game has started and no modal is active)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -886,7 +892,8 @@ export function useGameState() {
         currentRound.isFinalThree ||
         isLoading ||
         isGameComplete ||
-        isPaused
+        isPaused ||
+        isModalActive
       )
         return;
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
@@ -899,7 +906,7 @@ export function useGameState() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isGameStarted, isResolving, currentRound, isLoading, isGameComplete, isPaused, handleChoice]);
+  }, [isGameStarted, isResolving, currentRound, isLoading, isGameComplete, isPaused, isModalActive, handleChoice]);
 
   // Start Game and Player Setup callbacks
   const startGame = useCallback((
@@ -918,6 +925,7 @@ export function useGameState() {
         ...(config.timer ? { timerMode: config.timer } : {}),
       });
     }
+    setGameElapsedSeconds(0);
     setIsGameStarted(true);
     setIsStartModalOpen(false);
     navigateToRoute('play');

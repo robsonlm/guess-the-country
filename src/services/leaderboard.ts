@@ -371,7 +371,12 @@ export function getFilteredLeaderboard(
 
 export function formatTimeElapsed(totalSeconds: number): string {
   const secs = Math.max(0, Math.floor(totalSeconds));
-  const mins = Math.floor(secs / 60);
+  const hours = Math.floor(secs / 3600);
+  const mins = Math.floor((secs % 3600) / 60);
   const remainingSecs = secs % 60;
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')}:${remainingSecs.toString().padStart(2, '0')}`;
+  }
   return `${mins.toString().padStart(2, '0')}:${remainingSecs.toString().padStart(2, '0')}`;
 }
+

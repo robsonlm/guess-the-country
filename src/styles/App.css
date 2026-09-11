@@ -105,6 +105,34 @@
   gap: 0.5rem;
 }
 
+.header-timer-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(42, 157, 143, 0.16);
+  border: 1px solid rgba(72, 202, 228, 0.4);
+  color: #48cae4;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: var(--transition-fast);
+  white-space: nowrap;
+}
+
+.header-timer-badge:hover {
+  background: rgba(42, 157, 143, 0.25);
+  border-color: rgba(72, 202, 228, 0.65);
+}
+
+.header-timer-icon {
+  color: #48cae4;
+  flex-shrink: 0;
+}
+
 .streak-badge {
   display: flex;
   align-items: center;
@@ -3162,6 +3190,12 @@
     height: 15px !important;
   }
 
+  .header-timer-badge {
+    padding: 0.15rem 0.45rem !important;
+    font-size: 0.7rem !important;
+    gap: 0.2rem !important;
+  }
+
   .streak-badge {
     padding: 0.15rem 0.45rem !important;
     font-size: 0.7rem !important;
@@ -3628,6 +3662,11 @@
 
   .header-player-name {
     display: none !important;
+  }
+
+  .header-timer-badge {
+    padding: 0.1rem 0.35rem !important;
+    font-size: 0.65rem !important;
   }
 
   .header-mode-toggle-btn {
