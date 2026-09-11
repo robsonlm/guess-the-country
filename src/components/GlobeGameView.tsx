@@ -581,14 +581,23 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         {/* Target Country Clue Pill at Bottom of Globe */}
         <div className="globe-target-banner">
           <div className="pulse-dot" />
-          <div style={{ flex: 1 }}>
+          <div className="globe-target-content">
             <div className="globe-target-text">
-              {isFinalThree
-                ? `Final ${finalThreeTargets.length} Showdown • Active Target: Target #${activeTargetIndex + 1}`
-                : 'Highlighted Territory'}
+              {isFinalThree ? (
+                <>
+                  <span className="banner-full-text">
+                    Final {finalThreeTargets.length} Showdown • Target #{activeTargetIndex + 1}
+                  </span>
+                  <span className="banner-compact-text">
+                    Target #{activeTargetIndex + 1}
+                  </span>
+                </>
+              ) : (
+                'Highlighted Territory'
+              )}
             </div>
             <div className="globe-target-subtext">
-              Region: {currentFocusedCountry?.region}
+              {currentFocusedCountry?.region ? `Region: ${currentFocusedCountry.region}` : 'Locate on globe'}
               {lifelineState.activeHintText ? ` | ${lifelineState.activeHintText}` : ''}
             </div>
           </div>

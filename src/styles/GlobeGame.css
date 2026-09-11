@@ -278,6 +278,21 @@
   color: var(--text-muted);
 }
 
+.globe-target-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.banner-compact-text {
+  display: none;
+}
+
+.banner-full-text {
+  display: inline;
+}
+
 /* --- Progress Conquest Bar --- */
 .globe-conquest-bar-container {
   width: 100%;
@@ -875,26 +890,67 @@
     gap: 3px;
   }
 
-  /* Target Banner at Bottom of Globe */
+  .banner-compact-text {
+    display: inline;
+  }
+
+  .banner-full-text {
+    display: none;
+  }
+
+  /* Target Banner at Bottom of Globe - Perfectly Centered Pill */
   .globe-target-banner {
-    bottom: 4px;
-    left: 4px;
-    right: 4px;
-    padding: 2px 8px;
-    max-width: 92%;
-    border-radius: var(--radius-sm);
+    position: absolute;
+    bottom: 8px;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%) !important;
+    width: max-content;
+    max-width: calc(100% - 20px);
+    padding: 4px 12px;
+    gap: 7px;
+    border-radius: 9999px !important;
+    background: rgba(10, 18, 32, 0.92);
+    border: 1px solid rgba(42, 157, 143, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    display: flex !important;
+    align-items: center;
+    box-sizing: border-box;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(42, 157, 143, 0.25);
+    z-index: 10;
+    pointer-events: none;
   }
   .final-three-active .globe-target-banner {
-    display: none !important;
+    display: flex !important;
+    bottom: 6px;
+    padding: 3px 10px;
+  }
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+  }
+  .globe-target-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
   }
   .globe-target-text {
     font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   .globe-target-subtext {
     font-size: 0.64rem;
+    line-height: 1.2;
+    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
