@@ -162,19 +162,15 @@ export function App() {
           settings={settings}
           score={score}
           achievements={achievements}
-          solvedCount={solvedAlphas.length}
           totalCountriesCount={countries.length}
           playerName={currentPlayerName}
-          isGameInProgress={solvedAlphas.length > 0 || score.currentStreak > 0}
           onStartGame={(name, config) => {
             resetScore();
             startGame(name, config);
           }}
-          onResumeGame={() => startGame()}
           onOpenLeaderboard={() => handleOpenLeaderboard()}
           onOpenAchievements={() => setIsAchievementsOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          onUpdateSettings={updateSettings}
           onEnableAdmin={() => updateSettings({ adminTestMode: true })}
         />
       )}

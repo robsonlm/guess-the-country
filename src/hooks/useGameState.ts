@@ -113,11 +113,13 @@ export function useGameState() {
   const scoreRef = useRef<GameScore>(score);
   const isResolvingRef = useRef<boolean>(false);
   const achievementsRef = useRef<Achievement[]>(achievements);
+  const isGameStartedRef = useRef<boolean>(isGameStarted);
 
   countriesRef.current = countries;
   solvedAlphasRef.current = solvedAlphas;
   globeMistakesRef.current = globeMistakes;
   settingsRef.current = settings;
+  isGameStartedRef.current = isGameStarted;
   scoreRef.current = score;
   isResolvingRef.current = isResolving;
   achievementsRef.current = achievements;
@@ -434,8 +436,10 @@ export function useGameState() {
           setGlobeMistakes(0);
           saveGlobeMistakes(0);
           setLastAnswer(null);
-          setLevelUpNotice('🔄 Game restarted from 0 for the selected settings.');
-          setTimeout(() => setLevelUpNotice(null), 3000);
+          if (isGameStartedRef.current) {
+            setLevelUpNotice('🔄 Game restarted from 0 for the selected settings.');
+            setTimeout(() => setLevelUpNotice(null), 3000);
+          }
           setLifelineState(INITIAL_LIFELINES);
           setIsGameComplete(false);
           setIsPaused(false);

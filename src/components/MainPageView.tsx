@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Globe2,
   Trophy,
-  Play,
-  RotateCcw,
   Sparkles,
   Compass,
   Layers,
@@ -25,16 +23,12 @@ interface MainPageViewProps {
   settings: UserSettings;
   score: GameScore;
   achievements: Achievement[];
-  solvedCount: number;
   totalCountriesCount: number;
   playerName: string;
-  isGameInProgress: boolean;
   onStartGame: (name: string, config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }) => void;
-  onResumeGame: () => void;
   onOpenLeaderboard: () => void;
   onOpenAchievements: () => void;
   onOpenSettings?: () => void;
-  onUpdateSettings: (newSettings: Partial<UserSettings>) => void;
   onEnableAdmin: () => void;
 }
 
@@ -62,15 +56,11 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
   settings,
   score,
   achievements,
-  solvedCount,
   totalCountriesCount,
   playerName: initialPlayerName,
-  isGameInProgress,
   onStartGame,
-  onResumeGame,
   onOpenLeaderboard,
   onOpenAchievements,
-  onUpdateSettings,
   onEnableAdmin,
 }) => {
   const [name, setName] = useState(initialPlayerName);
@@ -89,20 +79,17 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
     setName(initialPlayerName);
   }, [initialPlayerName]);
 
-  // Sync selection with settings
+  // Selection handlers (local until launch)
   const handleModeChange = (mode: GameMode) => {
     setSelectedMode(mode);
-    onUpdateSettings({ gameMode: mode });
   };
 
   const handleContinentChange = (continent: ContinentFilter) => {
     setSelectedContinent(continent);
-    onUpdateSettings({ continentFilter: continent });
   };
 
   const handleTimerChange = (timer: TimerMode) => {
     setSelectedTimer(timer);
-    onUpdateSettings({ timerMode: timer });
   };
 
   const handleLaunch = (e?: React.FormEvent) => {
@@ -205,14 +192,6 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
                 maxLength={24}
                 onChange={(e) => setName(e.target.value)}
               />
-              <button
-                type="submit"
-                className="main-btn-play-quick"
-                title="Start game immediately"
-              >
-                <Play size={16} fill="currentColor" />
-                <span>Play</span>
-              </button>
             </div>
           </div>
         </form>
@@ -317,38 +296,17 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
           </div>
         </div>
 
-        {/* Primary Action Buttons */}
+        {/* Primary Action Button */}
         <div className="main-launch-actions">
-          {isGameInProgress ? (
-            <>
-              <button
-                type="button"
-                className="main-btn-resume"
-                onClick={onResumeGame}
-              >
-                <Play size={18} fill="currentColor" />
-                <span>Resume Active Expedition ({solvedCount} Conquered)</span>
-              </button>
-              <button
-                type="button"
-                className="main-btn-start-fresh"
-                onClick={() => handleLaunch()}
-              >
-                <RotateCcw size={16} />
-                <span>Start New Game</span>
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              className="main-btn-start-large"
-              onClick={() => handleLaunch()}
-            >
-              <Sparkles size={18} />
-              <span>Launch New Expedition</span>
-              <ArrowRight size={18} />
-            </button>
-          )}
+          <button
+            type="button"
+            className="main-btn-start-large"
+            onClick={() => handleLaunch()}
+          >
+            <Sparkles size={18} />
+            <span>Launch New Expedition</span>
+            <ArrowRight size={18} />
+          </button>
         </div>
       </section>
 
