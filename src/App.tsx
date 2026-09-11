@@ -287,6 +287,7 @@ export function App() {
 
       {/* Global Hall of Fame & Leaderboard Modal */}
       <LeaderboardModal
+        key={`leaderboard-${isLeaderboardOpen}-${settings.gameMode}-${settings.continentFilter}-${settings.timerMode}`}
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
         recentSubmittedEntryId={recentLeaderboardEntryId}

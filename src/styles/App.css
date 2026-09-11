@@ -1672,6 +1672,25 @@
   font-weight: 700;
 }
 
+.leaderboard-filter-pill.empty-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.85);
+  border-style: dashed;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.leaderboard-filter-pill.empty-disabled:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-muted);
+}
+
+.leaderboard-filter-pill .pill-count-badge {
+  margin-left: 4px;
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
 /* Scrollable Body */
 .leaderboard-body-scrollable {
   flex: 1;

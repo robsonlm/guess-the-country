@@ -125,6 +125,25 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
   if (!isOpen) return null;
 
+  const allLeaderboardEntries = loadLeaderboard();
+
+  // Helper counts to grey out empty leaderboard options
+  const getModeCount = (mode: GameMode) =>
+    allLeaderboardEntries.filter((e) => e.gameMode === mode).length;
+
+  const getContinentCount = (continent: ContinentFilter) =>
+    allLeaderboardEntries.filter(
+      (e) => e.gameMode === selectedMode && e.continentFilter === continent
+    ).length;
+
+  const getTimerCount = (timer: TimerMode) =>
+    allLeaderboardEntries.filter(
+      (e) =>
+        e.gameMode === selectedMode &&
+        e.continentFilter === selectedContinent &&
+        (e.timerMode || 'timed') === timer
+    ).length;
+
   // Query strictly for this exact game type combination
   const entries = getFilteredLeaderboard(
     selectedMode,
@@ -256,17 +275,36 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               <Layers size={12} /> Mode:
             </span>
             <div className="leaderboard-filter-pills">
-              {GAME_MODES.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className={`leaderboard-filter-pill ${selectedMode === m.id ? 'active' : ''}`}
-                  onClick={() => setSelectedMode(m.id)}
-                >
-                  <span>{m.icon}</span>
-                  <span>{m.label}</span>
-                </button>
-              ))}
+              {GAME_MODES.map((m) => {
+                const count = getModeCount(m.id);
+                const isSelected = selectedMode === m.id;
+                const isGreyedOut = count === 0 && !isSelected;
+
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    disabled={isGreyedOut}
+                    className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
+                      isGreyedOut ? 'empty-disabled' : ''
+                    }`}
+                    onClick={() => {
+                      if (!isGreyedOut) {
+                        setSelectedMode(m.id);
+                      }
+                    }}
+                    title={
+                      isGreyedOut
+                        ? 'No leaderboard records for this mode yet'
+                        : `${m.label} (${count} record${count === 1 ? '' : 's'})`
+                    }
+                  >
+                    <span>{m.icon}</span>
+                    <span>{m.label}</span>
+                    {count > 0 && <span className="pill-count-badge">({count})</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -276,17 +314,36 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               <Compass size={12} /> Scope:
             </span>
             <div className="leaderboard-filter-pills">
-              {CONTINENT_FILTERS.map((cont) => (
-                <button
-                  key={cont.id}
-                  type="button"
-                  className={`leaderboard-filter-pill ${selectedContinent === cont.id ? 'active' : ''}`}
-                  onClick={() => setSelectedContinent(cont.id)}
-                >
-                  <span>{cont.icon}</span>
-                  <span>{cont.label}</span>
-                </button>
-              ))}
+              {CONTINENT_FILTERS.map((cont) => {
+                const count = getContinentCount(cont.id);
+                const isSelected = selectedContinent === cont.id;
+                const isGreyedOut = count === 0 && !isSelected;
+
+                return (
+                  <button
+                    key={cont.id}
+                    type="button"
+                    disabled={isGreyedOut}
+                    className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
+                      isGreyedOut ? 'empty-disabled' : ''
+                    }`}
+                    onClick={() => {
+                      if (!isGreyedOut) {
+                        setSelectedContinent(cont.id);
+                      }
+                    }}
+                    title={
+                      isGreyedOut
+                        ? `No records for ${cont.label} in ${getModeLabel(selectedMode)}`
+                        : `${cont.label} (${count} record${count === 1 ? '' : 's'})`
+                    }
+                  >
+                    <span>{cont.icon}</span>
+                    <span>{cont.label}</span>
+                    {count > 0 && <span className="pill-count-badge">({count})</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -296,17 +353,36 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               <Clock size={12} /> Pacing:
             </span>
             <div className="leaderboard-filter-pills">
-              {TIMER_MODES.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`leaderboard-filter-pill ${selectedTimerMode === t.id ? 'active' : ''}`}
-                  onClick={() => setSelectedTimerMode(t.id)}
-                >
-                  <span>{t.icon}</span>
-                  <span>{t.label}</span>
-                </button>
-              ))}
+              {TIMER_MODES.map((t) => {
+                const count = getTimerCount(t.id);
+                const isSelected = selectedTimerMode === t.id;
+                const isGreyedOut = count === 0 && !isSelected;
+
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    disabled={isGreyedOut}
+                    className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
+                      isGreyedOut ? 'empty-disabled' : ''
+                    }`}
+                    onClick={() => {
+                      if (!isGreyedOut) {
+                        setSelectedTimerMode(t.id);
+                      }
+                    }}
+                    title={
+                      isGreyedOut
+                        ? `No records for ${t.label} in this combination`
+                        : `${t.label} (${count} record${count === 1 ? '' : 's'})`
+                    }
+                  >
+                    <span>{t.icon}</span>
+                    <span>{t.label}</span>
+                    {count > 0 && <span className="pill-count-badge">({count})</span>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
