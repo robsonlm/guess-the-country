@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, Send } from 'lucide-react';
+import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, Send, User } from 'lucide-react';
 import { GameMode, ContinentFilter, GameScore, TimerMode } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
@@ -32,7 +32,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onOpenLeaderboard,
   onSubmitSuccess,
 }) => {
-  const [playerName, setPlayerName] = useState(getLastPlayerName());
+  const [playerName] = useState(getLastPlayerName());
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [placementResult, setPlacementResult] = useState<LeaderboardPlacementResult | null>(null);
 
@@ -133,19 +133,30 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 <Trophy size={16} style={{ color: '#ffd166' }} />
                 <span>Submit Score to Global Leaderboard</span>
               </div>
-              <div className="leaderboard-input-row">
-                <input
-                  type="text"
-                  className="leaderboard-name-input"
-                  placeholder="Enter your name..."
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  maxLength={24}
-                  required
-                />
-                <button type="submit" className="btn-primary" style={{ padding: '0.55rem 1.1rem', fontSize: '0.85rem' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.65rem 0.95rem',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  borderRadius: 12,
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  margin: '0.6rem 0',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <User size={16} style={{ color: 'var(--primary-light)' }} />
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>Explorer:</span>
+                  <strong style={{ fontSize: '0.95rem', color: '#f8fafc' }}>{playerName}</strong>
+                </div>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ padding: '0.55rem 1.25rem', fontSize: '0.88rem', fontWeight: 700 }}
+                >
                   <Send size={13} />
-                  <span>Submit</span>
+                  <span>Submit Score</span>
                 </button>
               </div>
             </form>

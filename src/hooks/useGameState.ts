@@ -27,6 +27,7 @@ import {
 } from '../services/countriesApi';
 import { loadAchievements, checkNewAchievements } from '../services/achievements';
 import { getNeighboringCountries } from '../services/countriesGeo';
+import { getLastPlayerName, setLastPlayerName } from '../services/leaderboard';
 import { useSoundEffects } from './useSoundEffects';
 
 const INITIAL_LIFELINES: LifelineState = {
@@ -58,21 +59,26 @@ export function useGameState() {
   const [lifelineState, setLifelineState] = useState<LifelineState>(INITIAL_LIFELINES);
   const [gameElapsedSeconds, setGameElapsedSeconds] = useState<number>(0);
 
+  // Player Name and Game Start Flow (asked when game starts)
+  const [currentPlayerName, setCurrentPlayerName] = useState<string>(getLastPlayerName);
+  const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
+  const [isStartModalOpen, setIsStartModalOpen] = useState<boolean>(true);
+
   // Timer state (10s per flag in 'timed' mode, untimed in 'relaxed')
   const [timeLeft, setTimeLeft] = useState<number>(settings.timerMode === 'timed' ? 10 : 0);
   const timerIntervalRef = useRef<any>(null);
   const consecutiveTimeoutsRef = useRef<number>(0);
 
-  // Active gameplay elapsed time ticker
+  // Active gameplay elapsed time ticker (only runs when game has started)
   useEffect(() => {
-    if (isLoading || isPaused || isGameComplete || !currentRound) return;
+    if (!isGameStarted || isLoading || isPaused || isGameComplete || !currentRound) return;
 
     const interval = setInterval(() => {
       setGameElapsedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isLoading, isPaused, isGameComplete, currentRound]);
+  }, [isGameStarted, isLoading, isPaused, isGameComplete, currentRound]);
 
   // Stable references
   const lastTargetAlphaRef = useRef<string>('');
@@ -316,7 +322,7 @@ export function useGameState() {
   }, [lifelineState.fiftyFiftyUsed, currentRound, isResolving, isPaused, playLifeline]);
 
   // Reset Score & Mastery
-  const resetScore = useCallback(() => {
+  const resetScore = useCallback((promptNewName: boolean = false) => {
     clearGameProgress();
     const emptyScore: GameScore = { right: 0, wrong: 0, total: 0, currentStreak: 0, bestStreak: 0 };
     setScore(emptyScore);
@@ -332,6 +338,11 @@ export function useGameState() {
     setIsPaused(false);
     setGameElapsedSeconds(0);
     consecutiveTimeoutsRef.current = 0;
+
+    if (promptNewName) {
+      setIsGameStarted(false);
+      setIsStartModalOpen(true);
+    }
 
     if (settingsRef.current.timerMode === 'timed') setTimeLeft(10);
     else setTimeLeft(0);
@@ -679,9 +690,9 @@ export function useGameState() {
     }, 700);
   }, [currentRound, isPaused, playWrong, generateRound]);
 
-  // Timer countdown hook (10s per flag in 'timed' mode)
+  // Timer countdown hook (10s per flag in 'timed' mode, only when game has started)
   useEffect(() => {
-    if (settings.timerMode === 'relaxed' || isGameComplete || isLoading || isPaused) {
+    if (!isGameStarted || settings.timerMode === 'relaxed' || isGameComplete || isLoading || isPaused) {
       clearInterval(timerIntervalRef.current);
       return;
     }
@@ -700,7 +711,7 @@ export function useGameState() {
     }, 1000);
 
     return () => clearInterval(timerIntervalRef.current);
-  }, [settings.timerMode, isGameComplete, isLoading, isPaused, currentRound, handleTimeout]);
+  }, [isGameStarted, settings.timerMode, isGameComplete, isLoading, isPaused, currentRound, handleTimeout]);
 
   // Initial load strictly once
   useEffect(() => {
@@ -792,10 +803,19 @@ export function useGameState() {
     [currentRound, isPaused, playCorrect, playWrong, playStreakMilestone, triggerConfetti]
   );
 
-  // Keyboard shortcut listener
+  // Keyboard shortcut listener (only when game has started)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isResolving || !currentRound || currentRound.isFinalThree || isLoading || isGameComplete || isPaused) return;
+      if (
+        !isGameStarted ||
+        isResolving ||
+        !currentRound ||
+        currentRound.isFinalThree ||
+        isLoading ||
+        isGameComplete ||
+        isPaused
+      )
+        return;
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
 
       const keyNum = parseInt(e.key, 10);
@@ -806,7 +826,31 @@ export function useGameState() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isResolving, currentRound, isLoading, isGameComplete, isPaused, handleChoice]);
+  }, [isGameStarted, isResolving, currentRound, isLoading, isGameComplete, isPaused, handleChoice]);
+
+  // Start Game and Player Setup callbacks
+  const startGame = useCallback((playerName?: string) => {
+    if (playerName && playerName.trim()) {
+      const trimmed = playerName.trim();
+      setCurrentPlayerName(trimmed);
+      setLastPlayerName(trimmed);
+    }
+    setIsGameStarted(true);
+    setIsStartModalOpen(false);
+    if (settingsRef.current.timerMode === 'timed') {
+      setTimeLeft(10);
+    } else {
+      setTimeLeft(0);
+    }
+  }, []);
+
+  const openStartModal = useCallback(() => {
+    setIsStartModalOpen(true);
+  }, []);
+
+  const closeStartModal = useCallback(() => {
+    setIsStartModalOpen(false);
+  }, []);
 
   const solvedCountriesList = countries.filter((c) => solvedAlphas.includes(c.alpha2));
 
@@ -835,6 +879,13 @@ export function useGameState() {
     gameElapsedSeconds,
     maxTime: 10,
     localInfo: getLocalDataInfo(),
+    isGameStarted,
+    isStartModalOpen,
+    currentPlayerName,
+    startGame,
+    openStartModal,
+    closeStartModal,
+    setCurrentPlayerName,
     handleChoice,
     handleFinalThreeSubmit,
     updateSettings,
@@ -846,3 +897,4 @@ export function useGameState() {
     onUseFiftyFifty,
   };
 }
+

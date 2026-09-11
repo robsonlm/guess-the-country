@@ -27,6 +27,7 @@ import {
   mergeAndDeduplicate,
   clearAllLeaderboardEntries,
 } from '../services/leaderboard';
+import { verifyAdminPassword } from '../services/firebase';
 import '../styles/App.css';
 
 interface LeaderboardModalProps {
@@ -138,14 +139,21 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
     if (!authorized) {
       const code = window.prompt(
-        '🔒 Admin Authentication Required\nEnter admin passkey to authorize clearing the leaderboard:'
+        '🔒 Admin Authentication Required\nEnter admin password to authorize clearing the leaderboard:'
       );
       if (!code) return;
-      if (code.trim().toLowerCase() === 'babycakez') {
-        authorized = true;
-        setIsSessionAdmin(true);
-      } else {
-        alert('❌ Unauthorized: Invalid admin passkey.');
+      
+      try {
+        const verifyRes = await verifyAdminPassword(code);
+        if (verifyRes.success) {
+          authorized = true;
+          setIsSessionAdmin(true);
+        } else {
+          alert(`❌ Unauthorized: ${verifyRes.error || 'Invalid administrator password.'}`);
+          return;
+        }
+      } catch (err: any) {
+        alert(`❌ Verification error: ${err.message || 'Could not verify admin password'}`);
         return;
       }
     }

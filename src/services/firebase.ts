@@ -3,6 +3,7 @@ import {
   getFirestore,
   collection,
   doc,
+  getDoc,
   setDoc,
   getDocs,
   deleteDoc,
@@ -161,6 +162,101 @@ export async function clearFirebaseLeaderboard(): Promise<boolean> {
   } catch (err) {
     console.warn('[Firebase] Failed to clear leaderboard:', err);
     return false;
+  }
+}
+
+/**
+ * Verifies the admin password against the Firebase Firestore 'admin' collection.
+ * The password is stored in Firestore (e.g. collection: 'admin', document: 'auth', field: 'password' or 'passkey').
+ * Zero hardcoded passwords exist in client code.
+ */
+export async function verifyAdminPassword(
+  passwordAttempt: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!db || !isFirebaseConfigured()) {
+    return {
+      success: false,
+      error: 'Firebase is not configured. Please check your environment variables.',
+    };
+  }
+
+  const cleanAttempt = passwordAttempt.trim();
+  if (!cleanAttempt) {
+    return { success: false, error: 'Please enter a password.' };
+  }
+
+  try {
+    // 1. Check primary 'auth' document in 'admin' collection
+    const docRef = doc(db, 'admin', 'auth');
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      const storedPassword = data.password || data.passkey || data.code;
+      if (storedPassword && String(storedPassword).trim() === cleanAttempt) {
+        return { success: true };
+      }
+      return { success: false, error: 'Incorrect administrator password.' };
+    }
+
+    // 2. Fallback: check any document in 'admin' collection (e.g. 'config' or auto ID)
+    const adminCol = collection(db, 'admin');
+    const colSnap = await getDocs(adminCol);
+
+    if (!colSnap.empty) {
+      for (const d of colSnap.docs) {
+        const data = d.data();
+        const storedPassword = data.password || data.passkey || data.code;
+        if (storedPassword && String(storedPassword).trim() === cleanAttempt) {
+          return { success: true };
+        }
+      }
+      return { success: false, error: 'Incorrect administrator password.' };
+    }
+
+    // 3. Collection read succeeded, but no documents exist yet in 'admin'
+    return {
+      success: false,
+      error:
+        "No administrator credentials found in Firebase 'admin' collection. In Firebase Console, create a document in 'admin' with field 'password'.",
+    };
+  } catch (err: any) {
+    console.error('[Firebase] verifyAdminPassword error:', err);
+    if (err.code === 'permission-denied') {
+      return {
+        success: false,
+        error:
+          "Firebase permission denied for 'admin' collection. In Firebase Console > Firestore Rules, add: match /admin/{document=**} { allow read: if true; }",
+      };
+    }
+    return {
+      success: false,
+      error: err.message || 'Failed to authenticate with Firebase.',
+    };
+  }
+}
+
+/**
+ * Helper to initialize or update admin password in Firestore 'admin' collection.
+ */
+export async function setFirebaseAdminPassword(
+  password: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!db || !isFirebaseConfigured()) {
+    return { success: false, error: 'Firebase not configured.' };
+  }
+
+  try {
+    await setDoc(doc(db, 'admin', 'auth'), {
+      password: password.trim(),
+      updatedAt: new Date().toISOString(),
+    });
+    return { success: true };
+  } catch (err: any) {
+    return {
+      success: false,
+      error: err.message || 'Failed to save admin password in Firebase.',
+    };
   }
 }
 

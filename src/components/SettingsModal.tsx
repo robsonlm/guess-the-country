@@ -15,6 +15,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { UserSettings, GameMode, TimerMode, ThemeMode, ContinentFilter } from '../types/game';
+import { verifyAdminPassword } from '../services/firebase';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -58,6 +59,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [continentFilter, setContinentFilter] = useState<ContinentFilter>(settings.continentFilter);
   const [adminTestMode, setAdminTestMode] = useState<boolean>(!!settings.adminTestMode);
   const [adminCodeInput, setAdminCodeInput] = useState('');
+  const [isVerifyingAdmin, setIsVerifyingAdmin] = useState(false);
   const [adminCodeFeedback, setAdminCodeFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -72,6 +74,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setAdminTestMode(!!settings.adminTestMode);
       setAdminCodeInput('');
       setAdminCodeFeedback(null);
+      setIsVerifyingAdmin(false);
       setShowConfirmReset(false);
       setIsSyncing(false);
     }
@@ -102,21 +105,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onClose();
   };
 
-  const handleVerifyCode = (e?: React.FormEvent) => {
+  const handleVerifyCode = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const cleanCode = adminCodeInput.trim().toLowerCase();
-    if (cleanCode === 'babycakez') {
-      setAdminTestMode(true);
-      setAdminCodeFeedback({
-        type: 'success',
-        message: '⚡ Admin Fast Test Mode unlocked! Correct answers locked to position #2.',
-      });
-      setAdminCodeInput('');
-    } else {
+    if (!adminCodeInput.trim() || isVerifyingAdmin) return;
+
+    setIsVerifyingAdmin(true);
+    setAdminCodeFeedback(null);
+
+    try {
+      const res = await verifyAdminPassword(adminCodeInput);
+      if (res.success) {
+        setAdminTestMode(true);
+        setAdminCodeFeedback({
+          type: 'success',
+          message: '⚡ Admin Fast Test Mode unlocked! Correct answers locked to position #2.',
+        });
+        setAdminCodeInput('');
+      } else {
+        setAdminCodeFeedback({
+          type: 'error',
+          message: res.error || '❌ Invalid administrator password. Check code and try again.',
+        });
+      }
+    } catch (err: any) {
       setAdminCodeFeedback({
         type: 'error',
-        message: '❌ Invalid passkey. Check code and try again.',
+        message: err.message || 'Verification failed. Check network connection.',
       });
+    } finally {
+      setIsVerifyingAdmin(false);
     }
   };
 
@@ -368,10 +385,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   type="button"
                   className="btn-primary"
+                  disabled={isVerifyingAdmin || !adminCodeInput.trim()}
                   onClick={() => handleVerifyCode()}
                   style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem', whiteSpace: 'nowrap' }}
                 >
-                  Unlock
+                  {isVerifyingAdmin ? 'Verifying...' : 'Unlock'}
                 </button>
               </div>
             )}

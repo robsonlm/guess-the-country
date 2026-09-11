@@ -1,5 +1,4 @@
-import React from 'react';
-import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon } from 'lucide-react';
+import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck } from 'lucide-react';
 import { UserSettings } from '../types/game';
 
 interface HeaderProps {
@@ -7,6 +6,8 @@ interface HeaderProps {
   level?: number;
   optionCount?: number;
   settings: UserSettings;
+  playerName?: string;
+  onOpenProfile?: () => void;
   onToggleSound: () => void;
   onOpenSettings: () => void;
   onToggleMode?: () => void;
@@ -16,6 +17,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   currentStreak,
   settings,
+  playerName,
+  onOpenProfile,
   onToggleSound,
   onOpenSettings,
   onToggleMode,
@@ -50,6 +53,39 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-actions">
+        {playerName && (
+          <button
+            type="button"
+            className="action-btn"
+            onClick={onOpenProfile}
+            title={`Player: ${playerName} (Click to change explorer name or enter ADMINMODE)`}
+            style={{
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              padding: '5px 11px',
+              borderRadius: '9999px',
+              border: settings.adminTestMode
+                ? '1px solid rgba(16, 185, 129, 0.5)'
+                : '1px solid rgba(255, 255, 255, 0.12)',
+              background: settings.adminTestMode
+                ? 'rgba(16, 185, 129, 0.2)'
+                : 'rgba(255, 255, 255, 0.05)',
+              color: settings.adminTestMode ? '#34d399' : 'var(--text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+            }}
+          >
+            {settings.adminTestMode ? (
+              <ShieldCheck size={14} style={{ color: '#10b981' }} />
+            ) : (
+              <User size={14} style={{ color: 'var(--primary-light)' }} />
+            )}
+            <span style={{ maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {playerName}
+            </span>
+          </button>
+        )}
         {onToggleMode && (
           <button
             type="button"

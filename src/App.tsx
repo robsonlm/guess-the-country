@@ -17,6 +17,7 @@ import { AchievementsModal } from './components/AchievementsModal';
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { SettingsModal } from './components/SettingsModal';
 import { PauseModal } from './components/PauseModal';
+import { StartGameModal } from './components/StartGameModal';
 import './styles/App.css';
 
 export function App() {
@@ -49,6 +50,12 @@ export function App() {
     gameElapsedSeconds,
     maxTime,
     localInfo,
+    isGameStarted,
+    isStartModalOpen,
+    currentPlayerName,
+    startGame,
+    openStartModal,
+    closeStartModal,
     handleChoice,
     handleFinalThreeSubmit,
     updateSettings,
@@ -86,6 +93,8 @@ export function App() {
         level={currentRound?.level ?? 1}
         optionCount={currentRound?.optionCount ?? 2}
         settings={settings}
+        playerName={currentPlayerName}
+        onOpenProfile={openStartModal}
         onToggleSound={handleToggleSound}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onToggleMode={handleToggleMode}
@@ -302,6 +311,20 @@ export function App() {
         onSaveSettings={updateSettings}
         onResetScore={resetScore}
         onReSyncData={reSyncData}
+      />
+
+      {/* Explorer Call Sign & Game Start Modal (prompts player name when game starts) */}
+      <StartGameModal
+        isOpen={isStartModalOpen}
+        initialPlayerName={currentPlayerName}
+        isAdmin={Boolean(settings.adminTestMode)}
+        gameMode={settings.gameMode}
+        continentFilter={settings.continentFilter}
+        timerMode={settings.timerMode}
+        onStart={(name) => startGame(name)}
+        onEnableAdmin={() => updateSettings({ adminTestMode: true })}
+        onClose={closeStartModal}
+        allowClose={isGameStarted}
       />
     </div>
   );
