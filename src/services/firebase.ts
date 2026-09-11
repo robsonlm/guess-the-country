@@ -5,6 +5,7 @@ import {
   doc,
   setDoc,
   getDocs,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
@@ -134,3 +135,23 @@ export async function fetchFirebaseLeaderboard(): Promise<LeaderboardEntry[]> {
     return [];
   }
 }
+
+/**
+ * Clears all entries from Firebase Firestore leaderboard collection.
+ */
+export async function clearFirebaseLeaderboard(): Promise<boolean> {
+  if (!db || !isFirebaseConfigured()) {
+    return false;
+  }
+  try {
+    const q = query(collection(db, 'leaderboard'));
+    const snapshot = await getDocs(q);
+    const deletePromises = snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref));
+    await Promise.all(deletePromises);
+    return true;
+  } catch (err) {
+    console.warn('[Firebase] Failed to clear leaderboard:', err);
+    return false;
+  }
+}
+

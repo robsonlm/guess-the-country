@@ -9,8 +9,10 @@ import {
   Compass,
   Layers,
   Globe2,
+  Clock,
+  Trash2,
 } from 'lucide-react';
-import { GameMode, ContinentFilter } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode } from '../types/game';
 import {
   LeaderboardCategory,
   getFilteredLeaderboard,
@@ -21,6 +23,7 @@ import {
   loadLeaderboard,
   saveLeaderboard,
   mergeAndDeduplicate,
+  clearAllLeaderboardEntries,
 } from '../services/leaderboard';
 import '../styles/App.css';
 
@@ -28,46 +31,66 @@ interface LeaderboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   recentSubmittedEntryId?: string | null;
-  defaultGameMode?: GameMode | 'all';
-  defaultContinent?: ContinentFilter | 'all';
+  defaultGameMode?: GameMode;
+  defaultContinent?: ContinentFilter;
+  defaultTimerMode?: TimerMode;
 }
 
 const CATEGORIES: { id: LeaderboardCategory; label: string; icon: React.ReactNode; desc: string }[] = [
-  { id: 'fastest', label: 'Fastest Game', icon: <Zap size={15} />, desc: 'Ranked by lowest elapsed completion time' },
-  { id: 'least-mistakes', label: 'Least Mistakes', icon: <Target size={15} />, desc: 'Ranked by highest accuracy & fewest errors' },
-  { id: 'highest-streak', label: 'Highest Streak', icon: <Flame size={15} />, desc: 'Ranked by longest consecutive streak' },
-  { id: 'overall', label: 'Overall Champions', icon: <Trophy size={15} />, desc: 'Weighted score combining speed, accuracy & streak' },
+  { id: 'least-mistakes', label: 'Fewest Mistakes', icon: <Target size={14} />, desc: 'Ranked by highest accuracy & fewest errors' },
+  { id: 'fastest', label: 'Fastest Speed', icon: <Zap size={14} />, desc: 'Ranked by lowest elapsed completion time' },
+  { id: 'highest-streak', label: 'Best Streak', icon: <Flame size={14} />, desc: 'Ranked by longest consecutive streak' },
 ];
 
-const GAME_MODES: { id: GameMode | 'all'; label: string; icon: string }[] = [
-  { id: 'all', label: 'All Modes', icon: '🌐' },
+const GAME_MODES: { id: GameMode; label: string; icon: string }[] = [
   { id: 'globe', label: '3D Globe', icon: '🌍' },
   { id: 'flag-to-name', label: 'Flag ➔ Name', icon: '🏁' },
   { id: 'name-to-flag', label: 'Name ➔ Flag', icon: '🔤' },
 ];
 
-const CONTINENT_FILTERS: { id: ContinentFilter | 'all'; label: string }[] = [
-  { id: 'all', label: 'All World' },
-  { id: 'Africa', label: 'Africa' },
-  { id: 'Americas', label: 'Americas' },
-  { id: 'Asia', label: 'Asia' },
-  { id: 'Europe', label: 'Europe' },
-  { id: 'Oceania', label: 'Oceania' },
+const CONTINENT_FILTERS: { id: ContinentFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All World', icon: '🌍' },
+  { id: 'Africa', label: 'Africa', icon: '🌍' },
+  { id: 'Americas', label: 'Americas', icon: '🌎' },
+  { id: 'Asia', label: 'Asia', icon: '🌏' },
+  { id: 'Europe', label: 'Europe', icon: '🌍' },
+  { id: 'Oceania', label: 'Oceania', icon: '🌏' },
+];
+
+const TIMER_MODES: { id: TimerMode; label: string; icon: string }[] = [
+  { id: 'timed', label: '10s Timed', icon: '⏱️' },
+  { id: 'relaxed', label: 'Relaxed', icon: '🧘' },
 ];
 
 export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   isOpen,
   onClose,
   recentSubmittedEntryId = null,
-  defaultGameMode = 'all',
+  defaultGameMode = 'globe',
   defaultContinent = 'all',
+  defaultTimerMode = 'timed',
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<LeaderboardCategory>('fastest');
-  const [selectedMode, setSelectedMode] = useState<GameMode | 'all'>(defaultGameMode);
-  const [selectedContinent, setSelectedContinent] = useState<ContinentFilter | 'all'>(defaultContinent);
+  const [selectedMode, setSelectedMode] = useState<GameMode>(defaultGameMode);
+  const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(defaultContinent);
+  const [selectedTimerMode, setSelectedTimerMode] = useState<TimerMode>(defaultTimerMode);
+  const [selectedCategory, setSelectedCategory] = useState<LeaderboardCategory>(
+    defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes'
+  );
+
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [, setRefreshKey] = useState(0);
   const isFirebaseActive = isFirebaseConfigured();
+
+  // Keep state in sync with defaults when opening
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedMode(defaultGameMode);
+      setSelectedContinent(defaultContinent);
+      setSelectedTimerMode(defaultTimerMode);
+      setSelectedCategory(defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes');
+    }
+  }, [isOpen, defaultGameMode, defaultContinent, defaultTimerMode]);
 
   // Sync and subscribe to global database on open
   useEffect(() => {
@@ -82,7 +105,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         setIsSyncing(false);
       });
 
-    // Real-time listener for live multi-device updates if Firebase is configured
     if (isFirebaseActive) {
       const unsubscribe = subscribeToFirebaseLeaderboard((remoteEntries) => {
         const local = loadLeaderboard();
@@ -96,8 +118,29 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
 
   if (!isOpen) return null;
 
-  const entries = getFilteredLeaderboard(selectedCategory, selectedMode, selectedContinent);
+  // Query strictly for this exact game type combination
+  const entries = getFilteredLeaderboard(
+    selectedMode,
+    selectedContinent,
+    selectedTimerMode,
+    selectedCategory
+  );
   const topThree = entries.slice(0, 3);
+
+  const handleClearAll = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to clear ALL leaderboard records globally across all modes and devices?'
+    );
+    if (!confirmed) return;
+
+    setIsClearing(true);
+    try {
+      await clearAllLeaderboardEntries();
+      setRefreshKey((prev) => prev + 1);
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   const getRankBadgeColor = (badge: string) => {
     switch (badge) {
@@ -132,14 +175,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       <div className="modal-content leaderboard-modal-content">
         {/* Header */}
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="leaderboard-trophy-icon">
               <Trophy size={20} style={{ color: '#ffd166' }} />
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 className="modal-title" style={{ margin: 0, fontSize: '1.25rem' }}>
-                  Global Hall of Fame
+                  Leaderboard
                 </h2>
                 <div
                   className="global-live-badge"
@@ -150,7 +193,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   }}
                   title={
                     isFirebaseActive
-                      ? 'Live Firebase Firestore connected across all devices'
+                      ? 'Live Firebase Firestore active across all devices'
                       : 'Global cloud sync active'
                   }
                 >
@@ -165,7 +208,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 </div>
               </div>
               <div style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                {CATEGORIES.find((c) => c.id === selectedCategory)?.desc}
+                Dedicated standalone board for every game type combination
               </div>
             </div>
           </div>
@@ -174,25 +217,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           </button>
         </div>
 
-        {/* Category Tabs */}
-        <div className="leaderboard-category-tabs">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              className={`leaderboard-category-tab ${selectedCategory === cat.id ? 'active' : ''}`}
-              onClick={() => setSelectedCategory(cat.id)}
-            >
-              <span className="leaderboard-tab-icon">{cat.icon}</span>
-              <span>{cat.label}</span>
-            </button>
-          ))}
-        </div>
-
-        {/* Filter Controls (Mode & Continent) */}
-        <div className="leaderboard-filters-bar">
+        {/* Filter Controls: Mode, Continent, Timer Mode */}
+        <div className="leaderboard-filters-bar" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '10px' }}>
+          {/* Row 1: Game Mode */}
           <div className="leaderboard-filter-group">
-            <span className="leaderboard-filter-label">
+            <span className="leaderboard-filter-label" style={{ minWidth: '70px' }}>
               <Layers size={12} /> Mode:
             </span>
             <div className="leaderboard-filter-pills">
@@ -210,8 +239,9 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             </div>
           </div>
 
+          {/* Row 2: Scope / Continent */}
           <div className="leaderboard-filter-group">
-            <span className="leaderboard-filter-label">
+            <span className="leaderboard-filter-label" style={{ minWidth: '70px' }}>
               <Compass size={12} /> Scope:
             </span>
             <div className="leaderboard-filter-pills">
@@ -222,10 +252,88 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                   className={`leaderboard-filter-pill ${selectedContinent === cont.id ? 'active' : ''}`}
                   onClick={() => setSelectedContinent(cont.id)}
                 >
-                  {cont.label}
+                  <span>{cont.icon}</span>
+                  <span>{cont.label}</span>
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Row 3: Timer Mode */}
+          <div className="leaderboard-filter-group">
+            <span className="leaderboard-filter-label" style={{ minWidth: '70px' }}>
+              <Clock size={12} /> Pacing:
+            </span>
+            <div className="leaderboard-filter-pills">
+              {TIMER_MODES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`leaderboard-filter-pill ${selectedTimerMode === t.id ? 'active' : ''}`}
+                  onClick={() => setSelectedTimerMode(t.id)}
+                >
+                  <span>{t.icon}</span>
+                  <span>{t.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Combination Title Banner & Sort Criteria Tabs */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 16px',
+            background: 'rgba(255, 255, 255, 0.02)',
+            borderBottom: '1px solid var(--border-card)',
+            flexWrap: 'wrap',
+            gap: '8px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600 }}>
+            <span style={{ color: 'var(--primary-light)' }}>
+              {getModeLabel(selectedMode)}
+            </span>
+            <span style={{ color: 'var(--text-dim)' }}>•</span>
+            <span style={{ color: 'var(--text)' }}>
+              {selectedContinent === 'all' ? 'All World' : selectedContinent}
+            </span>
+            <span style={{ color: 'var(--text-dim)' }}>•</span>
+            <span style={{ color: '#e9c46a' }}>
+              {selectedTimerMode === 'timed' ? '⏱️ 10s Timed' : '🧘 Relaxed'}
+            </span>
+            <span
+              style={{
+                marginLeft: '6px',
+                fontSize: '0.7rem',
+                background: 'rgba(255, 255, 255, 0.08)',
+                padding: '2px 6px',
+                borderRadius: '999px',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {entries.length} record{entries.length === 1 ? '' : 's'}
+            </span>
+          </div>
+
+          {/* Sort Tabs */}
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                className={`leaderboard-category-tab ${selectedCategory === cat.id ? 'active' : ''}`}
+                style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                onClick={() => setSelectedCategory(cat.id)}
+                title={cat.desc}
+              >
+                <span className="leaderboard-tab-icon">{cat.icon}</span>
+                <span>{cat.label}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -235,10 +343,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             <div className="leaderboard-empty-state">
               <Award size={42} style={{ color: 'var(--text-dim)', marginBottom: '0.75rem' }} />
               <div style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--text)' }}>
-                No Records in This Category Yet
+                No Records for This Combination Yet
               </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '300px', margin: '0.4rem auto' }}>
-                Complete a game in this mode and be the first pioneer on the global hall of fame!
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: '360px', margin: '0.4rem auto' }}>
+                Play a game in <strong>{getModeLabel(selectedMode)}</strong> ({selectedContinent === 'all' ? 'All World' : selectedContinent}, {selectedTimerMode === 'timed' ? '10s Timed' : 'Relaxed'}) and be the first to set the world record!
               </p>
             </div>
           ) : (
@@ -258,19 +366,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <div className="podium-name" title={topThree[1].playerName}>
                         {topThree[1].playerName}
                       </div>
-                      <div className="podium-mode">{getModeLabel(topThree[1].gameMode)}</div>
+                      <div className="podium-mode">
+                        {topThree[1].mistakesCount === 0 ? '🎯 Flawless' : `${topThree[1].mistakesCount} errors`} • {topThree[1].accuracy}%
+                      </div>
                       <div className="podium-primary-stat">
                         {selectedCategory === 'fastest' && (
                           <span>⚡ {formatTimeElapsed(topThree[1].timeElapsedSeconds)}</span>
                         )}
                         {selectedCategory === 'least-mistakes' && (
-                          <span>🎯 {topThree[1].mistakesCount} mistakes ({topThree[1].accuracy}%)</span>
+                          <span>🎯 {topThree[1].mistakesCount} errors ({formatTimeElapsed(topThree[1].timeElapsedSeconds)})</span>
                         )}
                         {selectedCategory === 'highest-streak' && (
                           <span>🔥 {topThree[1].bestStreak} streak</span>
-                        )}
-                        {selectedCategory === 'overall' && (
-                          <span>🏆 {topThree[1].accuracy}% in {formatTimeElapsed(topThree[1].timeElapsedSeconds)}</span>
                         )}
                       </div>
                     </div>
@@ -291,19 +398,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <div className="podium-name" title={topThree[0].playerName}>
                         {topThree[0].playerName}
                       </div>
-                      <div className="podium-mode">{getModeLabel(topThree[0].gameMode)}</div>
+                      <div className="podium-mode">
+                        {topThree[0].mistakesCount === 0 ? '🎯 Flawless' : `${topThree[0].mistakesCount} errors`} • {topThree[0].accuracy}%
+                      </div>
                       <div className="podium-primary-stat">
                         {selectedCategory === 'fastest' && (
                           <span>⚡ {formatTimeElapsed(topThree[0].timeElapsedSeconds)}</span>
                         )}
                         {selectedCategory === 'least-mistakes' && (
-                          <span>🎯 {topThree[0].mistakesCount} mistakes ({topThree[0].accuracy}%)</span>
+                          <span>🎯 {topThree[0].mistakesCount} errors ({formatTimeElapsed(topThree[0].timeElapsedSeconds)})</span>
                         )}
                         {selectedCategory === 'highest-streak' && (
                           <span>🔥 {topThree[0].bestStreak} streak</span>
-                        )}
-                        {selectedCategory === 'overall' && (
-                          <span>🏆 {topThree[0].accuracy}% in {formatTimeElapsed(topThree[0].timeElapsedSeconds)}</span>
                         )}
                       </div>
                     </div>
@@ -321,19 +427,18 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       <div className="podium-name" title={topThree[2].playerName}>
                         {topThree[2].playerName}
                       </div>
-                      <div className="podium-mode">{getModeLabel(topThree[2].gameMode)}</div>
+                      <div className="podium-mode">
+                        {topThree[2].mistakesCount === 0 ? '🎯 Flawless' : `${topThree[2].mistakesCount} errors`} • {topThree[2].accuracy}%
+                      </div>
                       <div className="podium-primary-stat">
                         {selectedCategory === 'fastest' && (
                           <span>⚡ {formatTimeElapsed(topThree[2].timeElapsedSeconds)}</span>
                         )}
                         {selectedCategory === 'least-mistakes' && (
-                          <span>🎯 {topThree[2].mistakesCount} mistakes ({topThree[2].accuracy}%)</span>
+                          <span>🎯 {topThree[2].mistakesCount} errors ({formatTimeElapsed(topThree[2].timeElapsedSeconds)})</span>
                         )}
                         {selectedCategory === 'highest-streak' && (
                           <span>🔥 {topThree[2].bestStreak} streak</span>
-                        )}
-                        {selectedCategory === 'overall' && (
-                          <span>🏆 {topThree[2].accuracy}% in {formatTimeElapsed(topThree[2].timeElapsedSeconds)}</span>
                         )}
                       </div>
                     </div>
@@ -350,7 +455,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                     <tr>
                       <th style={{ width: '50px' }}>Rank</th>
                       <th>Player Name</th>
-                      <th>Mode / Scope</th>
                       <th style={{ textAlign: 'center' }}>Errors</th>
                       <th style={{ textAlign: 'center' }}>Accuracy</th>
                       <th style={{ textAlign: 'center' }}>Time</th>
@@ -389,15 +493,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                               {isRecent && <span className="you-pill">Your Run</span>}
                             </div>
                           </td>
-                          <td className="mode-cell">
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text)' }}>
-                              {getModeLabel(item.gameMode)}
-                            </div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                              {item.continentFilter === 'all' ? 'All World' : item.continentFilter} (
-                              {item.conqueredCount} countries)
-                            </div>
-                          </td>
                           <td style={{ textAlign: 'center' }} className={item.mistakesCount === 0 ? 'text-success' : 'text-danger'}>
                             {item.mistakesCount}
                           </td>
@@ -423,17 +518,30 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
           )}
         </div>
 
-        {/* Footer actions - No reset button allowed */}
+        {/* Footer actions with Clear Board option */}
         <div className="modal-footer" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Showing <strong>{entries.length}</strong> persistent hall of fame records
-          </div>
+          <button
+            type="button"
+            className="action-btn"
+            onClick={handleClearAll}
+            disabled={isClearing}
+            style={{
+              fontSize: '0.75rem',
+              padding: '4px 10px',
+              color: '#f87171',
+              borderColor: 'rgba(239, 68, 68, 0.3)',
+            }}
+            title="Clear all leaderboard records globally"
+          >
+            <Trash2 size={13} />
+            <span>{isClearing ? 'Clearing...' : 'Clear All Entries'}</span>
+          </button>
 
           <button
             type="button"
             className="btn-primary"
             onClick={onClose}
-            style={{ padding: '6px 20px', fontSize: '0.85rem' }}
+            style={{ padding: '6px 22px', fontSize: '0.85rem' }}
           >
             Close
           </button>

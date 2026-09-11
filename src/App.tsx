@@ -249,6 +249,7 @@ export function App() {
           timeElapsedSeconds={gameElapsedSeconds}
           bestStreak={score.bestStreak}
           continentFilter={settings.continentFilter}
+          timerMode={settings.timerMode}
           onPlayAgain={() => {
             setIsGlobeExploreOpen(false);
             resetScore();
@@ -267,6 +268,7 @@ export function App() {
           timeElapsedSeconds={gameElapsedSeconds}
           gameMode={settings.gameMode}
           continentFilter={settings.continentFilter}
+          timerMode={settings.timerMode}
           onPlayAgain={resetScore}
           onOpenLeaderboard={handleOpenLeaderboard}
           onSubmitSuccess={resetScore}
@@ -280,6 +282,7 @@ export function App() {
         recentSubmittedEntryId={recentLeaderboardEntryId}
         defaultGameMode={settings.gameMode}
         defaultContinent={settings.continentFilter}
+        defaultTimerMode={settings.timerMode}
       />
 
       {/* Trophy Shelf & Achievements Modal */}

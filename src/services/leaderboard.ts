@@ -1,20 +1,22 @@
-import { GameMode, ContinentFilter } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode } from '../types/game';
 import {
   saveEntryToFirebase,
   fetchFirebaseLeaderboard,
   isFirebaseConfigured,
   subscribeToFirebaseLeaderboard,
+  clearFirebaseLeaderboard,
 } from './firebase';
 
-export { isFirebaseConfigured, subscribeToFirebaseLeaderboard };
+export { isFirebaseConfigured, subscribeToFirebaseLeaderboard, clearFirebaseLeaderboard };
 
-export type LeaderboardCategory = 'fastest' | 'least-mistakes' | 'highest-streak' | 'overall';
+export type LeaderboardCategory = 'fastest' | 'least-mistakes' | 'highest-streak';
 
 export interface LeaderboardEntry {
   id: string;
   playerName: string;
   gameMode: GameMode;
   continentFilter: ContinentFilter;
+  timerMode: TimerMode;
   totalCountries: number;
   conqueredCount: number;
   mistakesCount: number;
@@ -34,119 +36,34 @@ export interface LeaderboardPlacementResult {
   totalParticipants: number;
 }
 
-const LEADERBOARD_KEY = 'guess_the_country_leaderboard_v2';
+const LEADERBOARD_KEY = 'guess_the_country_leaderboard_v3';
 const LAST_PLAYER_NAME_KEY = 'guess_the_country_last_player_name';
 const GLOBAL_CLOUD_BIN_ID = 'ff808181a067127101a08f93d81e7345';
 const CLOUD_API_URL = `https://api.restful-api.dev/objects/${GLOBAL_CLOUD_BIN_ID}`;
 
-// Default hall-of-fame records to seed initially
-const SEEDED_LEADERBOARD: LeaderboardEntry[] = [
-  {
-    id: 'seed-1',
-    playerName: 'Atlas Explorer',
-    gameMode: 'globe',
-    continentFilter: 'all',
-    totalCountries: 197,
-    conqueredCount: 197,
-    mistakesCount: 0,
-    accuracy: 100,
-    timeElapsedSeconds: 148,
-    bestStreak: 197,
-    date: '2026-03-01T10:00:00Z',
-    rankBadge: 'S+',
-  },
-  {
-    id: 'seed-2',
-    playerName: 'Magellan',
-    gameMode: 'globe',
-    continentFilter: 'all',
-    totalCountries: 197,
-    conqueredCount: 197,
-    mistakesCount: 2,
-    accuracy: 99,
-    timeElapsedSeconds: 125,
-    bestStreak: 94,
-    date: '2026-03-02T12:00:00Z',
-    rankBadge: 'S',
-  },
-  {
-    id: 'seed-3',
-    playerName: 'Vespucci',
-    gameMode: 'globe',
-    continentFilter: 'Europe',
-    totalCountries: 48,
-    conqueredCount: 48,
-    mistakesCount: 0,
-    accuracy: 100,
-    timeElapsedSeconds: 38,
-    bestStreak: 48,
-    date: '2026-03-03T14:30:00Z',
-    rankBadge: 'S+',
-  },
-  {
-    id: 'seed-4',
-    playerName: 'Captain Cook',
-    gameMode: 'flag-to-name',
-    continentFilter: 'all',
-    totalCountries: 197,
-    conqueredCount: 197,
-    mistakesCount: 4,
-    accuracy: 98,
-    timeElapsedSeconds: 164,
-    bestStreak: 65,
-    date: '2026-03-04T09:15:00Z',
-    rankBadge: 'S',
-  },
-  {
-    id: 'seed-5',
-    playerName: 'Marco Polo',
-    gameMode: 'globe',
-    continentFilter: 'Asia',
-    totalCountries: 49,
-    conqueredCount: 49,
-    mistakesCount: 1,
-    accuracy: 98,
-    timeElapsedSeconds: 42,
-    bestStreak: 38,
-    date: '2026-03-05T16:45:00Z',
-    rankBadge: 'S',
-  },
-  {
-    id: 'seed-6',
-    playerName: 'Amelia Air',
-    gameMode: 'name-to-flag',
-    continentFilter: 'Americas',
-    totalCountries: 35,
-    conqueredCount: 35,
-    mistakesCount: 0,
-    accuracy: 100,
-    timeElapsedSeconds: 29,
-    bestStreak: 35,
-    date: '2026-03-06T11:20:00Z',
-    rankBadge: 'S+',
-  },
-];
-
 export function mergeAndDeduplicate(local: LeaderboardEntry[], remote: LeaderboardEntry[]): LeaderboardEntry[] {
   const map = new Map<string, LeaderboardEntry>();
 
-  // Add seeded first
-  SEEDED_LEADERBOARD.forEach((e) => map.set(e.id, e));
-
-  // Add remote entries
+  // Add remote entries first
   if (Array.isArray(remote)) {
     remote.forEach((e) => {
       if (e && e.id && e.playerName) {
-        map.set(e.id, e);
+        map.set(e.id, {
+          ...e,
+          timerMode: e.timerMode || 'timed',
+        });
       }
     });
   }
 
-  // Add local entries
+  // Add/overwrite with local entries
   if (Array.isArray(local)) {
     local.forEach((e) => {
       if (e && e.id && e.playerName) {
-        map.set(e.id, e);
+        map.set(e.id, {
+          ...e,
+          timerMode: e.timerMode || 'timed',
+        });
       }
     });
   }
@@ -156,18 +73,21 @@ export function mergeAndDeduplicate(local: LeaderboardEntry[], remote: Leaderboa
 
 export function loadLeaderboard(): LeaderboardEntry[] {
   try {
+    // Purge legacy storage versions if present
+    localStorage.removeItem('guess_the_country_leaderboard');
+    localStorage.removeItem('guess_the_country_leaderboard_v2');
+
     const raw = localStorage.getItem(LEADERBOARD_KEY);
     if (!raw) {
-      saveLeaderboard(SEEDED_LEADERBOARD);
-      return SEEDED_LEADERBOARD;
+      return [];
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
       return mergeAndDeduplicate(parsed, []);
     }
-    return SEEDED_LEADERBOARD;
+    return [];
   } catch {
-    return SEEDED_LEADERBOARD;
+    return [];
   }
 }
 
@@ -176,6 +96,36 @@ export function saveLeaderboard(entries: LeaderboardEntry[]): void {
     localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(entries));
   } catch {
     // ignore
+  }
+}
+
+/**
+ * Clears all leaderboard entries locally, in Firestore, and in the cloud REST bin.
+ */
+export async function clearAllLeaderboardEntries(): Promise<void> {
+  try {
+    localStorage.removeItem(LEADERBOARD_KEY);
+    localStorage.removeItem('guess_the_country_leaderboard_v2');
+    localStorage.removeItem('guess_the_country_leaderboard');
+  } catch {
+    // safe
+  }
+
+  if (isFirebaseConfigured()) {
+    await clearFirebaseLeaderboard().catch((err) => console.warn('[Firebase] Clear error:', err));
+  }
+
+  try {
+    await fetch(CLOUD_API_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'guess-the-country-leaderboard',
+        data: { entries: [] },
+      }),
+    });
+  } catch {
+    // safe
   }
 }
 
@@ -195,13 +145,8 @@ export async function syncGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
         const merged = mergeAndDeduplicate(local, firebaseEntries);
         saveLeaderboard(merged);
         return merged;
-      } else if (firebaseEntries && firebaseEntries.length === 0) {
-        // Firestore is newly provisioned and empty. Seed the initial hall of fame entries!
-        for (const entry of SEEDED_LEADERBOARD) {
-          saveEntryToFirebase(entry).catch(() => {});
-        }
-        return local;
       }
+      return local;
     } catch (err) {
       console.warn('[Leaderboard] Firebase sync notice:', err);
     }
@@ -292,6 +237,7 @@ export function addLeaderboardEntry(
   const currentList = loadLeaderboard();
   const trimmedName = entryData.playerName?.trim() || 'Anonymous Explorer';
   setLastPlayerName(trimmedName);
+  const targetTimerMode = entryData.timerMode || 'timed';
 
   // Check for duplicate submission within recent timeframe (last 3 minutes)
   const existingDuplicate = currentList.find((e) => {
@@ -299,6 +245,7 @@ export function addLeaderboardEntry(
     const isSameGame =
       e.gameMode === entryData.gameMode &&
       e.continentFilter === entryData.continentFilter &&
+      (e.timerMode || 'timed') === targetTimerMode &&
       e.timeElapsedSeconds === entryData.timeElapsedSeconds &&
       e.mistakesCount === entryData.mistakesCount &&
       e.conqueredCount === entryData.conqueredCount &&
@@ -309,8 +256,9 @@ export function addLeaderboardEntry(
     return diffMs < 180000; // 3 minutes window
   });
 
-  const entryToRank = existingDuplicate || {
+  const entryToRank: LeaderboardEntry = existingDuplicate || {
     ...entryData,
+    timerMode: targetTimerMode,
     id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     playerName: trimmedName,
     date: new Date().toISOString(),
@@ -325,9 +273,12 @@ export function addLeaderboardEntry(
     pushGlobalLeaderboard(entryToRank, updatedList);
   }
 
-  // Compute player's ranks in the relevant category scope
+  // Compute player's ranks strictly in this exact game combination
   const sameScopeList = updatedList.filter(
-    (e) => e.gameMode === entryData.gameMode && e.continentFilter === entryData.continentFilter
+    (e) =>
+      e.gameMode === entryData.gameMode &&
+      e.continentFilter === entryData.continentFilter &&
+      (e.timerMode || 'timed') === targetTimerMode
   );
 
   const fastestSorted = [...sameScopeList].sort((a, b) => {
@@ -346,42 +297,40 @@ export function addLeaderboardEntry(
     return b.accuracy - a.accuracy;
   });
 
-  const computeOverallScore = (e: LeaderboardEntry) =>
-    e.accuracy * 1000 - e.timeElapsedSeconds * 3 - e.mistakesCount * 60 + e.bestStreak * 25;
-
-  const overallSorted = [...sameScopeList].sort((a, b) => computeOverallScore(b) - computeOverallScore(a));
-
   const fastestRank = fastestSorted.findIndex((e) => e.id === entryToRank.id) + 1;
   const leastMistakesRank = leastMistakesSorted.findIndex((e) => e.id === entryToRank.id) + 1;
   const highestStreakRank = highestStreakSorted.findIndex((e) => e.id === entryToRank.id) + 1;
-  const overallRank = overallSorted.findIndex((e) => e.id === entryToRank.id) + 1;
 
   return {
     entry: entryToRank,
     fastestRank: fastestRank > 0 ? fastestRank : 1,
     leastMistakesRank: leastMistakesRank > 0 ? leastMistakesRank : 1,
     highestStreakRank: highestStreakRank > 0 ? highestStreakRank : 1,
-    overallRank: overallRank > 0 ? overallRank : 1,
+    overallRank: leastMistakesRank > 0 ? leastMistakesRank : 1,
     totalParticipants: sameScopeList.length,
   };
 }
 
+/**
+ * Returns strictly the leaderboard for a single game combination (gameMode + continent + timerMode).
+ * No general or mixed modes!
+ */
 export function getFilteredLeaderboard(
-  category: LeaderboardCategory,
-  gameModeFilter: GameMode | 'all',
-  continentFilter: ContinentFilter | 'all'
+  gameMode: GameMode,
+  continentFilter: ContinentFilter,
+  timerMode: TimerMode,
+  category: LeaderboardCategory = 'least-mistakes'
 ): LeaderboardEntry[] {
   const allEntries = loadLeaderboard();
 
-  let filtered = allEntries;
-  if (gameModeFilter !== 'all') {
-    filtered = filtered.filter((e) => e.gameMode === gameModeFilter);
-  }
-  if (continentFilter !== 'all') {
-    filtered = filtered.filter((e) => e.continentFilter === continentFilter);
-  }
+  const filtered = allEntries.filter(
+    (e) =>
+      e.gameMode === gameMode &&
+      e.continentFilter === continentFilter &&
+      (e.timerMode || 'timed') === timerMode
+  );
 
-  // Sorting based on category
+  // Sorting based on category within this exact combination
   const sorted = [...filtered].sort((a, b) => {
     if (category === 'fastest') {
       if (a.timeElapsedSeconds !== b.timeElapsedSeconds) {
@@ -390,9 +339,9 @@ export function getFilteredLeaderboard(
       return a.mistakesCount - b.mistakesCount;
     }
 
-    if (category === 'least-mistakes') {
-      if (a.mistakesCount !== b.mistakesCount) {
-        return a.mistakesCount - b.mistakesCount;
+    if (category === 'highest-streak') {
+      if (a.bestStreak !== b.bestStreak) {
+        return b.bestStreak - a.bestStreak;
       }
       if (a.accuracy !== b.accuracy) {
         return b.accuracy - a.accuracy;
@@ -400,17 +349,21 @@ export function getFilteredLeaderboard(
       return a.timeElapsedSeconds - b.timeElapsedSeconds;
     }
 
-    if (category === 'highest-streak') {
-      if (a.bestStreak !== b.bestStreak) {
-        return b.bestStreak - a.bestStreak;
-      }
+    // Default 'least-mistakes' / mastery:
+    // 1. Fewest mistakes
+    if (a.mistakesCount !== b.mistakesCount) {
+      return a.mistakesCount - b.mistakesCount;
+    }
+    // 2. Highest accuracy
+    if (a.accuracy !== b.accuracy) {
       return b.accuracy - a.accuracy;
     }
-
-    // Default 'overall' score
-    const scoreA = a.accuracy * 1000 - a.timeElapsedSeconds * 3 - a.mistakesCount * 60 + a.bestStreak * 25;
-    const scoreB = b.accuracy * 1000 - b.timeElapsedSeconds * 3 - b.mistakesCount * 60 + b.bestStreak * 25;
-    return scoreB - scoreA;
+    // 3. Fastest time
+    if (a.timeElapsedSeconds !== b.timeElapsedSeconds) {
+      return a.timeElapsedSeconds - b.timeElapsedSeconds;
+    }
+    // 4. Highest streak
+    return b.bestStreak - a.bestStreak;
   });
 
   return sorted;

@@ -8,7 +8,7 @@ import {
   Send,
   CheckCircle2,
 } from 'lucide-react';
-import { ContinentFilter } from '../types/game';
+import { ContinentFilter, TimerMode } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
@@ -25,6 +25,7 @@ interface GlobeVictoryModalProps {
   timeElapsedSeconds?: number;
   bestStreak?: number;
   continentFilter?: ContinentFilter;
+  timerMode?: TimerMode;
   onPlayAgain: () => void;
   onExplore: () => void;
   onOpenLeaderboard?: (entryId?: string) => void;
@@ -39,6 +40,7 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
   timeElapsedSeconds = 0,
   bestStreak = 0,
   continentFilter = 'all',
+  timerMode = 'timed',
   onPlayAgain,
   onExplore,
   onOpenLeaderboard,
@@ -102,6 +104,7 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
       playerName: playerName.trim() || 'World Explorer',
       gameMode: 'globe',
       continentFilter,
+      timerMode,
       totalCountries,
       conqueredCount,
       mistakesCount,

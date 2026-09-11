@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, Send } from 'lucide-react';
-import { GameMode, ContinentFilter, GameScore } from '../types/game';
+import { GameMode, ContinentFilter, GameScore, TimerMode } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
@@ -15,6 +15,7 @@ interface VictoryModalProps {
   timeElapsedSeconds?: number;
   gameMode?: GameMode;
   continentFilter?: ContinentFilter;
+  timerMode?: TimerMode;
   onPlayAgain: () => void;
   onOpenLeaderboard?: (entryId?: string) => void;
   onSubmitSuccess?: () => void;
@@ -26,6 +27,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   timeElapsedSeconds = 0,
   gameMode = 'flag-to-name',
   continentFilter = 'all',
+  timerMode = 'timed',
   onPlayAgain,
   onOpenLeaderboard,
   onSubmitSuccess,
@@ -48,6 +50,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       playerName: playerName.trim() || 'World Master',
       gameMode,
       continentFilter,
+      timerMode,
       totalCountries,
       conqueredCount: score.right,
       mistakesCount: score.wrong,
