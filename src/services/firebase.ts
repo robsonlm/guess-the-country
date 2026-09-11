@@ -76,7 +76,12 @@ export function subscribeToFirebaseLeaderboard(
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as LeaderboardEntry;
           if (data && data.id && data.playerName) {
-            entries.push(data);
+            if (data.id.startsWith('seed-')) {
+              // Auto-purge any stale seed entries that might have been uploaded by old clients
+              deleteDoc(docSnap.ref).catch(() => {});
+            } else {
+              entries.push(data);
+            }
           }
         });
         onUpdate(entries);
@@ -97,7 +102,7 @@ export function subscribeToFirebaseLeaderboard(
  * Saves a new score entry to Firebase Firestore so all players across all devices can see it.
  */
 export async function saveEntryToFirebase(entry: LeaderboardEntry): Promise<boolean> {
-  if (!db || !isFirebaseConfigured()) {
+  if (!db || !isFirebaseConfigured() || entry.id.startsWith('seed-')) {
     return false;
   }
 
@@ -126,7 +131,11 @@ export async function fetchFirebaseLeaderboard(): Promise<LeaderboardEntry[]> {
     querySnapshot.forEach((docSnap) => {
       const data = docSnap.data() as LeaderboardEntry;
       if (data && data.id && data.playerName) {
-        entries.push(data);
+        if (data.id.startsWith('seed-')) {
+          deleteDoc(docSnap.ref).catch(() => {});
+        } else {
+          entries.push(data);
+        }
       }
     });
     return entries;

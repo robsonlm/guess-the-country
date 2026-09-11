@@ -47,7 +47,7 @@ export function mergeAndDeduplicate(local: LeaderboardEntry[], remote: Leaderboa
   // Add remote entries first
   if (Array.isArray(remote)) {
     remote.forEach((e) => {
-      if (e && e.id && e.playerName) {
+      if (e && e.id && e.playerName && !e.id.startsWith('seed-')) {
         map.set(e.id, {
           ...e,
           timerMode: e.timerMode || 'timed',
@@ -59,7 +59,7 @@ export function mergeAndDeduplicate(local: LeaderboardEntry[], remote: Leaderboa
   // Add/overwrite with local entries
   if (Array.isArray(local)) {
     local.forEach((e) => {
-      if (e && e.id && e.playerName) {
+      if (e && e.id && e.playerName && !e.id.startsWith('seed-')) {
         map.set(e.id, {
           ...e,
           timerMode: e.timerMode || 'timed',
@@ -68,7 +68,7 @@ export function mergeAndDeduplicate(local: LeaderboardEntry[], remote: Leaderboa
     });
   }
 
-  return Array.from(map.values());
+  return Array.from(map.values()).filter((e) => !e.id.startsWith('seed-'));
 }
 
 export function loadLeaderboard(): LeaderboardEntry[] {
@@ -83,7 +83,7 @@ export function loadLeaderboard(): LeaderboardEntry[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return mergeAndDeduplicate(parsed, []);
+      return mergeAndDeduplicate(parsed, []).filter((e) => !e.id.startsWith('seed-'));
     }
     return [];
   } catch {
