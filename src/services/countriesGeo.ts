@@ -379,7 +379,11 @@ export async function loadGeoFeatures(): Promise<GeoFeature[]> {
       centroid,
     };
     if (alpha2) {
-      alpha2ToFeatureMap.set(alpha2, feature);
+      const existing = alpha2ToFeatureMap.get(alpha2);
+      // Prioritize sovereign / country features over overseas dependency fragments (e.g. Australia over Indian Ocean Ter.)
+      if (!existing || f.properties?.TYPE === 'Sovereign country' || f.properties?.TYPE === 'Country') {
+        alpha2ToFeatureMap.set(alpha2, feature);
+      }
     }
     return feature;
   });
@@ -431,6 +435,78 @@ export function getCountryCoordinates(alpha2: string): { lat: number; lng: numbe
     return feature.centroid;
   }
   return { lat: 20, lng: 0 };
+}
+
+/**
+ * Calculates optimal globe camera altitude dynamically so the target country
+ * fills at least ~30% - 40% of the viewport, making islands and micro-states
+ * comfortably visible without disorienting extreme zooms.
+ */
+export function getCountryTargetAltitude(alpha2: string): number {
+  const upper = alpha2.toUpperCase();
+  const feature = alpha2ToFeatureMap.get(upper);
+
+  if (!feature || !feature.geometry) {
+    return 0.45;
+  }
+
+  const geom = feature.geometry;
+  let rings: any[] = [];
+  if (geom.type === 'Polygon') {
+    rings = [geom.coordinates];
+  } else if (geom.type === 'MultiPolygon') {
+    rings = geom.coordinates;
+  }
+
+  let maxSpan = 0;
+  let maxArea = 0;
+
+  for (const poly of rings) {
+    const exterior = poly[0];
+    if (!exterior || !Array.isArray(exterior)) continue;
+
+    let minLng = 180;
+    let maxLng = -180;
+    let minLat = 90;
+    let maxLat = -90;
+
+    for (const pt of exterior) {
+      if (typeof pt[0] === 'number' && typeof pt[1] === 'number') {
+        if (pt[0] < minLng) minLng = pt[0];
+        if (pt[0] > maxLng) maxLng = pt[0];
+        if (pt[1] < minLat) minLat = pt[1];
+        if (pt[1] > maxLat) maxLat = pt[1];
+      }
+    }
+
+    const dLat = Math.max(0, maxLat - minLat);
+    const dLng = Math.max(0, maxLng - minLng);
+    const approxArea = dLat * dLng;
+
+    if (approxArea > maxArea) {
+      maxArea = approxArea;
+      maxSpan = Math.max(dLat, dLng);
+    }
+  }
+
+  if (maxSpan <= 0) {
+    maxSpan = 0.5;
+  }
+
+  // Altitude scaling:
+  // Micro / island nations (Vatican, Monaco, Nauru, Tuvalu, Malta, Singapore, etc.):
+  // altitude: 0.14 - 0.22 brings the camera in close so islands fill a solid ~30% of screen.
+  // Small countries (Mauritius, Jamaica, Lebanon): ~0.35 - 0.55
+  // Medium countries (Portugal, UK, Germany, Japan): ~0.75 - 1.10
+  // Continental giants (Brazil, USA, Russia, Canada): ~1.50 - 1.85
+  if (maxSpan <= 0.12) return 0.14;
+  if (maxSpan <= 0.45) return 0.22;
+  if (maxSpan <= 1.2) return 0.36;
+  if (maxSpan <= 3.5) return 0.55;
+  if (maxSpan <= 8.0) return 0.80;
+  if (maxSpan <= 16.0) return 1.15;
+  if (maxSpan <= 28.0) return 1.45;
+  return 1.85;
 }
 
 export function calculateDistanceKm(

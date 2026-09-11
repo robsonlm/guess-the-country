@@ -21,6 +21,7 @@ import { Country, ChoiceOption, LifelineState, ContinentFilter } from '../types/
 import {
   loadGeoFeatures,
   getCountryCoordinates,
+  getCountryTargetAltitude,
   GeoFeature,
 } from '../services/countriesGeo';
 import '../styles/GlobeGame.css';
@@ -160,7 +161,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       controls.autoRotateSpeed = 0.8;
       controls.enableDamping = true;
       controls.dampingFactor = 0.1;
-      controls.minDistance = 120;
+      controls.minDistance = 105;
       controls.maxDistance = 550;
     }
 
@@ -298,7 +299,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     }
   }, [geoFeatures, currentFocusedCountry, targetCountry, conqueredAlphas, isFinalThree, finalThreeTargets, isGlobeReady]);
 
-  // 4. Smooth camera fly-to on target country change
+  // 4. Smooth camera fly-to on target country change, auto-zooming so it fills at least ~30% of screen
   const focusTargetCountry = useCallback(
     (countryToFocus?: Country, duration = 1000) => {
       const globe = globeInstanceRef.current;
@@ -306,12 +307,13 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       if (!globe || !target) return;
 
       const coords = getCountryCoordinates(target.alpha2);
+      const targetAltitude = getCountryTargetAltitude(target.alpha2);
 
       globe.pointOfView(
         {
           lat: coords.lat,
           lng: coords.lng,
-          altitude: 1.85,
+          altitude: targetAltitude,
         },
         duration
       );
@@ -342,7 +344,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     const globe = globeInstanceRef.current;
     if (!globe) return;
     const pov = globe.pointOfView();
-    globe.pointOfView({ ...pov, altitude: Math.max(0.18, pov.altitude * 0.65) }, 400);
+    globe.pointOfView({ ...pov, altitude: Math.max(0.08, pov.altitude * 0.65) }, 400);
   };
 
   const handleZoomOut = () => {
