@@ -209,17 +209,18 @@ export function App() {
 
           <footer
             style={{
-              marginTop: '1rem',
+              marginTop: '0.15rem',
               color: 'var(--text-dim)',
-              fontSize: '0.8rem',
+              fontSize: '0.72rem',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.35rem',
+              gap: '0.3rem',
+              flexShrink: 0,
             }}
           >
-            <Sparkles size={12} style={{ color: 'var(--primary-light)' }} />
+            <Sparkles size={11} style={{ color: 'var(--primary-light)' }} />
             <span>
-              Pro tip: Press [1] through [{currentRound.options.length}] on your keyboard to guess rapidly
+              Pro tip: Press [1] through [{currentRound.options.length}] on keyboard to guess rapidly
             </span>
           </footer>
         </main>
