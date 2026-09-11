@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AlertCircle, RefreshCw, Sparkles, Flame } from 'lucide-react';
 import { useGameState } from './hooks/useGameState';
 import { Header } from './components/Header';
+import { MainPageView } from './components/MainPageView';
 import { FlagCard } from './components/FlagCard';
 import { ReverseFlagCard } from './components/ReverseFlagCard';
 import { ChoiceButtons } from './components/ChoiceButtons';
@@ -54,6 +55,7 @@ export function App() {
     isStartModalOpen,
     currentPlayerName,
     startGame,
+    navigateToHome,
     openStartModal,
     closeStartModal,
     handleChoice,
@@ -87,7 +89,7 @@ export function App() {
   const unlockedCount = achievements.filter((a) => a.unlockedAt !== null).length;
 
   return (
-    <div className={`app-container ${settings.gameMode === 'globe' ? 'globe-mode-active' : ''}`}>
+    <div className={`app-container ${settings.gameMode === 'globe' && isGameStarted ? 'globe-mode-active' : ''} ${!isGameStarted ? 'main-page-active' : ''}`}>
       <Header
         currentStreak={score.currentStreak}
         level={currentRound?.level ?? 1}
@@ -99,6 +101,8 @@ export function App() {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onToggleMode={handleToggleMode}
         onOpenLeaderboard={() => handleOpenLeaderboard()}
+        onNavigateHome={navigateToHome}
+        isInGame={isGameStarted}
       />
 
       {/* Achievement Unlocked Toast Notification */}
@@ -152,8 +156,31 @@ export function App() {
         </div>
       )}
 
-      {/* Active gameplay workspace */}
-      {!isLoading && currentRound && !isGameComplete && (
+      {/* 1. Main Page Landing View (when game has not yet started) */}
+      {!isLoading && !isGameStarted && (
+        <MainPageView
+          settings={settings}
+          score={score}
+          achievements={achievements}
+          solvedCount={solvedAlphas.length}
+          totalCountriesCount={countries.length}
+          playerName={currentPlayerName}
+          isGameInProgress={solvedAlphas.length > 0 || score.currentStreak > 0}
+          onStartGame={(name, config) => {
+            resetScore();
+            startGame(name, config);
+          }}
+          onResumeGame={() => startGame()}
+          onOpenLeaderboard={() => handleOpenLeaderboard()}
+          onOpenAchievements={() => setIsAchievementsOpen(true)}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          onUpdateSettings={updateSettings}
+          onEnableAdmin={() => updateSettings({ adminTestMode: true })}
+        />
+      )}
+
+      {/* 2. Active gameplay workspace */}
+      {!isLoading && isGameStarted && currentRound && !isGameComplete && (
         <main className="game-workspace">
           {/* Active Timer Bar in 10s Timed mode */}
           {settings.timerMode !== 'relaxed' && (

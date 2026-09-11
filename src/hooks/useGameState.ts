@@ -8,6 +8,8 @@ import {
   UserSettings,
   ChoiceOption,
   GameMode,
+  ContinentFilter,
+  TimerMode,
   LifelineState,
   Achievement,
 } from '../types/game';
@@ -64,7 +66,7 @@ export function useGameState() {
   // Player Name and Game Start Flow (asked when game starts)
   const [currentPlayerName, setCurrentPlayerName] = useState<string>(getLastPlayerName);
   const [isGameStarted, setIsGameStarted] = useState<boolean>(false);
-  const [isStartModalOpen, setIsStartModalOpen] = useState<boolean>(true);
+  const [isStartModalOpen, setIsStartModalOpen] = useState<boolean>(false);
 
   // Timer state (10s per flag in 'timed' mode, untimed in 'relaxed')
   const [timeLeft, setTimeLeft] = useState<number>(settings.timerMode === 'timed' ? 10 : 0);
@@ -876,11 +878,21 @@ export function useGameState() {
   }, [isGameStarted, isResolving, currentRound, isLoading, isGameComplete, isPaused, handleChoice]);
 
   // Start Game and Player Setup callbacks
-  const startGame = useCallback((playerName?: string) => {
+  const startGame = useCallback((
+    playerName?: string,
+    config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }
+  ) => {
     if (playerName && playerName.trim()) {
       const trimmed = playerName.trim();
       setCurrentPlayerName(trimmed);
       setLastPlayerName(trimmed);
+    }
+    if (config) {
+      updateSettings({
+        ...(config.mode ? { gameMode: config.mode } : {}),
+        ...(config.continent ? { continentFilter: config.continent } : {}),
+        ...(config.timer ? { timerMode: config.timer } : {}),
+      });
     }
     setIsGameStarted(true);
     setIsStartModalOpen(false);
@@ -889,6 +901,11 @@ export function useGameState() {
     } else {
       setTimeLeft(0);
     }
+  }, [updateSettings]);
+
+  const navigateToHome = useCallback(() => {
+    setIsGameStarted(false);
+    setIsStartModalOpen(false);
   }, []);
 
   const openStartModal = useCallback(() => {
@@ -930,6 +947,7 @@ export function useGameState() {
     isStartModalOpen,
     currentPlayerName,
     startGame,
+    navigateToHome,
     openStartModal,
     closeStartModal,
     setCurrentPlayerName,

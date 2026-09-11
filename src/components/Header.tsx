@@ -1,4 +1,4 @@
-import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck } from 'lucide-react';
+import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck, Home } from 'lucide-react';
 import { UserSettings } from '../types/game';
 
 interface HeaderProps {
@@ -12,6 +12,8 @@ interface HeaderProps {
   onOpenSettings: () => void;
   onToggleMode?: () => void;
   onOpenLeaderboard?: () => void;
+  onNavigateHome?: () => void;
+  isInGame?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,6 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSettings,
   onToggleMode,
   onOpenLeaderboard,
+  onNavigateHome,
+  isInGame = false,
 }) => {
   const isGlobeMode = settings.gameMode === 'globe';
 
@@ -59,7 +63,14 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="app-header">
-      <div className="brand-section">
+      <div
+        className={`brand-section ${onNavigateHome ? 'clickable' : ''}`}
+        onClick={onNavigateHome}
+        role={onNavigateHome ? 'button' : undefined}
+        tabIndex={onNavigateHome ? 0 : undefined}
+        title={onNavigateHome ? 'Return to Main Menu' : undefined}
+        style={{ cursor: onNavigateHome ? 'pointer' : 'default' }}
+      >
         <div className="brand-icon" aria-hidden="true">
           <Globe2 size={22} />
         </div>
@@ -72,6 +83,18 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-actions">
+        {isInGame && onNavigateHome && (
+          <button
+            type="button"
+            className="icon-btn header-home-btn"
+            onClick={onNavigateHome}
+            title="Return to Main Menu"
+            aria-label="Main Menu"
+          >
+            <Home size={17} />
+          </button>
+        )}
+
         {playerName && (
           <button
             type="button"
@@ -105,7 +128,7 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </button>
         )}
-        {onToggleMode && (
+        {isInGame && onToggleMode && (
           <button
             type="button"
             className={`action-btn header-mode-toggle-btn ${isGlobeMode ? 'active' : ''}`}
