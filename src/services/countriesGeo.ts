@@ -443,11 +443,12 @@ export function getCountryCoordinates(alpha2: string): { lat: number; lng: numbe
  * comfortably visible without disorienting extreme zooms.
  */
 export function getCountryTargetAltitude(alpha2: string): number {
+  const ZOOM_OUT_FACTOR = 1.5;
   const upper = alpha2.toUpperCase();
   const feature = alpha2ToFeatureMap.get(upper);
 
   if (!feature || !feature.geometry) {
-    return 0.45;
+    return Number((0.45 * ZOOM_OUT_FACTOR).toFixed(3));
   }
 
   const geom = feature.geometry;
@@ -493,20 +494,22 @@ export function getCountryTargetAltitude(alpha2: string): number {
     maxSpan = 0.5;
   }
 
-  // Altitude scaling:
-  // Micro / island nations (Vatican, Monaco, Nauru, Tuvalu, Malta, Singapore, etc.):
-  // altitude: 0.14 - 0.22 brings the camera in close so islands fill a solid ~30% of screen.
-  // Small countries (Mauritius, Jamaica, Lebanon): ~0.35 - 0.55
-  // Medium countries (Portugal, UK, Germany, Japan): ~0.75 - 1.10
-  // Continental giants (Brazil, USA, Russia, Canada): ~1.50 - 1.85
-  if (maxSpan <= 0.12) return 0.14;
-  if (maxSpan <= 0.45) return 0.22;
-  if (maxSpan <= 1.2) return 0.36;
-  if (maxSpan <= 3.5) return 0.55;
-  if (maxSpan <= 8.0) return 0.80;
-  if (maxSpan <= 16.0) return 1.15;
-  if (maxSpan <= 28.0) return 1.45;
-  return 1.85;
+  // Base altitude scaling scaled by 50% zoom out (ZOOM_OUT_FACTOR = 1.5):
+  // Micro / island nations (Vatican, Monaco, Nauru, Tuvalu, Malta, Singapore):
+  // was 0.14 - 0.22 -> now 0.21 - 0.33
+  // Small countries (Mauritius, Jamaica, Lebanon): was 0.36 - 0.55 -> now 0.54 - 0.825
+  // Medium countries (Portugal, UK, Germany, Japan): was 0.80 - 1.15 -> now 1.20 - 1.725
+  // Continental giants (Brazil, USA, Russia, Canada): was 1.45 - 1.85 -> now 2.175 - 2.775
+  let baseAltitude = 1.85;
+  if (maxSpan <= 0.12) baseAltitude = 0.14;
+  else if (maxSpan <= 0.45) baseAltitude = 0.22;
+  else if (maxSpan <= 1.2) baseAltitude = 0.36;
+  else if (maxSpan <= 3.5) baseAltitude = 0.55;
+  else if (maxSpan <= 8.0) baseAltitude = 0.80;
+  else if (maxSpan <= 16.0) baseAltitude = 1.15;
+  else if (maxSpan <= 28.0) baseAltitude = 1.45;
+
+  return Number((baseAltitude * ZOOM_OUT_FACTOR).toFixed(3));
 }
 
 export function calculateDistanceKm(

@@ -160,7 +160,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       controls.enableDamping = true;
       controls.dampingFactor = 0.1;
       controls.minDistance = 105;
-      controls.maxDistance = 550;
+      controls.maxDistance = 650;
     }
 
     globeInstanceRef.current = globe;
