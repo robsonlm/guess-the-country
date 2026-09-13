@@ -69,7 +69,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   const [selectedTimer, setSelectedTimer] = useState<TimerMode>(timerMode);
 
   const [isAdminModeRequested, setIsAdminModeRequested] = useState(false);
-  const [adminEmail, setAdminEmail] = useState('');
+  const [adminEmail, setAdminEmail] = useState('robsonlmaraia@gmail.com');
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -103,6 +103,19 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
 
   const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const rawTrimmed = playerName.trim();
+    if (rawTrimmed.toUpperCase() === 'ADMINMODE') {
+      if (isAdmin || hookIsAdmin) {
+        onStart('Admin', {
+          mode: selectedMode,
+          continent: selectedContinent,
+          timer: selectedTimer,
+        });
+        return;
+      }
+      handleOpenAdmin();
+      return;
+    }
     onStart(sanitizePlayerName(playerName), {
       mode: selectedMode,
       continent: selectedContinent,
@@ -111,7 +124,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   };
 
   const handleOpenAdmin = () => {
-    if (hookIsAdmin) {
+    if (hookIsAdmin || isAdmin) {
       setAdminFeedback({
         type: 'success',
         message: '⚡ Admin Mode is already active for this account.',
@@ -120,10 +133,10 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
       return;
     }
     setIsAdminModeRequested(true);
-    setAdminEmail('');
+    setAdminEmail('robsonlmaraia@gmail.com');
     setAdminPassword('');
     setAdminFeedback(null);
-    setTimeout(() => emailInputRef.current?.focus(), 150);
+    setTimeout(() => passwordInputRef.current?.focus(), 150);
   };
 
   const handleVerifyAdminPassword = async (e: React.FormEvent) => {
@@ -142,6 +155,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
             '⚡ Admin Mode unlocked! Correct answers locked to position #2 and Leaderboard controls authorized.',
         });
         setPlayerName('Admin');
+        setIsAdminModeRequested(false);
         onEnableAdmin?.();
       } else {
         setAdminFeedback({

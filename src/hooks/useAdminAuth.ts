@@ -9,50 +9,66 @@ export interface UseAdminAuth {
   signOut: () => Promise<void>;
 }
 
+// Global singleton state so all components are always synchronized
+let globalIsAdmin = false;
+let globalUserEmail: string | null = null;
+let globalReady = false;
+const subscribers = new Set<() => void>();
+
+function notifyAll() {
+  subscribers.forEach((cb) => {
+    try {
+      cb();
+    } catch {
+      // ignore subscriber errors
+    }
+  });
+}
+
+let listenerInitialized = false;
+function initAuthListener() {
+  if (listenerInitialized) return;
+  listenerInitialized = true;
+
+  onAuthChanged(async (user) => {
+    if (!user) {
+      globalIsAdmin = false;
+      globalUserEmail = null;
+      globalReady = true;
+      notifyAll();
+      return;
+    }
+    globalUserEmail = user.email ?? user.providerData?.[0]?.email ?? null;
+    try {
+      const admin = await isCurrentUserAdmin();
+      globalIsAdmin = admin;
+    } catch {
+      globalIsAdmin = false;
+    }
+    globalReady = true;
+    notifyAll();
+  });
+
+  ensureSignedIn().catch(() => {});
+}
+
 export function useAdminAuth(): UseAdminAuth {
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [ready, setReady] = useState<boolean>(false);
+  initAuthListener();
+
+  const [isAdmin, setIsAdmin] = useState<boolean>(globalIsAdmin);
+  const [userEmail, setUserEmail] = useState<string | null>(globalUserEmail);
+  const [ready, setReady] = useState<boolean>(globalReady);
 
   useEffect(() => {
-    let cancelled = false;
-    const refresh = async () => {
-      try {
-        const admin = await isCurrentUserAdmin();
-        if (!cancelled) {
-          setIsAdmin(admin);
-          setUserEmail(admin ? getCurrentEmail() : null);
-        }
-      } catch {
-        if (!cancelled) {
-          setIsAdmin(false);
-          setUserEmail(null);
-        }
-      } finally {
-        if (!cancelled) setReady(true);
-      }
+    const update = () => {
+      setIsAdmin(globalIsAdmin);
+      setUserEmail(globalUserEmail);
+      setReady(globalReady);
     };
-
-    const unsub = onAuthChanged((user) => {
-      if (!user) {
-        setIsAdmin(false);
-        setUserEmail(null);
-        setReady(true);
-        return;
-      }
-      setUserEmail(user.email ?? user.providerData?.[0]?.email ?? null);
-      refresh();
-    });
-
-    ensureSignedIn()
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) refresh();
-      });
-
+    subscribers.add(update);
+    update();
     return () => {
-      cancelled = true;
-      unsub();
+      subscribers.delete(update);
     };
   }, []);
 
@@ -63,13 +79,17 @@ export function useAdminAuth(): UseAdminAuth {
     try {
       await signInAdmin(email, password);
       const admin = await isCurrentUserAdmin();
+      globalIsAdmin = admin;
+      globalUserEmail = email.trim();
+      globalReady = true;
+      notifyAll();
       if (!admin) {
         await signOutCurrent();
-        setIsAdmin(false);
+        globalIsAdmin = false;
+        globalUserEmail = null;
+        notifyAll();
         return { success: false, error: 'This account does not have administrator privileges.' };
       }
-      setIsAdmin(true);
-      setUserEmail(email.trim());
       return { success: true };
     } catch (err: any) {
       const code = err?.code as string | undefined;
@@ -85,14 +105,10 @@ export function useAdminAuth(): UseAdminAuth {
 
   const signOut = useCallback(async () => {
     await signOutCurrent();
-    setIsAdmin(false);
-    setUserEmail(null);
+    globalIsAdmin = false;
+    globalUserEmail = null;
+    notifyAll();
   }, []);
 
   return { isAdmin, userEmail, ready, signInAsAdmin, signOut };
-}
-
-function getCurrentEmail(): string | null {
-  if (typeof window === 'undefined') return null;
-  return null;
 }

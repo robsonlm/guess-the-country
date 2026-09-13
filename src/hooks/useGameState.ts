@@ -117,6 +117,8 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
   const isResolvingRef = useRef<boolean>(false);
   const achievementsRef = useRef<Achievement[]>(achievements);
   const isGameStartedRef = useRef<boolean>(isGameStarted);
+  const adminRef = useRef<boolean>(isAdmin);
+  const currentPlayerNameRef = useRef<string>(currentPlayerName);
 
   countriesRef.current = countries;
   solvedAlphasRef.current = solvedAlphas;
@@ -126,6 +128,27 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
   scoreRef.current = score;
   isResolvingRef.current = isResolving;
   achievementsRef.current = achievements;
+  adminRef.current = isAdmin;
+  currentPlayerNameRef.current = currentPlayerName;
+
+  // Real-time synchronization when admin mode is activated
+  useEffect(() => {
+    adminRef.current = isAdmin;
+    const isEffectiveAdmin =
+      isAdmin ||
+      currentPlayerName.toUpperCase() === 'ADMIN' ||
+      currentPlayerName.toUpperCase() === 'ADMINMODE';
+
+    if (isEffectiveAdmin && currentRound && currentRound.options && currentRound.options.length >= 2) {
+      const correctIdx = currentRound.options.findIndex((o) => o.isCorrect);
+      if (correctIdx !== 1 && correctIdx !== -1) {
+        const newOptions = [...currentRound.options];
+        const [correctOpt] = newOptions.splice(correctIdx, 1);
+        newOptions.splice(1, 0, correctOpt);
+        setCurrentRound((prev) => (prev ? { ...prev, options: newOptions } : null));
+      }
+    }
+  }, [isAdmin, currentPlayerName, currentRound]);
 
   const { playCorrect, playWrong, playStreakMilestone, playLifeline } = useSoundEffects(settings.soundEnabled);
 
@@ -267,7 +290,13 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         ...distractors.map((c) => ({ name: c.name, isCorrect: false, country: c })),
       ];
 
-      if (isAdmin) {
+      const isEffectiveAdmin =
+        adminRef.current ||
+        isAdmin ||
+        currentPlayerNameRef.current?.toUpperCase() === 'ADMIN' ||
+        currentPlayerNameRef.current?.toUpperCase() === 'ADMINMODE';
+
+      if (isEffectiveAdmin) {
         // Admin Test Mode: ALWAYS place the correct answer on the 2nd position (index 1 / Key [2])
         if (options.length >= 2) {
           const correctOption = options[0];
@@ -917,6 +946,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       const trimmed = playerName.trim();
       setCurrentPlayerName(trimmed);
       setLastPlayerName(trimmed);
+      currentPlayerNameRef.current = trimmed;
     }
     if (config) {
       updateSettings({
