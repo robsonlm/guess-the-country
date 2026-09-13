@@ -55,6 +55,9 @@ const USE_EMULATORS =
   import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true' ||
   (typeof window !== 'undefined' && window.location.hostname === 'localhost' && import.meta.env.DEV);
 
+const ENABLE_CLOUD_FUNCTIONS =
+  import.meta.env.VITE_ENABLE_CLOUD_FUNCTIONS === 'true' || USE_EMULATORS;
+
 export function isFirebaseConfigured(): boolean {
   return (
     Boolean(firebaseConfig.apiKey) &&
@@ -372,8 +375,11 @@ export async function saveEntryToFirebase(entry: LeaderboardEntry): Promise<bool
   if (!db || !isFirebaseConfigured() || entry.id.startsWith('seed-')) return false;
   try {
     await ensureSignedIn();
+    if (!auth?.currentUser) {
+      await ensureAnonymousFallback();
+    }
     const cleaned = cleanEntry(entry);
-    if (functions) {
+    if (ENABLE_CLOUD_FUNCTIONS && functions) {
       try {
         const callable = httpsCallable<{ entry: LeaderboardEntry }, SubmitScoreResponse>(
           functions,
@@ -479,7 +485,7 @@ export async function clearFirebaseLeaderboard(): Promise<boolean> {
       console.warn('[Firebase] Clear leaderboard requires admin claim.');
       return false;
     }
-    if (functions) {
+    if (ENABLE_CLOUD_FUNCTIONS && functions) {
       try {
         const callable = httpsCallable<Record<string, never>, AdminClearResponse>(
           functions,
