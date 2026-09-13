@@ -443,12 +443,11 @@ export function getCountryCoordinates(alpha2: string): { lat: number; lng: numbe
  * comfortably visible without disorienting extreme zooms.
  */
 export function getCountryTargetAltitude(alpha2: string): number {
-  const ZOOM_OUT_FACTOR = 1.5;
   const upper = alpha2.toUpperCase();
   const feature = alpha2ToFeatureMap.get(upper);
 
   if (!feature || !feature.geometry) {
-    return Number((0.45 * ZOOM_OUT_FACTOR).toFixed(3));
+    return 0.85;
   }
 
   const geom = feature.geometry;
@@ -494,22 +493,17 @@ export function getCountryTargetAltitude(alpha2: string): number {
     maxSpan = 0.5;
   }
 
-  // Base altitude scaling scaled by 50% zoom out (ZOOM_OUT_FACTOR = 1.5):
-  // Micro / island nations (Vatican, Monaco, Nauru, Tuvalu, Malta, Singapore):
-  // was 0.14 - 0.22 -> now 0.21 - 0.33
-  // Small countries (Mauritius, Jamaica, Lebanon): was 0.36 - 0.55 -> now 0.54 - 0.825
-  // Medium countries (Portugal, UK, Germany, Japan): was 0.80 - 1.15 -> now 1.20 - 1.725
-  // Continental giants (Brazil, USA, Russia, Canada): was 1.45 - 1.85 -> now 2.175 - 2.775
-  let baseAltitude = 1.85;
-  if (maxSpan <= 0.12) baseAltitude = 0.14;
-  else if (maxSpan <= 0.45) baseAltitude = 0.22;
-  else if (maxSpan <= 1.2) baseAltitude = 0.36;
-  else if (maxSpan <= 3.5) baseAltitude = 0.55;
-  else if (maxSpan <= 8.0) baseAltitude = 0.80;
-  else if (maxSpan <= 16.0) baseAltitude = 1.15;
-  else if (maxSpan <= 28.0) baseAltitude = 1.45;
-
-  return Number((baseAltitude * ZOOM_OUT_FACTOR).toFixed(3));
+  // Camera altitude scaling:
+  // For small and micro nations, zoomed out by an additional 50%
+  // so players retain surrounding oceanic and continental context.
+  if (maxSpan <= 0.12) return 0.35;        // Micro-states/islands (Vatican, Monaco, Nauru, Tuvalu)
+  if (maxSpan <= 0.45) return 0.52;        // Small islands (Malta, Mauritius, Singapore, Barbados)
+  if (maxSpan <= 1.2) return 0.82;         // Small countries (Cyprus, Lebanon, Jamaica, Luxembourg)
+  if (maxSpan <= 3.5) return 1.25;         // Compact countries (Switzerland, Belgium, Netherlands)
+  if (maxSpan <= 8.0) return 1.50;         // Medium countries (Portugal, UK, Germany, Japan)
+  if (maxSpan <= 16.0) return 1.85;        // Large countries (France, Spain, Egypt, Turkey)
+  if (maxSpan <= 28.0) return 2.25;        // Very large countries (India, Argentina, Mexico)
+  return 2.78;                             // Continental giants (USA, Brazil, Russia, Canada, China)
 }
 
 export function calculateDistanceKm(
