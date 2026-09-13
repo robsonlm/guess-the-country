@@ -253,34 +253,40 @@ export function App() {
       )}
 
       {/* 2. Active gameplay workspace */}
-      {!isLoading && isGameStarted && currentRound && !isGameComplete && (
+      {!isLoading && isGameStarted && (
+        (currentRound && !isGameComplete) ||
+        (isGameComplete && settings.gameMode === 'globe')
+      ) && (
         <main className="game-workspace">
           {/* Active Timer Bar in 10s Timed mode */}
-          {settings.timerMode !== 'relaxed' && (
+          {settings.timerMode !== 'relaxed' && !isGameComplete && (
             <TimerBar timerMode={settings.timerMode} timeLeft={timeLeft} maxTime={maxTime} />
           )}
 
           {/* Render 3D Globe Mode OR Classic/Challenger Card Mode */}
           {settings.gameMode === 'globe' ? (
             <GlobeGameView
-              targetCountry={currentRound.targetCountry}
-              options={currentRound.options}
+              targetCountry={currentRound?.targetCountry ?? countries[0]}
+              options={currentRound?.options ?? []}
               onSelect={handleChoice}
               selectedOptionIndex={selectedOptionIndex}
               isResolving={isResolving}
               conqueredAlphas={solvedAlphas}
-              totalCountriesCount={currentRound.totalCount}
+              totalCountriesCount={currentRound?.totalCount ?? countries.length}
               mistakesCount={globeMistakes}
               streak={score.currentStreak}
               lifelineState={lifelineState}
               onUseCapital={onUseCapital}
-              disabled={isPaused}
+              disabled={isPaused || (isGameComplete && !isGlobeExploreOpen)}
               isAdmin={isAdmin}
-              isFinalThree={currentRound.isFinalThree}
-              finalThreeTargets={currentRound.finalThreeTargets}
+              isFinalThree={!isGameComplete && (currentRound?.isFinalThree ?? false)}
+              finalThreeTargets={!isGameComplete ? currentRound?.finalThreeTargets : undefined}
               onFinalThreeSubmit={handleFinalThreeSubmit}
+              isExploreMode={isGameComplete && isGlobeExploreOpen}
+              onExitExplore={() => setIsGlobeExploreOpen(false)}
+              allCountries={countries}
             />
-          ) : (
+          ) : currentRound ? (
             <>
               {/* Question Display: Standard Flag Card OR Reverse Name Card */}
               {currentRound.questionType === 'name-to-flag' ? (
@@ -315,7 +321,7 @@ export function App() {
               {/* Score Board */}
               <ScoreBoard score={score} />
             </>
-          )}
+          ) : null}
 
           {/* Mastered Flags Tray with Continent Tabs & Trophy Shelf (Cards mode only) */}
           {settings.gameMode !== 'globe' && (
@@ -328,7 +334,7 @@ export function App() {
             />
           )}
 
-          {settings.gameMode !== 'globe' && (
+          {settings.gameMode !== 'globe' && currentRound && (
             <footer
               className="game-pro-tip-footer"
               style={{

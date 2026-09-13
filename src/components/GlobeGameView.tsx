@@ -15,12 +15,15 @@ import {
   Flag,
   ZoomIn,
   ZoomOut,
+  Compass,
+  Trophy,
 } from 'lucide-react';
 import { Country, ChoiceOption, LifelineState } from '../types/game';
 import {
   loadGeoFeatures,
   getCountryCoordinates,
   getCountryTargetAltitude,
+  resolveFeatureAlpha2,
   GeoFeature,
 } from '../services/countriesGeo';
 import { getEarthTextureUrls } from '../services/countriesApi';
@@ -47,6 +50,9 @@ interface GlobeGameViewProps {
     success: boolean;
     results: Record<string, boolean>;
   };
+  isExploreMode?: boolean;
+  onExitExplore?: () => void;
+  allCountries?: Country[];
 }
 
 const EMPTY_TARGETS: Country[] = [];
@@ -68,12 +74,19 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   isFinalThree = false,
   finalThreeTargets = EMPTY_TARGETS,
   onFinalThreeSubmit,
+  isExploreMode = false,
+  onExitExplore,
+  allCountries = [],
 }) => {
   const globeContainerRef = useRef<HTMLDivElement | null>(null);
   const globeInstanceRef = useRef<any>(null);
   const [geoFeatures, setGeoFeatures] = useState<GeoFeature[]>([]);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [isGlobeReady, setIsGlobeReady] = useState(false);
+
+  // Explore Mode state: selected country card & hover highlight
+  const [selectedExploreCountry, setSelectedExploreCountry] = useState<Country | null>(null);
+  const [hoveredAlpha, setHoveredAlpha] = useState<string | null>(null);
 
   // Final 3 state
   const [activeTargetIndex, setActiveTargetIndex] = useState<number>(0);
@@ -205,23 +218,32 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     };
   }, []);
 
-  // 3. Update Polygons & Rings when features, targetCountry, conqueredAlphas, or final targets update
+  // 3. Update Polygons & Rings when features, targetCountry, conqueredAlphas, explore state, or final targets update
   useEffect(() => {
     const globe = globeInstanceRef.current;
     if (!globe || geoFeatures.length === 0) return;
 
-    const activeTargetAlpha = currentFocusedCountry?.alpha2.toUpperCase();
+    const activeTargetAlpha = isExploreMode
+      ? selectedExploreCountry?.alpha2.toUpperCase()
+      : currentFocusedCountry?.alpha2.toUpperCase();
+
     const finalTargetAlphas = new Set(
-      isFinalThree ? finalThreeTargets.map((c) => c.alpha2.toUpperCase()) : []
+      !isExploreMode && isFinalThree ? finalThreeTargets.map((c) => c.alpha2.toUpperCase()) : []
     );
     const conqueredSet = new Set(conqueredAlphas.map((a) => a.toUpperCase()));
+    const hoveredAlphaUpper = hoveredAlpha ? hoveredAlpha.toUpperCase() : null;
 
     // Polygons dataset
     globe
       .polygonsData(geoFeatures)
       .polygonCapColor((d: any) => {
-        const a = (d.alpha2 || '').toUpperCase();
-        if (a === activeTargetAlpha) return 'rgba(247, 127, 0, 0.88)';
+        const a = (d.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+        if (a === activeTargetAlpha) {
+          return isExploreMode ? 'rgba(255, 183, 3, 0.92)' : 'rgba(247, 127, 0, 0.88)';
+        }
+        if (isExploreMode && hoveredAlphaUpper && a === hoveredAlphaUpper) {
+          return 'rgba(56, 189, 248, 0.75)'; // Hover glow in explore mode
+        }
         if (finalTargetAlphas.has(a)) {
           return 'rgba(56, 189, 248, 0.82)'; // Other remaining final targets: Neon sky cyan
         }
@@ -231,29 +253,62 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         return 'rgba(25, 45, 75, 0.42)'; // Default neutral territory
       })
       .polygonSideColor((d: any) => {
-        const a = (d.alpha2 || '').toUpperCase();
+        const a = (d.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
         if (a === activeTargetAlpha) return 'rgba(247, 127, 0, 0.45)';
+        if (isExploreMode && hoveredAlphaUpper && a === hoveredAlphaUpper) return 'rgba(56, 189, 248, 0.35)';
         if (finalTargetAlphas.has(a)) return 'rgba(56, 189, 248, 0.40)';
         if (conqueredSet.has(a)) return 'rgba(16, 185, 129, 0.25)';
         return 'rgba(20, 35, 60, 0.12)';
       })
       .polygonStrokeColor((d: any) => {
-        const a = (d.alpha2 || '').toUpperCase();
-        if (a === activeTargetAlpha) return '#ffd166';
+        const a = (d.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+        if (a === activeTargetAlpha) return '#ffffff';
+        if (isExploreMode && hoveredAlphaUpper && a === hoveredAlphaUpper) return '#7dd3fc';
         if (finalTargetAlphas.has(a)) return '#38bdf8';
         if (conqueredSet.has(a)) return '#6ee7b7';
         return 'rgba(72, 202, 228, 0.3)';
       })
       .polygonAltitude((d: any) => {
-        const a = (d.alpha2 || '').toUpperCase();
-        if (a === activeTargetAlpha) return 0.065;
+        const a = (d.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+        if (a === activeTargetAlpha) return 0.07;
+        if (isExploreMode && hoveredAlphaUpper && a === hoveredAlphaUpper) return 0.035;
         if (finalTargetAlphas.has(a)) return 0.04;
         if (conqueredSet.has(a)) return 0.015;
         return 0.005;
       });
 
     // Pulsing Rings & Target Beacons
-    if (isFinalThree && finalThreeTargets.length > 0) {
+    if (isExploreMode) {
+      if (selectedExploreCountry) {
+        const coords = getCountryCoordinates(selectedExploreCountry.alpha2);
+        globe
+          .ringsData([
+            {
+              lat: coords.lat,
+              lng: coords.lng,
+              maxR: 5.5,
+              propagationSpeed: 2.2,
+              repeatPeriod: 1000,
+              color: () => '#ffb703',
+            },
+          ])
+          .ringColor((t: any) => (typeof t.color === 'function' ? t.color(t) : t.color))
+          .ringMaxRadius('maxR')
+          .ringPropagationSpeed('propagationSpeed')
+          .ringRepeatPeriod('repeatPeriod')
+          .pointsData([
+            {
+              lat: coords.lat,
+              lng: coords.lng,
+              color: '#ffb703',
+              radius: 0.45,
+              altitude: 0.05,
+            },
+          ]);
+      } else {
+        globe.ringsData([]).pointsData([]);
+      }
+    } else if (isFinalThree && finalThreeTargets.length > 0) {
       const rings = finalThreeTargets.map((country) => {
         const coords = getCountryCoordinates(country.alpha2);
         const isActive = country.alpha2.toUpperCase() === activeTargetAlpha;
@@ -315,7 +370,18 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     } else {
       globe.ringsData([]).pointsData([]);
     }
-  }, [geoFeatures, currentFocusedCountry, targetCountry, conqueredAlphas, isFinalThree, finalThreeTargets, isGlobeReady]);
+  }, [
+    geoFeatures,
+    currentFocusedCountry,
+    targetCountry,
+    conqueredAlphas,
+    isFinalThree,
+    finalThreeTargets,
+    isGlobeReady,
+    isExploreMode,
+    selectedExploreCountry,
+    hoveredAlpha,
+  ]);
 
   // 4. Smooth camera fly-to on target country change, auto-zooming so it fills at least ~30% of screen
   const focusTargetCountry = useCallback(
@@ -340,10 +406,60 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   );
 
   useEffect(() => {
-    if (isGlobeReady && currentFocusedCountry) {
+    if (isGlobeReady && currentFocusedCountry && !isExploreMode) {
       focusTargetCountry(currentFocusedCountry, 1200);
     }
-  }, [currentFocusedCountry, isGlobeReady, focusTargetCountry]);
+  }, [currentFocusedCountry, isGlobeReady, isExploreMode, focusTargetCountry]);
+
+  // 5. Explore Mode Interactive Country Selection (Click & Hover)
+  useEffect(() => {
+    const globe = globeInstanceRef.current;
+    if (!globe) return;
+
+    if (isExploreMode) {
+      globe.onPolygonHover((polygon: any) => {
+        if (globeContainerRef.current) {
+          globeContainerRef.current.style.cursor = polygon ? 'pointer' : 'grab';
+        }
+        const alpha = polygon
+          ? (polygon.alpha2 || resolveFeatureAlpha2(polygon.properties) || '').toUpperCase()
+          : null;
+        setHoveredAlpha(alpha);
+      });
+
+      globe.onPolygonClick((polygon: any) => {
+        if (!polygon) return;
+        const alpha = (polygon.alpha2 || resolveFeatureAlpha2(polygon.properties) || '').toUpperCase();
+        if (!alpha) return;
+
+        const found = allCountries?.find((c) => c.alpha2.toUpperCase() === alpha);
+        if (found) {
+          setSelectedExploreCountry(found);
+          focusTargetCountry(found, 900);
+        } else if (polygon.properties?.NAME || polygon.properties?.ADMIN) {
+          const fallback: Country = {
+            name: polygon.properties.NAME || polygon.properties.ADMIN,
+            alpha2: alpha,
+            capital: polygon.properties.CAPITAL || 'N/A',
+            region: polygon.properties.CONTINENT || polygon.properties.REGION || 'World',
+            subregion: polygon.properties.SUBREGION || '',
+            mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(polygon.properties.NAME || '')}`,
+            flagUrl: `https://flagcdn.com/w320/${alpha.toLowerCase()}.png`,
+            lowFlagUrl: `https://flagcdn.com/w80/${alpha.toLowerCase()}.png`,
+          };
+          setSelectedExploreCountry(fallback);
+          focusTargetCountry(fallback, 900);
+        }
+      });
+    } else {
+      globe.onPolygonHover(() => {
+        if (globeContainerRef.current) {
+          globeContainerRef.current.style.cursor = 'grab';
+        }
+      });
+      globe.onPolygonClick(() => {});
+    }
+  }, [isExploreMode, allCountries, focusTargetCountry]);
 
   // Auto-rotate toggle
   const toggleAutoRotate = () => {
@@ -456,95 +572,184 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFinalThree, isResolving, disabled, options, isAllAssigned, selectedAssignments, activeTargetIndex, finalThreeTargets]);
 
+  // Escape key listener to deselect country or exit explore mode
+  useEffect(() => {
+    if (!isExploreMode) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (selectedExploreCountry) {
+          setSelectedExploreCountry(null);
+        } else if (onExitExplore) {
+          onExitExplore();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isExploreMode, selectedExploreCountry, onExitExplore]);
+
   return (
-    <div className={`globe-game-container ${isFinalThree ? 'final-three-active' : ''}`}>
+    <div
+      className={`globe-game-container ${isFinalThree ? 'final-three-active' : ''} ${
+        isExploreMode ? 'explore-mode-active' : ''
+      }`}
+    >
       {/* 3D Globe Stage Canvas */}
       <div className="globe-stage">
         <div ref={globeContainerRef} className="globe-canvas-wrapper" />
 
-        {/* Floating Top HUD */}
-        <div className="globe-hud-top">
-          <div className="globe-stats-pill-group">
-            <div className="globe-stat-badge conquest" title="Conquered Countries">
-              <GlobeIcon size={14} />
-              <span className="conquest-full-text">
-                Conquest: <strong>{conqueredCount}</strong> / {totalCountriesCount} ({conqueredPercent}%)
-              </span>
-              <span className="conquest-compact-text">
-                <strong>{conqueredCount}</strong>/{totalCountriesCount} ({conqueredPercent}%)
-              </span>
-            </div>
-
-            <div
-              className={`globe-stat-badge mistakes ${mistakesCount > 0 ? 'danger' : ''}`}
-              title="Total Mistakes Made"
-            >
-              <AlertTriangle size={14} />
-              <span className="mistakes-full-text">
-                Mistakes: <strong>{mistakesCount}</strong>
-              </span>
-              <span className="mistakes-compact-text">
-                <strong>{mistakesCount}</strong>
-              </span>
-            </div>
-
-            <div className="globe-stat-badge accuracy" title="Conquest Accuracy Rate">
-              <Sparkles size={14} />
-              <span>Accuracy: {accuracy}%</span>
-            </div>
-
-            {streak >= 3 && (
-              <div className="globe-stat-badge streak" style={{ borderColor: '#f77f00', color: '#f77f00' }}>
-                🔥 {streak}
+        {/* Floating Top HUD: Explore Mode vs Gameplay */}
+        {isExploreMode ? (
+          <div className="globe-hud-top explore-hud">
+            <div className="globe-stats-pill-group">
+              <div className="globe-stat-badge explore-badge">
+                <Compass size={15} style={{ color: '#38bdf8' }} />
+                <span className="explore-full-title">
+                  <strong>World Atlas Exploration</strong>
+                </span>
+                <span className="explore-compact-title">
+                  <strong>Atlas</strong>
+                </span>
               </div>
-            )}
-          </div>
 
-          {/* Action buttons (Focus country, Zoom controls, rotate) */}
-          <div className="globe-actions-group">
-            <div className="globe-zoom-group">
-              <button
-                type="button"
-                className="globe-action-btn globe-zoom-btn"
-                onClick={handleZoomIn}
-                title="Zoom in closer (+)"
-              >
-                <ZoomIn size={14} />
-              </button>
-              <button
-                type="button"
-                className="globe-action-btn globe-zoom-btn"
-                onClick={handleZoomOut}
-                title="Zoom out (-)"
-              >
-                <ZoomOut size={14} />
-              </button>
+              <div className="globe-stat-badge conquest" title="Conquered Countries">
+                <GlobeIcon size={14} />
+                <span className="conquest-full-text">
+                  Conquest: <strong>{conqueredCount}</strong> / {totalCountriesCount} ({conqueredPercent}%)
+                </span>
+                <span className="conquest-compact-text">
+                  <strong>{conqueredCount}</strong>/{totalCountriesCount}
+                </span>
+              </div>
             </div>
 
-            <button
-              type="button"
-              className="globe-action-btn"
-              onClick={() => focusTargetCountry(currentFocusedCountry, 800)}
-              title="Center camera on highlighted country"
-            >
-              <Target size={14} />
-              <span className="focus-text">Focus Target</span>
-            </button>
+            <div className="globe-actions-group">
+              <div className="globe-zoom-group">
+                <button
+                  type="button"
+                  className="globe-action-btn globe-zoom-btn"
+                  onClick={handleZoomIn}
+                  title="Zoom in closer (+)"
+                >
+                  <ZoomIn size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="globe-action-btn globe-zoom-btn"
+                  onClick={handleZoomOut}
+                  title="Zoom out (-)"
+                >
+                  <ZoomOut size={14} />
+                </button>
+              </div>
 
-            <button
-              type="button"
-              className={`globe-action-btn ${isAutoRotating ? 'active' : ''}`}
-              onClick={toggleAutoRotate}
-              title="Toggle globe auto-rotation"
-            >
-              <RotateCw size={14} />
-              <span>{isAutoRotating ? 'Rotating' : 'Auto-Rotate'}</span>
-            </button>
+              <button
+                type="button"
+                className={`globe-action-btn ${isAutoRotating ? 'active' : ''}`}
+                onClick={toggleAutoRotate}
+                title="Toggle globe auto-rotation"
+              >
+                <RotateCw size={14} />
+                <span>{isAutoRotating ? 'Rotating' : 'Auto-Rotate'}</span>
+              </button>
+
+              {onExitExplore && (
+                <button
+                  type="button"
+                  className="globe-action-btn victory-return-btn"
+                  onClick={onExitExplore}
+                  title="Return to Victory Summary"
+                >
+                  <Trophy size={14} style={{ color: '#ffd166' }} />
+                  <span>Victory Screen</span>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="globe-hud-top">
+            <div className="globe-stats-pill-group">
+              <div className="globe-stat-badge conquest" title="Conquered Countries">
+                <GlobeIcon size={14} />
+                <span className="conquest-full-text">
+                  Conquest: <strong>{conqueredCount}</strong> / {totalCountriesCount} ({conqueredPercent}%)
+                </span>
+                <span className="conquest-compact-text">
+                  <strong>{conqueredCount}</strong>/{totalCountriesCount} ({conqueredPercent}%)
+                </span>
+              </div>
+
+              <div
+                className={`globe-stat-badge mistakes ${mistakesCount > 0 ? 'danger' : ''}`}
+                title="Total Mistakes Made"
+              >
+                <AlertTriangle size={14} />
+                <span className="mistakes-full-text">
+                  Mistakes: <strong>{mistakesCount}</strong>
+                </span>
+                <span className="mistakes-compact-text">
+                  <strong>{mistakesCount}</strong>
+                </span>
+              </div>
+
+              <div className="globe-stat-badge accuracy" title="Conquest Accuracy Rate">
+                <Sparkles size={14} />
+                <span>Accuracy: {accuracy}%</span>
+              </div>
+
+              {streak >= 3 && (
+                <div className="globe-stat-badge streak" style={{ borderColor: '#f77f00', color: '#f77f00' }}>
+                  🔥 {streak}
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons (Focus country, Zoom controls, rotate) */}
+            <div className="globe-actions-group">
+              <div className="globe-zoom-group">
+                <button
+                  type="button"
+                  className="globe-action-btn globe-zoom-btn"
+                  onClick={handleZoomIn}
+                  title="Zoom in closer (+)"
+                >
+                  <ZoomIn size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="globe-action-btn globe-zoom-btn"
+                  onClick={handleZoomOut}
+                  title="Zoom out (-)"
+                >
+                  <ZoomOut size={14} />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="globe-action-btn"
+                onClick={() => focusTargetCountry(currentFocusedCountry, 800)}
+                title="Center camera on highlighted country"
+              >
+                <Target size={14} />
+                <span className="focus-text">Focus Target</span>
+              </button>
+
+              <button
+                type="button"
+                className={`globe-action-btn ${isAutoRotating ? 'active' : ''}`}
+                onClick={toggleAutoRotate}
+                title="Toggle globe auto-rotation"
+              >
+                <RotateCw size={14} />
+                <span>{isAutoRotating ? 'Rotating' : 'Auto-Rotate'}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Standard Single-Country Feedback Toast */}
-        {!isFinalThree && isResolving && selectedOptionIndex !== null && (
+        {!isExploreMode && !isFinalThree && isResolving && selectedOptionIndex !== null && (
           <div
             className={`globe-feedback-toast ${
               selectedOptionIndex >= 0 && options[selectedOptionIndex]?.isCorrect ? 'correct' : 'wrong'
@@ -564,39 +769,135 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
           </div>
         )}
 
-        {/* Target Country Clue Pill at Bottom of Globe */}
-        <div className="globe-target-banner">
-          <div className="pulse-dot" />
-          <div className="globe-target-content">
-            <div className="globe-target-text">
-              {isFinalThree ? (
-                <>
-                  <span className="banner-full-text">
-                    Final {finalThreeTargets.length} Showdown • Target #{activeTargetIndex + 1}
-                  </span>
-                  <span className="banner-compact-text">
-                    Target #{activeTargetIndex + 1}
-                  </span>
-                </>
-              ) : (
-                'Highlighted Territory'
-              )}
+        {/* Target Country Clue Pill OR Explore Mode Country Detail Card */}
+        {isExploreMode ? (
+          selectedExploreCountry ? (
+            <div className="globe-explore-country-card fade-in">
+              <button
+                type="button"
+                className="explore-card-close"
+                onClick={() => setSelectedExploreCountry(null)}
+                title="Close details"
+                aria-label="Close details"
+              >
+                <X size={16} />
+              </button>
+
+              <div className="explore-card-flag-box">
+                <ProgressiveFlag
+                  alpha2={selectedExploreCountry.alpha2}
+                  name={selectedExploreCountry.name}
+                  flagUrl={selectedExploreCountry.flagUrl}
+                  lowFlagUrl={selectedExploreCountry.lowFlagUrl}
+                  className="explore-card-flag-img"
+                  loading="eager"
+                />
+              </div>
+
+              <div className="explore-card-info">
+                <div className="explore-country-header">
+                  <h3 className="explore-country-name">{selectedExploreCountry.name}</h3>
+                  {conqueredAlphas.some(
+                    (a) => a.toUpperCase() === selectedExploreCountry.alpha2.toUpperCase()
+                  ) ? (
+                    <span className="explore-status-pill conquered">
+                      <CheckCircle2 size={12} /> Conquered
+                    </span>
+                  ) : (
+                    <span className="explore-status-pill unvisited">Unvisited</span>
+                  )}
+                </div>
+
+                <div className="explore-meta-grid">
+                  {selectedExploreCountry.capital && (
+                    <div className="explore-meta-item">
+                      <span className="meta-label">Capital</span>
+                      <span className="meta-value">{selectedExploreCountry.capital}</span>
+                    </div>
+                  )}
+                  {selectedExploreCountry.region && (
+                    <div className="explore-meta-item">
+                      <span className="meta-label">Region</span>
+                      <span className="meta-value">
+                        {selectedExploreCountry.region}
+                        {selectedExploreCountry.subregion ? ` • ${selectedExploreCountry.subregion}` : ''}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="explore-card-actions">
+                  <button
+                    type="button"
+                    className="explore-action-btn"
+                    onClick={() => focusTargetCountry(selectedExploreCountry, 800)}
+                    title="Center camera on this country"
+                  >
+                    <Target size={13} /> Re-center
+                  </button>
+                  {allCountries && allCountries.length > 1 && (
+                    <button
+                      type="button"
+                      className="explore-action-btn next-btn"
+                      onClick={() => {
+                        const currentIdx = allCountries.findIndex(
+                          (c) => c.alpha2.toUpperCase() === selectedExploreCountry.alpha2.toUpperCase()
+                        );
+                        const nextIdx = (currentIdx + 1) % allCountries.length;
+                        const nextCountry = allCountries[nextIdx];
+                        setSelectedExploreCountry(nextCountry);
+                        focusTargetCountry(nextCountry, 900);
+                      }}
+                      title="Explore next territory"
+                    >
+                      Next Territory →
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="globe-target-subtext">
-              {currentFocusedCountry?.region ? `Region: ${currentFocusedCountry.region}` : 'Locate on globe'}
-              {lifelineState.activeHintText ? ` | ${lifelineState.activeHintText}` : ''}
+          ) : (
+            <div className="globe-explore-guide-pill fade-in">
+              <Sparkles size={14} style={{ color: '#38bdf8' }} />
+              <span>Click any country on the 3D globe to view its flag and details</span>
+            </div>
+          )
+        ) : (
+          <div className="globe-target-banner">
+            <div className="pulse-dot" />
+            <div className="globe-target-content">
+              <div className="globe-target-text">
+                {isFinalThree ? (
+                  <>
+                    <span className="banner-full-text">
+                      Final {finalThreeTargets.length} Showdown • Target #{activeTargetIndex + 1}
+                    </span>
+                    <span className="banner-compact-text">
+                      Target #{activeTargetIndex + 1}
+                    </span>
+                  </>
+                ) : (
+                  'Highlighted Territory'
+                )}
+              </div>
+              <div className="globe-target-subtext">
+                {currentFocusedCountry?.region ? `Region: ${currentFocusedCountry.region}` : 'Locate on globe'}
+                {lifelineState.activeHintText ? ` | ${lifelineState.activeHintText}` : ''}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Conquest Progress Bar */}
-      <div className="globe-conquest-bar-container" title={`Conquest: ${conqueredPercent}%`}>
-        <div className="globe-conquest-bar-fill" style={{ width: `${conqueredPercent}%` }} />
-      </div>
+      {/* Conquest Progress Bar (Normal game rounds only) */}
+      {!isExploreMode && (
+        <div className="globe-conquest-bar-container" title={`Conquest: ${conqueredPercent}%`}>
+          <div className="globe-conquest-bar-fill" style={{ width: `${conqueredPercent}%` }} />
+        </div>
+      )}
 
       {/* Clues & Lifeline Shortcuts (Normal rounds only) */}
-      {!isFinalThree && (
+      {!isExploreMode && !isFinalThree && (
         <div className="globe-clues-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
           <span className="globe-prompt-text" style={{ fontSize: '0.86rem', color: 'var(--text-muted)', fontWeight: 600 }}>
             Choose the correct flag for the highlighted territory:
@@ -627,156 +928,223 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         </div>
       )}
 
-      {/* FINAL 3 SHOWDOWN MODE INTERACTIVE PANEL */}
-      {isFinalThree ? (
-        <div className="final-three-container fade-in">
-          <div className="final-three-header">
-            <div className="final-three-badge">
-              <Sparkles size={13} />
-              <span>FINAL {finalThreeTargets.length} SHOWDOWN</span>
+      {/* FINAL 3 SHOWDOWN MODE INTERACTIVE PANEL OR STANDARD FLAG CHOICES DECK */}
+      {!isExploreMode &&
+        (isFinalThree ? (
+          <div className="final-three-container fade-in">
+            <div className="final-three-header">
+              <div className="final-three-badge">
+                <Sparkles size={13} />
+                <span>FINAL {finalThreeTargets.length} SHOWDOWN</span>
+              </div>
+              <p className="final-three-instruction">
+                Select a territory, then pick its flag below.
+              </p>
             </div>
-            <p className="final-three-instruction">
-              Select a territory, then pick its flag below.
-            </p>
-          </div>
 
-          {/* 3 Target Country Cards */}
-          <div className="final-three-targets-grid">
-            {finalThreeTargets.map((country, idx) => {
-              const isFocused = idx === activeTargetIndex;
-              const assignedAlpha = selectedAssignments[country.alpha2];
-              const assignedOption = options.find((opt) => opt.country.alpha2 === assignedAlpha);
-              const isValidated = validationResults !== null;
-              const isCorrect = validationResults?.[country.alpha2];
+            {/* 3 Target Country Cards */}
+            <div className="final-three-targets-grid">
+              {finalThreeTargets.map((country, idx) => {
+                const isFocused = idx === activeTargetIndex;
+                const assignedAlpha = selectedAssignments[country.alpha2];
+                const assignedOption = options.find((opt) => opt.country.alpha2 === assignedAlpha);
+                const isValidated = validationResults !== null;
+                const isCorrect = validationResults?.[country.alpha2];
 
-              let statusClass = '';
-              if (isValidated) {
-                statusClass = isCorrect ? 'status-correct' : 'status-wrong';
-              } else if (isFocused) {
-                statusClass = 'status-focused';
-              } else if (assignedAlpha) {
-                statusClass = 'status-assigned';
-              }
+                let statusClass = '';
+                if (isValidated) {
+                  statusClass = isCorrect ? 'status-correct' : 'status-wrong';
+                } else if (isFocused) {
+                  statusClass = 'status-focused';
+                } else if (assignedAlpha) {
+                  statusClass = 'status-assigned';
+                }
 
-              return (
-                <div
-                  key={country.alpha2}
-                  className={`final-target-card ${statusClass}`}
-                  onClick={() => {
-                    setActiveTargetIndex(idx);
-                    focusTargetCountry(country, 800);
-                  }}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="final-target-header">
-                    <span className="final-target-number">Target #{idx + 1}</span>
-                    <button
-                      type="button"
-                      className="final-target-focus-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveTargetIndex(idx);
-                        focusTargetCountry(country, 800);
-                      }}
-                      title={`Focus camera on Target #${idx + 1}`}
-                    >
-                      <Target size={11} />
-                    </button>
-                  </div>
+                return (
+                  <div
+                    key={country.alpha2}
+                    className={`final-target-card ${statusClass}`}
+                    onClick={() => {
+                      setActiveTargetIndex(idx);
+                      focusTargetCountry(country, 900);
+                    }}
+                  >
+                    <div className="final-target-header">
+                      <span className="final-target-number">Target #{idx + 1}</span>
+                      <button
+                        type="button"
+                        className="final-target-focus-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveTargetIndex(idx);
+                          focusTargetCountry(country, 800);
+                        }}
+                        title={`Focus camera on ${country.name}`}
+                      >
+                        <Target size={11} />
+                      </button>
+                    </div>
 
-                  {isValidated && (
                     <div className="final-target-name">{country.name}</div>
-                  )}
-                  <div className="final-target-region">{country.subregion || country.region}</div>
+                    <div className="final-target-region">{country.region || 'World'}</div>
 
-                  {/* Assigned Flag Slot Preview */}
-                  <div className="final-target-slot">
-                    {assignedOption ? (
-                      <div className="final-assigned-preview">
-                        <ProgressiveFlag
-                          alpha2={assignedOption.country.alpha2}
-                          name={assignedOption.name}
-                          flagUrl={assignedOption.country.flagUrl}
-                          lowFlagUrl={assignedOption.country.lowFlagUrl}
-                          className="final-assigned-flag-thumb"
-                        />
-                        <span className="final-assigned-flag-name">{assignedOption.name}</span>
-                        {!isResolving && (
-                          <button
-                            type="button"
-                            className="final-assigned-clear-btn"
-                            onClick={(e) => handleClearAssignment(country.alpha2, e)}
-                            title="Unassign flag"
-                          >
-                            <X size={11} />
-                          </button>
+                    {/* Flag Drop Slot */}
+                    <div className="final-target-slot">
+                      {assignedOption ? (
+                        <div className="final-assigned-flag-chip">
+                          <ProgressiveFlag
+                            alpha2={assignedOption.country.alpha2}
+                            name={assignedOption.name}
+                            flagUrl={assignedOption.country.flagUrl}
+                            lowFlagUrl={assignedOption.country.lowFlagUrl}
+                            className="final-assigned-flag-img"
+                            loading="eager"
+                          />
+                          <span className="final-assigned-flag-name">
+                            {assignedOption.name}
+                          </span>
+                          {!isResolving && !disabled && (
+                            <button
+                              type="button"
+                              className="final-assigned-clear-btn"
+                              onClick={(e) => handleClearAssignment(country.alpha2, e)}
+                              title="Remove assigned flag"
+                            >
+                              <X size={10} />
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="final-target-empty-slot">
+                          <Flag size={11} />
+                          <span>Tap flag below</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Post-submit validation status badge */}
+                    {isValidated && (
+                      <div className={`final-target-feedback ${isCorrect ? 'correct' : 'wrong'}`}>
+                        {isCorrect ? (
+                          <>
+                            <Check size={12} />
+                            <span>Matched!</span>
+                          </>
+                        ) : (
+                          <>
+                            <X size={12} />
+                            <span>Mismatch ({country.name})</span>
+                          </>
                         )}
-                      </div>
-                    ) : (
-                      <div className="final-target-empty-slot">
-                        <Flag size={12} />
-                        <span>{isFocused ? 'Pick Flag' : 'Empty'}</span>
                       </div>
                     )}
                   </div>
+                );
+              })}
+            </div>
 
-                  {isValidated && (
-                    <div className={`final-target-feedback ${isCorrect ? 'correct' : 'wrong'}`}>
-                      {isCorrect ? (
-                        <>
-                          <Check size={12} />
-                          <span>Correct</span>
-                        </>
+            {/* 3 Flag Cards Deck */}
+            <div className="globe-choices-deck" style={{ marginTop: '0.35rem' }}>
+              {options.map((option, index) => {
+                const assignedTarget = finalThreeTargets.find(
+                  (t) => selectedAssignments[t.alpha2] === option.country.alpha2
+                );
+                const isAssignedToActive =
+                  selectedAssignments[finalThreeTargets[activeTargetIndex]?.alpha2] ===
+                  option.country.alpha2;
+
+                let cardClass = '';
+                if (isAssignedToActive) cardClass = 'assigned-active';
+                else if (assignedTarget) cardClass = 'assigned-other';
+
+                const assignedTargetIdx = assignedTarget
+                  ? finalThreeTargets.findIndex((t) => t.alpha2 === assignedTarget.alpha2)
+                  : -1;
+
+                return (
+                  <button
+                    key={`${option.country.alpha2}-${index}`}
+                    type="button"
+                    className={`globe-choice-card ${cardClass}`}
+                    onClick={() => handleAssignFlag(index)}
+                    disabled={isResolving || disabled}
+                  >
+                    <span className="globe-choice-keybadge">[{index + 1}]</span>
+
+                    {assignedTargetIdx !== -1 && (
+                      <span className="globe-assigned-pill">
+                        <Check size={10} />
+                        <span className="assigned-full-text">Target #{assignedTargetIdx + 1}</span>
+                        <span className="assigned-compact-text">#{assignedTargetIdx + 1}</span>
+                      </span>
+                    )}
+
+                    <div className="globe-flag-wrapper">
+                      {option.country.alpha2 ? (
+                        <ProgressiveFlag
+                          alpha2={option.country.alpha2}
+                          name={option.name}
+                          flagUrl={option.country.flagUrl}
+                          lowFlagUrl={option.country.lowFlagUrl}
+                          className="globe-flag-img"
+                          loading="eager"
+                        />
                       ) : (
-                        <>
-                          <X size={12} />
-                          <span>Mismatch ({country.name})</span>
-                        </>
+                        <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>No Flag</div>
                       )}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                    <div className="globe-choice-label">{option.name}</div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Submit Final 3 Button */}
+            <div className="final-three-actions">
+              <button
+                type="button"
+                className={`final-submit-btn ${isAllAssigned ? 'ready' : ''}`}
+                onClick={handleFinalSubmit}
+                disabled={!isAllAssigned || isResolving || disabled}
+              >
+                <Send size={15} />
+                <span className="submit-full-text">
+                  {isAllAssigned
+                    ? `Conquer All ${finalThreeTargets.length} Countries (${assignedCount}/${finalThreeTargets.length})`
+                    : `Assign All Flags to Submit (${assignedCount}/${finalThreeTargets.length})`}
+                </span>
+                <span className="submit-compact-text">
+                  {isAllAssigned
+                    ? `Conquer All ${finalThreeTargets.length} Countries`
+                    : `Assign 3 Flags (${assignedCount}/${finalThreeTargets.length})`}
+                </span>
+              </button>
+            </div>
           </div>
-
-          {/* 3 Flag Cards Deck */}
-          <div className="globe-choices-deck" style={{ marginTop: '0.35rem' }}>
+        ) : (
+          /* STANDARD SINGLE-COUNTRY FLAG CHOICES DECK */
+          <div className="globe-choices-deck">
             {options.map((option, index) => {
-              const assignedTarget = finalThreeTargets.find(
-                (t) => selectedAssignments[t.alpha2] === option.country.alpha2
-              );
-              const isAssignedToActive =
-                selectedAssignments[finalThreeTargets[activeTargetIndex]?.alpha2] ===
-                option.country.alpha2;
-
-              let cardClass = '';
-              if (isAssignedToActive) cardClass = 'assigned-active';
-              else if (assignedTarget) cardClass = 'assigned-other';
-
-              const assignedTargetIdx = assignedTarget
-                ? finalThreeTargets.findIndex((t) => t.alpha2 === assignedTarget.alpha2)
-                : -1;
+              let cardState = '';
+              if (isResolving) {
+                if (option.isCorrect) {
+                  cardState = 'correct';
+                } else if (selectedOptionIndex === index) {
+                  cardState = 'wrong';
+                } else {
+                  cardState = 'dimmed';
+                }
+              }
 
               return (
                 <button
                   key={`${option.country.alpha2}-${index}`}
                   type="button"
-                  className={`globe-choice-card ${cardClass}`}
-                  onClick={() => handleAssignFlag(index)}
+                  className={`globe-choice-card ${cardState}`}
+                  onClick={() => onSelect(index)}
                   disabled={isResolving || disabled}
                 >
                   <span className="globe-choice-keybadge">[{index + 1}]</span>
-
-                  {assignedTargetIdx !== -1 && (
-                    <span className="globe-assigned-pill">
-                      <Check size={10} />
-                      <span className="assigned-full-text">Target #{assignedTargetIdx + 1}</span>
-                      <span className="assigned-compact-text">#{assignedTargetIdx + 1}</span>
-                    </span>
-                  )}
-
                   <div className="globe-flag-wrapper">
                     {option.country.alpha2 ? (
                       <ProgressiveFlag
@@ -796,73 +1164,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               );
             })}
           </div>
-
-          {/* Submit Final 3 Button */}
-          <div className="final-three-actions">
-            <button
-              type="button"
-              className={`final-submit-btn ${isAllAssigned ? 'ready' : ''}`}
-              onClick={handleFinalSubmit}
-              disabled={!isAllAssigned || isResolving || disabled}
-            >
-              <Send size={15} />
-              <span className="submit-full-text">
-                {isAllAssigned
-                  ? `Conquer All ${finalThreeTargets.length} Countries (${assignedCount}/${finalThreeTargets.length})`
-                  : `Assign All Flags to Submit (${assignedCount}/${finalThreeTargets.length})`}
-              </span>
-              <span className="submit-compact-text">
-                {isAllAssigned
-                  ? `Conquer All ${finalThreeTargets.length} Countries`
-                  : `Assign 3 Flags (${assignedCount}/${finalThreeTargets.length})`}
-              </span>
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* STANDARD SINGLE-COUNTRY FLAG CHOICES DECK */
-        <div className="globe-choices-deck">
-          {options.map((option, index) => {
-            let cardState = '';
-            if (isResolving) {
-              if (option.isCorrect) {
-                cardState = 'correct';
-              } else if (selectedOptionIndex === index) {
-                cardState = 'wrong';
-              } else {
-                cardState = 'dimmed';
-              }
-            }
-
-            return (
-              <button
-                key={`${option.country.alpha2}-${index}`}
-                type="button"
-                className={`globe-choice-card ${cardState}`}
-                onClick={() => onSelect(index)}
-                disabled={isResolving || disabled}
-              >
-                <span className="globe-choice-keybadge">[{index + 1}]</span>
-                <div className="globe-flag-wrapper">
-                  {option.country.alpha2 ? (
-                    <ProgressiveFlag
-                      alpha2={option.country.alpha2}
-                      name={option.name}
-                      flagUrl={option.country.flagUrl}
-                      lowFlagUrl={option.country.lowFlagUrl}
-                      className="globe-flag-img"
-                      loading="eager"
-                    />
-                  ) : (
-                    <div style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>No Flag</div>
-                  )}
-                </div>
-                <div className="globe-choice-label">{option.name}</div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+        ))}
     </div>
   );
 };

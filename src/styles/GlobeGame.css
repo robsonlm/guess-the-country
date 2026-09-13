@@ -1143,3 +1143,295 @@
     height: 32px !important;
   }
 }
+
+/* ==========================================================================
+   Globe World Atlas Explore Mode Styles
+   ========================================================================== */
+
+.globe-game-container.explore-mode-active .globe-stage {
+  height: 100%;
+  flex: 1;
+}
+
+.globe-hud-top.explore-hud {
+  background: rgba(10, 18, 32, 0.65);
+  backdrop-filter: blur(14px);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45), 0 0 15px rgba(56, 189, 248, 0.12);
+}
+
+.globe-stat-badge.explore-badge {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+.explore-compact-title {
+  display: none;
+}
+
+.victory-return-btn {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.25)) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  color: #ffd166 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+.victory-return-btn:hover {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.4), rgba(217, 119, 6, 0.4)) !important;
+  border-color: #ffd166 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.4) !important;
+}
+
+/* Floating Exploration Guide Pill */
+.globe-explore-guide-pill {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(13, 23, 42, 0.82);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 8px 18px;
+  border-radius: 9999px;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.18);
+  pointer-events: none;
+  z-index: 10;
+  animation: floatPulse 3s ease-in-out infinite;
+}
+
+@keyframes floatPulse {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6), 0 0 15px rgba(56, 189, 248, 0.18);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-4px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 25px rgba(56, 189, 248, 0.32);
+  }
+}
+
+/* Interactive Country Detail Card in Explore Mode */
+.globe-explore-country-card {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92%, 520px);
+  background: rgba(11, 20, 36, 0.88);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), 0 0 25px rgba(56, 189, 248, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.explore-card-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-muted);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.explore-card-close:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fff;
+  transform: scale(1.05);
+}
+
+.explore-card-flag-box {
+  width: 105px;
+  height: 70px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.explore-card-flag-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.explore-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.explore-country-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-right: 28px;
+}
+
+.explore-country-name {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.2px;
+}
+
+.explore-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.explore-status-pill.conquered {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  color: #6ee7b7;
+}
+
+.explore-status-pill.unvisited {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-dim);
+}
+
+.explore-meta-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.explore-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.explore-meta-item .meta-label {
+  font-size: 0.64rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.explore-meta-item .meta-value {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.explore-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.explore-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.explore-action-btn:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #fff;
+}
+
+.explore-action-btn.next-btn {
+  background: rgba(42, 157, 143, 0.18);
+  border-color: rgba(42, 157, 143, 0.4);
+  color: #48cae4;
+}
+
+.explore-action-btn.next-btn:hover {
+  background: rgba(42, 157, 143, 0.35);
+  border-color: #48cae4;
+  color: #fff;
+}
+
+@media (max-width: 600px) {
+  .explore-full-title {
+    display: none;
+  }
+  .explore-compact-title {
+    display: inline;
+  }
+  .globe-explore-country-card {
+    width: 95%;
+    padding: 10px 12px;
+    gap: 12px;
+    bottom: 12px;
+  }
+  .explore-card-flag-box {
+    width: 80px;
+    height: 54px;
+  }
+  .explore-country-name {
+    font-size: 0.98rem;
+  }
+  .explore-meta-grid {
+    gap: 4px 10px;
+  }
+  .explore-meta-item .meta-value {
+    font-size: 0.74rem;
+  }
+}
