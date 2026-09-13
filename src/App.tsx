@@ -21,6 +21,8 @@ import { PauseModal } from './components/PauseModal';
 import { StartGameModal } from './components/StartGameModal';
 import { ConfirmNewGameModal } from './components/ConfirmNewGameModal';
 import { AuthModal } from './components/AuthModal';
+import { ExpeditionLoadingScreen } from './components/ExpeditionLoadingScreen';
+import { startBackgroundPrewarm } from './services/resourcePreloader';
 import { usePlayerAuth } from './hooks/usePlayerAuth';
 import './styles/App.css';
 
@@ -63,6 +65,9 @@ export function App() {
     isGameComplete,
     isPaused,
     isLoading,
+    isPreloading,
+    preloadProgress,
+    preloadStage,
     isResolving,
     selectedOptionIndex,
     error,
@@ -106,6 +111,11 @@ export function App() {
     setIsConfirmNewGameOpen(false);
     openStartModal();
   };
+
+  // Start background cache pre-warming for instant game launches
+  useEffect(() => {
+    startBackgroundPrewarm();
+  }, []);
 
   // Enforce player login: unauthenticated users cannot access active gameplay (#play)
   useEffect(() => {
@@ -190,7 +200,7 @@ export function App() {
         </div>
       )}
 
-      {/* Loading state */}
+      {/* Initial data loading state */}
       {isLoading && (
         <div className="state-container" id="loading">
           <div className="spinner" />
@@ -198,6 +208,15 @@ export function App() {
             Loading flags & 3D Earth data…
           </p>
         </div>
+      )}
+
+      {/* Expedition Resource Calibration Loading Screen */}
+      {isPreloading && (
+        <ExpeditionLoadingScreen
+          progress={preloadProgress}
+          stageMessage={preloadStage}
+          gameMode={settings.gameMode}
+        />
       )}
 
       {/* 1. Main Page Landing View (when game has not yet started) */}

@@ -3730,3 +3730,296 @@
     font-size: 0.68rem;
   }
 }
+
+
+/* ==========================================================================
+   Expedition Resource Calibration & Loading Screen
+   ========================================================================== */
+.expedition-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 40%, rgba(15, 23, 42, 0.96), rgba(3, 7, 18, 0.98));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 1.5rem;
+  animation: expeditionOverlayFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes expeditionOverlayFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(16px);
+  }
+}
+
+.expedition-loading-card {
+  width: 100%;
+  max-width: 490px;
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  border-radius: 20px;
+  padding: 2.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.7),
+              0 0 35px -5px rgba(14, 165, 233, 0.22);
+  position: relative;
+  overflow: hidden;
+  animation: expeditionCardPopIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes expeditionCardPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Top Shimmer Border */
+.expedition-loading-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 200%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.8), rgba(16, 185, 129, 0.8), transparent);
+  animation: expeditionBorderShimmer 3s infinite linear;
+}
+
+@keyframes expeditionBorderShimmer {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(50%); }
+}
+
+/* Radar Orbital Rings */
+.radar-animation-container {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.radar-ring {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ring-outer {
+  inset: 0;
+  border: 1.5px dashed rgba(56, 189, 248, 0.35);
+  animation: ringRotateClockwise 12s infinite linear;
+}
+
+.ring-mid {
+  inset: 14px;
+  border: 1.5px solid rgba(16, 185, 129, 0.35);
+  animation: ringPulseScale 2.6s infinite ease-in-out;
+}
+
+.ring-inner {
+  inset: 26px;
+  border: 1px dashed rgba(245, 158, 11, 0.45);
+  animation: ringRotateCounter 8s infinite linear;
+}
+
+@keyframes ringRotateClockwise {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ringRotateCounter {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+@keyframes ringPulseScale {
+  0%, 100% { transform: scale(1); opacity: 0.4; }
+  50% { transform: scale(1.08); opacity: 0.85; }
+}
+
+.radar-glow-core {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, rgba(15, 23, 42, 0.9) 75%);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 24px rgba(14, 165, 233, 0.45);
+  z-index: 2;
+}
+
+.spinning-globe-icon {
+  color: #38bdf8;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+  animation: globePulseIcon 2.4s infinite ease-in-out;
+}
+
+@keyframes globePulseIcon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.95)); }
+}
+
+/* Header */
+.expedition-loading-header {
+  margin-bottom: 1.6rem;
+}
+
+.expedition-loading-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 4px 12px;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 9999px;
+  color: #38bdf8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 0.65rem;
+}
+
+.expedition-loading-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+  margin: 0;
+  background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Progress Section */
+.expedition-progress-wrapper {
+  width: 100%;
+  margin-bottom: 1.4rem;
+}
+
+.expedition-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.55rem;
+  font-size: 0.84rem;
+}
+
+.expedition-stage-label {
+  color: #cbd5e1;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.expedition-percent-label {
+  color: #38bdf8;
+  font-weight: 800;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.92rem;
+}
+
+.expedition-progress-track {
+  width: 100%;
+  height: 9px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.expedition-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7 0%, #06b6d4 50%, #10b981 100%);
+  border-radius: 9999px;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.65);
+  position: relative;
+}
+
+.expedition-progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: progressLightSweep 1.8s infinite linear;
+}
+
+@keyframes progressLightSweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+/* Footer Note */
+.expedition-footer-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 6px 14px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  color: #a7f3d0;
+  font-size: 0.76rem;
+  font-weight: 500;
+}
+
+.expedition-footer-note .shield-icon {
+  color: #34d399;
+  flex-shrink: 0;
+}
+
+@media (max-width: 520px) {
+  .expedition-loading-card {
+    padding: 1.75rem 1.25rem;
+  }
+  .expedition-loading-title {
+    font-size: 1.2rem;
+  }
+  .radar-animation-container {
+    width: 90px;
+    height: 90px;
+    margin-bottom: 1.2rem;
+  }
+  .radar-glow-core {
+    width: 52px;
+    height: 52px;
+  }
+  .spinning-globe-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .expedition-stage-label {
+    max-width: 220px;
+    font-size: 0.78rem;
+  }
+  .expedition-footer-note {
+    font-size: 0.7rem;
+    padding: 5px 10px;
+  }
+}

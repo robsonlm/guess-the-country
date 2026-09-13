@@ -19,3 +19,4 @@ scripts/clear-firestore.js
 # Playwright
 playwright-report/
 test-results/
+.playwright-mcp/

@@ -32,6 +32,7 @@ import { getNeighboringCountries } from '../services/countriesGeo';
 import { getLastPlayerName, setLastPlayerName } from '../services/leaderboard';
 import { useSoundEffects } from './useSoundEffects';
 import { getCurrentRoute, navigateToRoute } from '../utils/router';
+import { preloadAllGameResources } from '../services/resourcePreloader';
 
 const INITIAL_LIFELINES: LifelineState = {
   capitalCredits: 1,
@@ -63,6 +64,11 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
   const [isGameComplete, setIsGameComplete] = useState<boolean>(false);
   const [lifelineState, setLifelineState] = useState<LifelineState>(INITIAL_LIFELINES);
   const [gameElapsedSeconds, setGameElapsedSeconds] = useState<number>(0);
+
+  // Preloader state: blocks timer countdown until all 3D textures, polygons, and flags are ready
+  const [isPreloading, setIsPreloading] = useState<boolean>(false);
+  const [preloadProgress, setPreloadProgress] = useState<number>(0);
+  const [preloadStage, setPreloadStage] = useState<string>('Preparing Expedition...');
 
   // Player Name and Game Start Flow (asked when game starts)
   const [currentPlayerName, setCurrentPlayerName] = useState<string>(getLastPlayerName);
@@ -96,16 +102,16 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
   const timerIntervalRef = useRef<any>(null);
   const consecutiveTimeoutsRef = useRef<number>(0);
 
-  // Active gameplay elapsed time ticker (only runs when game has started and no modal is open)
+  // Active gameplay elapsed time ticker (only runs when game has started, preloading is finished, and no modal is open)
   useEffect(() => {
-    if (!isGameStarted || isLoading || isPaused || isGameComplete || isModalActive || !currentRound) return;
+    if (!isGameStarted || isPreloading || isLoading || isPaused || isGameComplete || isModalActive || !currentRound) return;
 
     const interval = setInterval(() => {
       setGameElapsedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isGameStarted, isLoading, isPaused, isGameComplete, isModalActive, currentRound]);
+  }, [isGameStarted, isPreloading, isLoading, isPaused, isGameComplete, isModalActive, currentRound]);
 
   // Stable references
   const lastTargetAlphaRef = useRef<string>('');
@@ -119,6 +125,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
   const isGameStartedRef = useRef<boolean>(isGameStarted);
   const adminRef = useRef<boolean>(isAdmin);
   const currentPlayerNameRef = useRef<string>(currentPlayerName);
+  const currentRoundRef = useRef<Round | null>(currentRound);
 
   countriesRef.current = countries;
   solvedAlphasRef.current = solvedAlphas;
@@ -130,6 +137,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
   achievementsRef.current = achievements;
   adminRef.current = isAdmin;
   currentPlayerNameRef.current = currentPlayerName;
+  currentRoundRef.current = currentRound;
 
   // Real-time synchronization when admin mode is activated
   useEffect(() => {
@@ -580,6 +588,24 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
           solvedAlphasRef.current
         );
       }
+
+      // If user refreshed directly on #play, ensure preloader syncs before starting timer
+      if (getCurrentRoute() === 'play') {
+        setIsPreloading(true);
+        setPreloadProgress(15);
+        setPreloadStage('Synchronizing Geographical Telemetry...');
+        preloadAllGameResources(currentRoundRef.current, settingsRef.current.gameMode, (p) => {
+          setPreloadProgress(p.percent);
+          setPreloadStage(p.stage);
+        })
+          .catch(() => {})
+          .finally(() => {
+            setIsPreloading(false);
+            if (settingsRef.current.timerMode === 'timed') {
+              setTimeLeft(10);
+            }
+          });
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load local country data');
     } finally {
@@ -812,9 +838,9 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     }, 700);
   }, [currentRound, isPaused, isModalActive, playWrong, generateRound]);
 
-  // Timer countdown hook (10s per flag in 'timed' mode, only when game has started and no modal is active)
+  // Timer countdown hook (10s per flag in 'timed' mode, strictly pauses during preloading and modals)
   useEffect(() => {
-    if (!isGameStarted || settings.timerMode === 'relaxed' || isGameComplete || isLoading || isPaused || isModalActive) {
+    if (!isGameStarted || isPreloading || settings.timerMode === 'relaxed' || isGameComplete || isLoading || isPaused || isModalActive) {
       clearInterval(timerIntervalRef.current);
       return;
     }
@@ -833,7 +859,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     }, 1000);
 
     return () => clearInterval(timerIntervalRef.current);
-  }, [isGameStarted, settings.timerMode, isGameComplete, isLoading, isPaused, isModalActive, currentRound, handleTimeout]);
+  }, [isGameStarted, isPreloading, settings.timerMode, isGameComplete, isLoading, isPaused, isModalActive, currentRound, handleTimeout]);
 
   // Initial load strictly once
   useEffect(() => {
@@ -925,11 +951,12 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     [currentRound, isPaused, isModalActive, playCorrect, playWrong, playStreakMilestone, triggerConfetti]
   );
 
-  // Keyboard shortcut listener (only when game has started and no modal is active)
+  // Keyboard shortcut listener (only when game has started, preloading is done, and no modal is active)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         !isGameStarted ||
+        isPreloading ||
         isResolving ||
         !currentRound ||
         currentRound.isFinalThree ||
@@ -973,11 +1000,31 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     setIsGameStarted(true);
     setIsStartModalOpen(false);
     navigateToRoute('play');
+
+    // Freeze timer at 10 and initiate resource preloading
+    setIsPreloading(true);
+    setPreloadProgress(10);
+    setPreloadStage('Preparing Expedition...');
     if (settingsRef.current.timerMode === 'timed') {
       setTimeLeft(10);
     } else {
       setTimeLeft(0);
     }
+
+    const effectiveMode = config?.mode || settingsRef.current.gameMode;
+    preloadAllGameResources(currentRoundRef.current, effectiveMode, (p) => {
+      setPreloadProgress(p.percent);
+      setPreloadStage(p.stage);
+    })
+      .catch((err) => {
+        console.warn('Resource preloading warning:', err);
+      })
+      .finally(() => {
+        setIsPreloading(false);
+        if (settingsRef.current.timerMode === 'timed') {
+          setTimeLeft(10);
+        }
+      });
   }, [updateSettings]);
 
   const navigateToHome = useCallback(() => {
@@ -1011,6 +1058,9 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     setIsGameComplete,
     isPaused,
     isLoading,
+    isPreloading,
+    preloadProgress,
+    preloadStage,
     isResolving,
     selectedOptionIndex,
     error,
