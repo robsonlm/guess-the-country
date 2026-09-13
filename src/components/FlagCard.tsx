@@ -1,30 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Flag } from 'lucide-react';
 import { Country } from '../types/game';
-import { getFlagUrl } from '../services/countriesApi';
+import { ProgressiveFlag } from './ProgressiveFlag';
 
 interface FlagCardProps {
   targetCountry: Country;
 }
 
 export const FlagCard: React.FC<FlagCardProps> = ({ targetCountry }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [imgSrc, setImgSrc] = useState('');
-
-  useEffect(() => {
-    setIsLoaded(false);
-    const primaryUrl = targetCountry.flagUrl || getFlagUrl(targetCountry.alpha2);
-    setImgSrc(primaryUrl);
-  }, [targetCountry.alpha2, targetCountry.flagUrl]);
-
-  const handleImageError = () => {
-    // Fallback to flags.restcountries.com if flagcdn fails
-    const fallbackUrl = `https://flags.restcountries.com/v5/w320/${targetCountry.alpha2.toLowerCase()}.png`;
-    if (imgSrc !== fallbackUrl) {
-      setImgSrc(fallbackUrl);
-    }
-  };
-
   return (
     <div className="flag-card pop-in" id="game-area">
       <div className="flag-header-tag">
@@ -33,16 +16,15 @@ export const FlagCard: React.FC<FlagCardProps> = ({ targetCountry }) => {
       </div>
 
       <div className="flag-image-wrapper">
-        {!isLoaded && <div className="flag-skeleton" />}
-        <img
+        <ProgressiveFlag
           id="flag"
           key={targetCountry.alpha2}
-          src={imgSrc}
-          alt={`National flag to guess`}
+          alpha2={targetCountry.alpha2}
+          name={targetCountry.name}
+          flagUrl={targetCountry.flagUrl}
+          lowFlagUrl={targetCountry.lowFlagUrl}
           className="flag-image"
-          style={{ opacity: isLoaded ? 1 : 0 }}
-          onLoad={() => setIsLoaded(true)}
-          onError={handleImageError}
+          alt="National flag to guess"
         />
       </div>
     </div>

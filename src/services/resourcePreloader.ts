@@ -1,6 +1,6 @@
 import { Country, Round, GameMode } from '../types/game';
 import { loadGeoFeatures, getNeighboringCountries } from './countriesGeo';
-import { getFlagUrl } from './countriesApi';
+import { getFlagUrl, getEarthTextureUrls } from './countriesApi';
 
 export interface PreloadProgress {
   stage: string;
@@ -34,8 +34,9 @@ export function preloadImage(url: string, timeoutMs: number = 6000): Promise<boo
     img.onload = () => {
       if (settled) return;
       preloadedImageUrls.add(url);
-      if (typeof img.decode === 'function') {
-        img.decode()
+      const decodePromise = typeof img.decode === 'function' ? img.decode() : null;
+      if (decodePromise && typeof decodePromise.then === 'function') {
+        decodePromise
           .then(() => {
             if (!settled) {
               settled = true;
@@ -70,33 +71,41 @@ export function preloadImage(url: string, timeoutMs: number = 6000): Promise<boo
 }
 
 /**
- * Preload high-definition 3D Earth texture maps
+ * Preload 3D Earth texture maps.
+ * Preloads low-resolution textures first for instant globe readiness,
+ * then warms high-resolution textures in the background.
  */
 export async function preloadEarthTextures(
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  warmHighResInBackground: boolean = true
 ): Promise<boolean> {
-  const base = import.meta.env.BASE_URL || '/';
-  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const low = getEarthTextureUrls('low');
+  const high = getEarthTextureUrls('high');
 
-  const blueMarbleUrl = `${cleanBase}textures/earth-blue-marble.jpg`;
-  const topologyUrl = `${cleanBase}textures/earth-topology.png`;
-
+  const lowUrls = [low.blueMarbleUrl, low.topologyUrl];
   let finished = 0;
-  const urls = [blueMarbleUrl, topologyUrl];
 
-  const promises = urls.map((url) =>
-    preloadImage(url, 7000).then((res) => {
+  const lowPromises = lowUrls.map((url) =>
+    preloadImage(url, 4000).then((res) => {
       finished++;
       if (onProgress) {
-        onProgress(Math.round((finished / urls.length) * 100));
+        onProgress(Math.round((finished / lowUrls.length) * 100));
       }
       return res;
     })
   );
 
-  const results = await Promise.all(promises);
+  const lowResults = await Promise.all(lowPromises);
   areTexturesWarm = true;
-  return results.every(Boolean);
+
+  if (warmHighResInBackground) {
+    Promise.all([
+      preloadImage(high.blueMarbleUrl, 8000),
+      preloadImage(high.topologyUrl, 8000),
+    ]).catch(() => {});
+  }
+
+  return lowResults.every(Boolean);
 }
 
 /**
@@ -114,62 +123,66 @@ export async function preloadGeoData(): Promise<boolean> {
 }
 
 /**
- * Preloads all flags required for the current round
+ * Preloads all flags required for the current round.
+ * Low-resolution flags are loaded first for instant display,
+ * while high-resolution flags are warmed concurrently in background.
  */
 export async function preloadRoundFlags(
   round: Round,
   onProgress?: (percent: number) => void
 ): Promise<boolean> {
-  const urlsToPreload = new Set<string>();
+  const lowUrls = new Set<string>();
+  const highUrls = new Set<string>();
+
+  const registerCountry = (c?: Country) => {
+    if (!c) return;
+    const low = c.lowFlagUrl || getFlagUrl(c.alpha2, 'low');
+    const high = c.flagUrl || getFlagUrl(c.alpha2, 'high');
+    if (low) lowUrls.add(low);
+    if (high) highUrls.add(high);
+  };
 
   // Target country flag
-  if (round.targetCountry) {
-    const targetUrl = round.targetCountry.flagUrl || getFlagUrl(round.targetCountry.alpha2);
-    if (targetUrl) urlsToPreload.add(targetUrl);
-  }
+  registerCountry(round.targetCountry);
 
   // Options flags
   if (Array.isArray(round.options)) {
-    round.options.forEach((opt) => {
-      if (opt.country) {
-        const flagUrl = opt.country.flagUrl || getFlagUrl(opt.country.alpha2);
-        if (flagUrl) urlsToPreload.add(flagUrl);
-      }
-    });
+    round.options.forEach((opt) => registerCountry(opt.country));
   }
 
   // Final three targets if applicable
   if (Array.isArray(round.finalThreeTargets)) {
-    round.finalThreeTargets.forEach((c) => {
-      const flagUrl = c.flagUrl || getFlagUrl(c.alpha2);
-      if (flagUrl) urlsToPreload.add(flagUrl);
-    });
+    round.finalThreeTargets.forEach(registerCountry);
   }
 
-  const urlList = Array.from(urlsToPreload);
-  if (urlList.length === 0) {
+  const lowList = Array.from(lowUrls);
+  if (lowList.length === 0) {
     if (onProgress) onProgress(100);
     return true;
   }
 
   let completed = 0;
-  const promises = urlList.map((url) =>
-    preloadImage(url, 4000).then((res) => {
+  const promises = lowList.map((url) =>
+    preloadImage(url, 3000).then((res) => {
       completed++;
       if (onProgress) {
-        onProgress(Math.round((completed / urlList.length) * 100));
+        onProgress(Math.round((completed / lowList.length) * 100));
       }
       return res;
     })
   );
 
   await Promise.all(promises);
+
+  // Concurrently warm high-res flags in background
+  Promise.all(Array.from(highUrls).map((url) => preloadImage(url, 6000))).catch(() => {});
+
   return true;
 }
 
 /**
  * Proactively preloads and hardware-decodes all flags for the next N questions
- * in the background so round transitions after Question 1 are instantaneous.
+ * in the background. Low-res flags load first, followed by high-res warming.
  */
 export async function preloadUpcomingQuestionsFlags(
   unsolvedPool: Country[],
@@ -179,40 +192,43 @@ export async function preloadUpcomingQuestionsFlags(
 ): Promise<void> {
   if (!unsolvedPool || unsolvedPool.length === 0) return;
 
-  const flagUrls = new Set<string>();
+  const lowUrls = new Set<string>();
+  const highUrls = new Set<string>();
   const isGlobe = gameMode === 'globe';
   const optionCount = isGlobe ? 3 : 4;
 
   const countToPreload = Math.min(lookaheadCount, unsolvedPool.length);
 
+  const register = (c?: Country) => {
+    if (!c) return;
+    const low = c.lowFlagUrl || getFlagUrl(c.alpha2, 'low');
+    const high = c.flagUrl || getFlagUrl(c.alpha2, 'high');
+    if (low) lowUrls.add(low);
+    if (high) highUrls.add(high);
+  };
+
   for (let i = 0; i < countToPreload; i++) {
     const target = unsolvedPool[i];
     if (!target) continue;
-
-    const targetUrl = target.flagUrl || getFlagUrl(target.alpha2);
-    if (targetUrl) flagUrls.add(targetUrl);
+    register(target);
 
     if (isGlobe) {
       const distractorPool = unsolvedPool.filter((c) => c.alpha2 !== target.alpha2);
       const distractors = getNeighboringCountries(target, distractorPool, optionCount - 1);
-      distractors.forEach((d) => {
-        const dUrl = d.flagUrl || getFlagUrl(d.alpha2);
-        if (dUrl) flagUrls.add(dUrl);
-      });
+      distractors.forEach(register);
     } else {
       for (let j = 0; j < optionCount - 1; j++) {
         const randIdx = (i * (optionCount - 1) + j) % countryList.length;
-        const d = countryList[randIdx];
-        if (d) {
-          const dUrl = d.flagUrl || getFlagUrl(d.alpha2);
-          if (dUrl) flagUrls.add(dUrl);
-        }
+        register(countryList[randIdx]);
       }
     }
   }
 
-  // Preload and hardware-decode in parallel
-  await Promise.all(Array.from(flagUrls).map((url) => preloadImage(url, 5000)));
+  // Preload and hardware-decode low-res flags first
+  await Promise.all(Array.from(lowUrls).map((url) => preloadImage(url, 3500)));
+
+  // Concurrently warm high-res flags
+  Promise.all(Array.from(highUrls).map((url) => preloadImage(url, 6000))).catch(() => {});
 }
 
 /**
@@ -240,14 +256,14 @@ export async function preloadAllGameResources(
     update('Cartography Calibrated', 35);
 
     // Stage 2: Earth Textures (35% -> 70%)
-    update('Rendering High-Resolution Blue Marble Textures...', 45);
+    update('Loading 3D Earth Textures & Topology...', 45);
     await preloadEarthTextures((p) => {
-      update('Rendering High-Resolution Blue Marble Textures...', 35 + Math.round((p * 35) / 100));
+      update('Loading 3D Earth Textures & Topology...', 35 + Math.round((p * 35) / 100));
     });
-    update('Textures Loaded', 70);
+    update('Globe Textures Ready', 70);
 
     // Stage 3: Round 1 Flags + Lookahead Next 3 Questions (70% -> 100%)
-    update('Acquiring National Flags for Current & Upcoming Rounds...', 75);
+    update('Loading Flags for Current & Upcoming Rounds...', 75);
     const preloadTasks: Promise<any>[] = [];
 
     if (round) {

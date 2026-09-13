@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckCircle2, XCircle, MapPin, ExternalLink, Globe, Landmark } from 'lucide-react';
 import { LastAnswer } from '../types/game';
-import { getFlagUrl } from '../services/countriesApi';
+import { ProgressiveFlag } from './ProgressiveFlag';
 
 interface LastAnswerCardProps {
   lastAnswer: LastAnswer | null;
@@ -11,9 +11,6 @@ export const LastAnswerCard: React.FC<LastAnswerCardProps> = ({ lastAnswer }) =>
   if (!lastAnswer) return null;
 
   const { country, isCorrect, selectedCountry } = lastAnswer;
-
-  const correctFlagUrl = country.flagUrl || getFlagUrl(country.alpha2);
-  const selectedFlagUrl = selectedCountry?.flagUrl || (selectedCountry ? getFlagUrl(selectedCountry.alpha2) : '');
 
   return (
     <div
@@ -33,9 +30,11 @@ export const LastAnswerCard: React.FC<LastAnswerCardProps> = ({ lastAnswer }) =>
             {!isCorrect && selectedCountry && (
               <span className="last-answer-wrong-choice">
                 You picked:
-                <img
-                  src={selectedFlagUrl}
-                  alt={`Flag of ${selectedCountry.name}`}
+                <ProgressiveFlag
+                  alpha2={selectedCountry.alpha2}
+                  name={selectedCountry.name}
+                  flagUrl={selectedCountry.flagUrl}
+                  lowFlagUrl={selectedCountry.lowFlagUrl}
                   className="last-answer-flag-thumb"
                 />
                 <span className="last-answer-wrong-name">{selectedCountry.name}</span>
@@ -43,9 +42,11 @@ export const LastAnswerCard: React.FC<LastAnswerCardProps> = ({ lastAnswer }) =>
               </span>
             )}
             <span className="last-answer-correct-choice">
-              <img
-                src={correctFlagUrl}
-                alt={`Flag of ${country.name}`}
+              <ProgressiveFlag
+                alpha2={country.alpha2}
+                name={country.name}
+                flagUrl={country.flagUrl}
+                lowFlagUrl={country.lowFlagUrl}
                 className="last-answer-flag-thumb"
               />
               <span className="last-answer-name" id="last">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Award, ExternalLink, Search, Trophy, Globe, X } from 'lucide-react';
 import { Country, ContinentFilter } from '../types/game';
+import { ProgressiveFlag } from './ProgressiveFlag';
 
 interface MasteredFlagsTrayProps {
   solvedCountries: Country[];
@@ -185,8 +186,11 @@ export const MasteredFlagsTray: React.FC<MasteredFlagsTrayProps> = ({
                       className="mastered-chip"
                       title={`View ${country.name} on Google Maps`}
                     >
-                      <img
-                        src={country.flagUrl || `https://flagcdn.com/w320/${country.alpha2.toLowerCase()}.png`}
+                      <ProgressiveFlag
+                        alpha2={country.alpha2}
+                        name={country.name}
+                        flagUrl={country.flagUrl}
+                        lowFlagUrl={country.lowFlagUrl}
                         alt={`Flag of ${country.name}`}
                         className="mastered-chip-flag"
                         loading="lazy"

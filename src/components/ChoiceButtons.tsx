@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChoiceOption, GameMode } from '../types/game';
-import { getFlagUrl } from '../services/countriesApi';
+import { ProgressiveFlag } from './ProgressiveFlag';
 
 interface ChoiceButtonsProps {
   options: ChoiceOption[];
@@ -41,8 +41,6 @@ export const ChoiceButtons: React.FC<ChoiceButtonsProps> = ({
           }
         }
 
-        const flagSrc = option.country.flagUrl || getFlagUrl(option.country.alpha2);
-
         if (isHidden && !isResolving) {
           return (
             <div
@@ -70,7 +68,14 @@ export const ChoiceButtons: React.FC<ChoiceButtonsProps> = ({
               // Name-to-Flag choice presentation
               <div className="choice-flag-card-content">
                 <div className="choice-flag-img-box">
-                  <img src={flagSrc} alt={`Flag option ${index + 1}`} className="choice-card-flag-img" />
+                  <ProgressiveFlag
+                    alpha2={option.country.alpha2}
+                    name={option.name}
+                    flagUrl={option.country.flagUrl}
+                    lowFlagUrl={option.country.lowFlagUrl}
+                    alt={`Flag option ${index + 1}`}
+                    className="choice-card-flag-img"
+                  />
                 </div>
                 {isResolving && (
                   <span className="choice-flag-revealed-name fade-in">{option.name}</span>
@@ -80,8 +85,11 @@ export const ChoiceButtons: React.FC<ChoiceButtonsProps> = ({
               // Flag-to-Name choice presentation
               <div className="choice-left-content">
                 {showFlag && (
-                  <img
-                    src={flagSrc}
+                  <ProgressiveFlag
+                    alpha2={option.country.alpha2}
+                    name={option.name}
+                    flagUrl={option.country.flagUrl}
+                    lowFlagUrl={option.country.lowFlagUrl}
                     alt=""
                     className="choice-flag-icon pop-in"
                     loading="eager"

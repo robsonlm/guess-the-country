@@ -8,11 +8,31 @@ export const STORAGE_KEYS = {
   GLOBE_MISTAKES: 'guessTheCountry.globeMistakes',
 };
 
-export function getFlagUrl(alpha2: string): string {
+export function getFlagUrl(alpha2: string, quality: 'high' | 'low' = 'high'): string {
   if (!alpha2) return '';
   const base = import.meta.env.BASE_URL || '/';
   const cleanBase = base.endsWith('/') ? base : `${base}/`;
-  return `${cleanBase}flags/${alpha2.toLowerCase()}.png`;
+  const folder = quality === 'low' ? 'flags/low/' : 'flags/';
+  return `${cleanBase}${folder}${alpha2.toLowerCase()}.png`;
+}
+
+export function getLowResFlagUrl(alpha2: string): string {
+  return getFlagUrl(alpha2, 'low');
+}
+
+export function getEarthTextureUrls(quality: 'high' | 'low' = 'high'): {
+  blueMarbleUrl: string;
+  topologyUrl: string;
+  nightUrl: string;
+} {
+  const base = import.meta.env.BASE_URL || '/';
+  const cleanBase = base.endsWith('/') ? base : `${base}/`;
+  const folder = quality === 'low' ? 'textures/low/' : 'textures/';
+  return {
+    blueMarbleUrl: `${cleanBase}${folder}earth-blue-marble.jpg`,
+    topologyUrl: `${cleanBase}${folder}earth-topology.png`,
+    nightUrl: `${cleanBase}${folder}earth-night.jpg`,
+  };
 }
 
 export function loadSettings(): UserSettings {
@@ -150,7 +170,8 @@ export function getLocalDataInfo(): { count: number; downloadedAt: string | null
 export async function loadCountries(): Promise<{ countries: Country[]; source: 'bundled' }> {
   const list = (BUNDLED_COUNTRIES as Country[]).map((c) => ({
     ...c,
-    flagUrl: getFlagUrl(c.alpha2),
+    flagUrl: getFlagUrl(c.alpha2, 'high'),
+    lowFlagUrl: getFlagUrl(c.alpha2, 'low'),
   }));
   return { countries: list, source: 'bundled' };
 }
@@ -158,6 +179,7 @@ export async function loadCountries(): Promise<{ countries: Country[]; source: '
 export async function forceRefreshLocalData(): Promise<Country[]> {
   return (BUNDLED_COUNTRIES as Country[]).map((c) => ({
     ...c,
-    flagUrl: getFlagUrl(c.alpha2),
+    flagUrl: getFlagUrl(c.alpha2, 'high'),
+    lowFlagUrl: getFlagUrl(c.alpha2, 'low'),
   }));
 }

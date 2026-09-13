@@ -23,6 +23,8 @@ import {
   getCountryTargetAltitude,
   GeoFeature,
 } from '../services/countriesGeo';
+import { getEarthTextureUrls } from '../services/countriesApi';
+import { ProgressiveFlag } from './ProgressiveFlag';
 import '../styles/GlobeGame.css';
 
 interface GlobeGameViewProps {
@@ -132,8 +134,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     const width = globeContainerRef.current.clientWidth || 800;
     const height = globeContainerRef.current.clientHeight || 540;
 
-    const base = import.meta.env.BASE_URL || '/';
-    const cleanBase = base.endsWith('/') ? base : `${base}/`;
+    const lowTextures = getEarthTextureUrls('low');
+    const highTextures = getEarthTextureUrls('high');
 
     const globe = new (Globe as any)(globeContainerRef.current)
       .width(width)
@@ -142,8 +144,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       .showAtmosphere(true)
       .atmosphereColor('#2a9d8f')
       .atmosphereAltitude(0.22)
-      .globeImageUrl(`${cleanBase}textures/earth-blue-marble.jpg`)
-      .bumpImageUrl(`${cleanBase}textures/earth-topology.png`)
+      .globeImageUrl(lowTextures.blueMarbleUrl)
+      .bumpImageUrl(lowTextures.topologyUrl)
       .pointLat('lat')
       .pointLng('lng')
       .pointColor('color')
@@ -163,6 +165,23 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
 
     globeInstanceRef.current = globe;
     setIsGlobeReady(true);
+
+    // Progressive upgrade: decode high-res textures in background and swap onto globe
+    const highMarbleImg = new Image();
+    highMarbleImg.onload = () => {
+      if (globeInstanceRef.current) {
+        globeInstanceRef.current.globeImageUrl(highTextures.blueMarbleUrl);
+      }
+    };
+    highMarbleImg.src = highTextures.blueMarbleUrl;
+
+    const highBumpImg = new Image();
+    highBumpImg.onload = () => {
+      if (globeInstanceRef.current) {
+        globeInstanceRef.current.bumpImageUrl(highTextures.topologyUrl);
+      }
+    };
+    highBumpImg.src = highTextures.topologyUrl;
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -672,13 +691,13 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                   <div className="final-target-slot">
                     {assignedOption ? (
                       <div className="final-assigned-preview">
-                        {assignedOption.country.flagUrl && (
-                          <img
-                            src={assignedOption.country.flagUrl}
-                            alt={`Flag of ${assignedOption.name}`}
-                            className="final-assigned-flag-thumb"
-                          />
-                        )}
+                        <ProgressiveFlag
+                          alpha2={assignedOption.country.alpha2}
+                          name={assignedOption.name}
+                          flagUrl={assignedOption.country.flagUrl}
+                          lowFlagUrl={assignedOption.country.lowFlagUrl}
+                          className="final-assigned-flag-thumb"
+                        />
                         <span className="final-assigned-flag-name">{assignedOption.name}</span>
                         {!isResolving && (
                           <button
@@ -756,10 +775,12 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                   )}
 
                   <div className="globe-flag-wrapper">
-                    {option.country.flagUrl ? (
-                      <img
-                        src={option.country.flagUrl}
-                        alt={`Flag of ${option.name}`}
+                    {option.country.alpha2 ? (
+                      <ProgressiveFlag
+                        alpha2={option.country.alpha2}
+                        name={option.name}
+                        flagUrl={option.country.flagUrl}
+                        lowFlagUrl={option.country.lowFlagUrl}
                         className="globe-flag-img"
                         loading="eager"
                       />
@@ -820,10 +841,12 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
               >
                 <span className="globe-choice-keybadge">[{index + 1}]</span>
                 <div className="globe-flag-wrapper">
-                  {option.country.flagUrl ? (
-                    <img
-                      src={option.country.flagUrl}
-                      alt={`Flag of ${option.name}`}
+                  {option.country.alpha2 ? (
+                    <ProgressiveFlag
+                      alpha2={option.country.alpha2}
+                      name={option.name}
+                      flagUrl={option.country.flagUrl}
+                      lowFlagUrl={option.country.lowFlagUrl}
                       className="globe-flag-img"
                       loading="eager"
                     />

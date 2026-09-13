@@ -266,6 +266,19 @@
   transform: scale(1.02);
 }
 
+.progressive-flag {
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.progressive-flag.flag-lowres-active {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+.progressive-flag.flag-highres-ready {
+  image-rendering: auto;
+}
+
 .flag-skeleton {
   position: absolute;
   inset: 0;

@@ -6,6 +6,7 @@ export interface Country {
   subregion?: string;
   mapUrl: string;
   flagUrl?: string;
+  lowFlagUrl?: string;
 }
 
 export interface GameScore {
