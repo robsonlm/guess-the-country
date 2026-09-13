@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   User,
   ArrowRight,
+  LogIn,
+  Lock,
 } from 'lucide-react';
 import { GameMode, ContinentFilter, TimerMode, UserSettings, GameScore, Achievement } from '../types/game';
 import { getFilteredLeaderboard, formatTimeElapsed } from '../services/leaderboard';
@@ -22,6 +24,8 @@ interface MainPageViewProps {
   totalCountriesCount: number;
   playerName: string;
   isAdmin?: boolean;
+  isLoggedIn?: boolean;
+  onOpenAuth?: () => void;
   onStartGame: (name: string, config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }) => void;
   onOpenLeaderboard: () => void;
   onOpenAchievements: () => void;
@@ -56,6 +60,8 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
   totalCountriesCount,
   playerName: initialPlayerName,
   isAdmin = false,
+  isLoggedIn = false,
+  onOpenAuth,
   onStartGame,
   onOpenLeaderboard,
   onOpenAchievements,
@@ -84,7 +90,11 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
 
   const handleLaunch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    onStartGame(sanitizePlayerName(name), {
+    if (!isLoggedIn) {
+      onOpenAuth?.();
+      return;
+    }
+    onStartGame(sanitizePlayerName(name || initialPlayerName), {
       mode: selectedMode,
       continent: selectedContinent,
       timer: selectedTimer,
@@ -133,6 +143,54 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
           )}
         </div>
 
+        {!isLoggedIn && (
+          <div
+            className="fade-in"
+            style={{
+              padding: '0.85rem 1.1rem',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.15), rgba(59, 130, 246, 0.12))',
+              border: '1px solid rgba(14, 165, 233, 0.3)',
+              color: '#f8fafc',
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <Lock size={18} style={{ color: '#38bdf8', flexShrink: 0 }} />
+              <div>
+                <strong style={{ display: 'block', fontSize: '0.88rem', color: '#38bdf8' }}>
+                  Player Login Required
+                </strong>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Sign in or create an explorer account to explore the globe and post to the hall of fame.
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenAuth}
+              style={{
+                padding: '6px 16px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                borderRadius: '9999px',
+                background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(14, 165, 233, 0.35)',
+              }}
+            >
+              Sign In / Register
+            </button>
+          </div>
+        )}
+
         {/* Explorer Name Form */}
         <form onSubmit={handleLaunch} className="main-setup-form">
           <div className="main-input-group">
@@ -144,10 +202,13 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
                 id="explorer-name-input"
                 type="text"
                 className="main-text-input"
-                placeholder="Enter explorer name..."
+                placeholder={isLoggedIn ? 'Enter explorer name...' : 'Log in to set explorer name...'}
                 value={name}
                 maxLength={24}
                 onChange={(e) => setName(e.target.value)}
+                onClick={() => {
+                  if (!isLoggedIn) onOpenAuth?.();
+                }}
               />
             </div>
           </div>
@@ -238,15 +299,31 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
 
         {/* Primary Action Button */}
         <div className="main-launch-actions">
-          <button
-            type="button"
-            className="main-btn-start-large"
-            onClick={() => handleLaunch()}
-          >
-            <Sparkles size={18} />
-            <span>Launch New Expedition</span>
-            <ArrowRight size={18} />
-          </button>
+          {isLoggedIn ? (
+            <button
+              type="button"
+              className="main-btn-start-large"
+              onClick={() => handleLaunch()}
+            >
+              <Sparkles size={18} />
+              <span>Launch New Expedition</span>
+              <ArrowRight size={18} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="main-btn-start-large"
+              onClick={onOpenAuth}
+              style={{
+                background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                boxShadow: '0 8px 24px -4px rgba(14, 165, 233, 0.45)',
+              }}
+            >
+              <LogIn size={18} />
+              <span>Log In to Play</span>
+              <ArrowRight size={18} />
+            </button>
+          )}
         </div>
       </section>
 

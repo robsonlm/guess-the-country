@@ -1,4 +1,4 @@
-import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck, Home, RotateCcw, Clock } from 'lucide-react';
+import { Globe2, Flame, Volume2, VolumeX, Trophy, Settings as SettingsIcon, User, ShieldCheck, Home, RotateCcw, Clock, LogIn, LogOut } from 'lucide-react';
 import { UserSettings } from '../types/game';
 import { formatTimeElapsed } from '../services/leaderboard';
 
@@ -10,7 +10,10 @@ interface HeaderProps {
   playerName?: string;
   gameElapsedSeconds?: number;
   isAdmin?: boolean;
+  isLoggedIn?: boolean;
   onOpenProfile?: () => void;
+  onOpenAuth?: () => void;
+  onSignOut?: () => void;
   onToggleSound: () => void;
   onOpenSettings: () => void;
   onNewGame?: () => void;
@@ -25,7 +28,10 @@ export const Header: React.FC<HeaderProps> = ({
   playerName,
   gameElapsedSeconds,
   isAdmin = false,
+  isLoggedIn = false,
   onOpenProfile,
+  onOpenAuth,
+  onSignOut,
   onToggleSound,
   onOpenSettings,
   onNewGame,
@@ -68,37 +74,74 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {playerName && (
+        {isLoggedIn ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              type="button"
+              className="action-btn header-player-btn"
+              onClick={onOpenProfile}
+              title={`Explorer: ${playerName} (Click to manage expedition settings)`}
+              style={{
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                padding: '5px 11px',
+                borderRadius: '9999px',
+                border: isAdmin
+                  ? '1px solid rgba(16, 185, 129, 0.5)'
+                  : '1px solid rgba(14, 165, 233, 0.35)',
+                background: isAdmin
+                  ? 'rgba(16, 185, 129, 0.2)'
+                  : 'rgba(14, 165, 233, 0.12)',
+                color: isAdmin ? '#34d399' : '#38bdf8',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              {isAdmin ? (
+                <ShieldCheck size={14} style={{ color: '#10b981' }} />
+              ) : (
+                <User size={14} style={{ color: '#38bdf8' }} />
+              )}
+              <span className="header-player-name">
+                {playerName}
+              </span>
+            </button>
+            {onSignOut && (
+              <button
+                type="button"
+                className="icon-btn"
+                onClick={onSignOut}
+                title="Sign out of your explorer account"
+                aria-label="Sign out"
+                style={{ width: '30px', height: '30px', borderRadius: '50%' }}
+              >
+                <LogOut size={13} />
+              </button>
+            )}
+          </div>
+        ) : (
           <button
             type="button"
-            className="action-btn header-player-btn"
-            onClick={onOpenProfile}
-            title={`Player: ${playerName} (Click to change explorer name or sign in as admin)`}
+            className="action-btn"
+            onClick={onOpenAuth}
+            title="Sign in or register to play"
             style={{
               fontSize: '0.78rem',
-              fontWeight: 600,
-              padding: '5px 11px',
+              fontWeight: 700,
+              padding: '5px 12px',
               borderRadius: '9999px',
-              border: isAdmin
-                ? '1px solid rgba(16, 185, 129, 0.5)'
-                : '1px solid rgba(255, 255, 255, 0.12)',
-              background: isAdmin
-                ? 'rgba(16, 185, 129, 0.2)'
-                : 'rgba(255, 255, 255, 0.05)',
-              color: isAdmin ? '#34d399' : 'var(--text-muted)',
+              background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+              color: '#fff',
+              border: 'none',
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
+              gap: '6px',
+              boxShadow: '0 4px 12px rgba(14, 165, 233, 0.3)',
             }}
           >
-            {isAdmin ? (
-              <ShieldCheck size={14} style={{ color: '#10b981' }} />
-            ) : (
-              <User size={14} style={{ color: 'var(--primary-light)' }} />
-            )}
-            <span className="header-player-name">
-              {playerName}
-            </span>
+            <LogIn size={13} />
+            <span>Log In to Play</span>
           </button>
         )}
 

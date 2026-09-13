@@ -17,6 +17,8 @@ import {
   getAuth,
   signInAnonymously,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
   signOut,
   onAuthStateChanged,
   connectAuthEmulator,
@@ -106,6 +108,35 @@ export async function ensureSignedIn(): Promise<User | null> {
 export function onAuthChanged(cb: (user: User | null) => void): () => void {
   if (!auth) return () => {};
   return onAuthStateChanged(auth, cb);
+}
+
+export async function registerPlayer(
+  email: string,
+  password: string,
+  displayName: string
+): Promise<User> {
+  if (!auth) throw new Error('Firebase is not configured.');
+  const trimmedEmail = email.trim();
+  const trimmedName = displayName.trim() || 'World Explorer';
+  const cred = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+  try {
+    await updateProfile(cred.user, { displayName: trimmedName });
+  } catch (err) {
+    console.warn('[Firebase] Could not set display name on profile:', err);
+  }
+  await cred.user.getIdToken(true);
+  return cred.user;
+}
+
+export async function signInPlayer(email: string, password: string): Promise<User> {
+  if (!auth) throw new Error('Firebase is not configured.');
+  const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+  await cred.user.getIdToken(true);
+  return cred.user;
+}
+
+export function isPlayerAuthenticated(): boolean {
+  return Boolean(auth?.currentUser && !auth.currentUser.isAnonymous);
 }
 
 export async function signInAdmin(email: string, password: string): Promise<User> {

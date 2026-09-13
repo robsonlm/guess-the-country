@@ -12,6 +12,7 @@ import {
   Compass,
   Layers,
   Clock,
+  LogIn,
 } from 'lucide-react';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { sanitizePlayerName } from '../utils/sanitize';
@@ -21,6 +22,8 @@ interface StartGameModalProps {
   isOpen: boolean;
   initialPlayerName: string;
   isAdmin: boolean;
+  isLoggedIn?: boolean;
+  onOpenAuth?: () => void;
   gameMode: GameMode;
   continentFilter: ContinentFilter;
   timerMode: TimerMode;
@@ -54,6 +57,8 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   isOpen,
   initialPlayerName,
   isAdmin,
+  isLoggedIn = false,
+  onOpenAuth,
   gameMode,
   continentFilter,
   timerMode,
@@ -103,6 +108,10 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
 
   const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLoggedIn) {
+      onOpenAuth?.();
+      return;
+    }
     const rawTrimmed = playerName.trim();
     if (rawTrimmed.toUpperCase() === 'ADMINMODE') {
       if (isAdmin || hookIsAdmin) {
@@ -307,8 +316,17 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
 
               {/* Submit Button */}
               <button type="submit" className="btn-primary start-btn-launch" style={{ marginTop: '0.2rem' }}>
-                <span>Start Expedition</span>
-                <ArrowRight size={18} />
+                {isLoggedIn ? (
+                  <>
+                    <span>Start Expedition</span>
+                    <ArrowRight size={18} />
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} />
+                    <span>Log In to Play</span>
+                  </>
+                )}
               </button>
 
               {isAdmin ? (

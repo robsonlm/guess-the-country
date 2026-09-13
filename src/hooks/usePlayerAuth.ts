@@ -1,0 +1,179 @@
+import { useEffect, useState, useCallback } from 'react';
+import { User } from 'firebase/auth';
+import {
+  onAuthChanged,
+  isCurrentUserAdmin,
+  signInPlayer,
+  registerPlayer,
+  signOutCurrent,
+  getCurrentUser,
+  ensureSignedIn,
+} from '../services/firebase';
+
+export interface UsePlayerAuth {
+  user: User | null;
+  isLoggedIn: boolean;
+  playerName: string;
+  userEmail: string | null;
+  isAdmin: boolean;
+  ready: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (
+    email: string,
+    password: string,
+    displayName: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+}
+
+// Global shared state
+let globalUser: User | null = null;
+let globalIsAdmin = false;
+let globalReady = false;
+const subscribers = new Set<() => void>();
+
+function notifyAll() {
+  subscribers.forEach((cb) => {
+    try {
+      cb();
+    } catch {
+      // ignore errors
+    }
+  });
+}
+
+let listenerInitialized = false;
+function initAuthListener() {
+  if (listenerInitialized) return;
+  listenerInitialized = true;
+
+  onAuthChanged(async (user) => {
+    globalUser = user;
+    if (!user || user.isAnonymous) {
+      globalIsAdmin = false;
+      globalReady = true;
+      notifyAll();
+      return;
+    }
+    try {
+      const admin = await isCurrentUserAdmin();
+      globalIsAdmin = admin;
+    } catch {
+      globalIsAdmin = false;
+    }
+    globalReady = true;
+    notifyAll();
+  });
+
+  // Ensure initial reachability
+  ensureSignedIn().catch(() => {});
+}
+
+export function usePlayerAuth(): UsePlayerAuth {
+  initAuthListener();
+
+  const [user, setUser] = useState<User | null>(globalUser ?? getCurrentUser());
+  const [isAdmin, setIsAdmin] = useState<boolean>(globalIsAdmin);
+  const [ready, setReady] = useState<boolean>(globalReady);
+
+  useEffect(() => {
+    const update = () => {
+      setUser(globalUser);
+      setIsAdmin(globalIsAdmin);
+      setReady(globalReady);
+    };
+    subscribers.add(update);
+    update();
+    return () => {
+      subscribers.delete(update);
+    };
+  }, []);
+
+  const isLoggedIn = Boolean(user && !user.isAnonymous);
+  const playerName = user?.displayName?.trim() || user?.email?.split('@')[0] || 'World Explorer';
+  const userEmail = user?.email ?? null;
+
+  const login = useCallback(async (email: string, password: string) => {
+    if (!email.trim() || !password) {
+      return { success: false, error: 'Email and password are required.' };
+    }
+    try {
+      const loggedUser = await signInPlayer(email, password);
+      globalUser = loggedUser;
+      const admin = await isCurrentUserAdmin();
+      globalIsAdmin = admin;
+      globalReady = true;
+      notifyAll();
+      return { success: true };
+    } catch (err: any) {
+      const code = err?.code as string | undefined;
+      const message =
+        code === 'auth/invalid-credential' ||
+        code === 'auth/wrong-password' ||
+        code === 'auth/user-not-found'
+          ? 'Invalid email or password.'
+          : code === 'auth/too-many-requests'
+          ? 'Too many attempts. Please wait a moment and try again.'
+          : code === 'auth/invalid-email'
+          ? 'Please enter a valid email address.'
+          : err?.message || 'Login failed.';
+      return { success: false, error: message };
+    }
+  }, []);
+
+  const register = useCallback(
+    async (email: string, password: string, displayName: string) => {
+      const cleanEmail = email.trim();
+      const cleanName = displayName.trim();
+      if (!cleanEmail || !password) {
+        return { success: false, error: 'Email and password are required.' };
+      }
+      if (!cleanName) {
+        return { success: false, error: 'Please choose an Explorer Call Sign (name).' };
+      }
+      if (password.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters.' };
+      }
+      try {
+        const newUser = await registerPlayer(cleanEmail, password, cleanName);
+        globalUser = newUser;
+        const admin = await isCurrentUserAdmin();
+        globalIsAdmin = admin;
+        globalReady = true;
+        notifyAll();
+        return { success: true };
+      } catch (err: any) {
+        const code = err?.code as string | undefined;
+        const message =
+          code === 'auth/email-already-in-use'
+            ? 'An account with this email already exists. Please sign in.'
+            : code === 'auth/weak-password'
+            ? 'Password is too weak. Please use at least 6 characters.'
+            : code === 'auth/invalid-email'
+            ? 'Please enter a valid email address.'
+            : err?.message || 'Registration failed.';
+        return { success: false, error: message };
+      }
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
+    await signOutCurrent();
+    globalUser = null;
+    globalIsAdmin = false;
+    notifyAll();
+  }, []);
+
+  return {
+    user,
+    isLoggedIn,
+    playerName,
+    userEmail,
+    isAdmin,
+    ready,
+    login,
+    register,
+    logout,
+  };
+}

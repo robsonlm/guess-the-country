@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertCircle, RefreshCw, Sparkles, Flame } from 'lucide-react';
 import { useGameState } from './hooks/useGameState';
-import { useAdminAuth } from './hooks/useAdminAuth';
 import { Header } from './components/Header';
 import { MainPageView } from './components/MainPageView';
 import { FlagCard } from './components/FlagCard';
@@ -21,6 +20,8 @@ import { SettingsModal } from './components/SettingsModal';
 import { PauseModal } from './components/PauseModal';
 import { StartGameModal } from './components/StartGameModal';
 import { ConfirmNewGameModal } from './components/ConfirmNewGameModal';
+import { AuthModal } from './components/AuthModal';
+import { usePlayerAuth } from './hooks/usePlayerAuth';
 import './styles/App.css';
 
 export function App() {
@@ -29,16 +30,19 @@ export function App() {
   const [isGlobeExploreOpen, setIsGlobeExploreOpen] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isConfirmNewGameOpen, setIsConfirmNewGameOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authPromptMessage, setAuthPromptMessage] = useState<string | undefined>(undefined);
   const [recentLeaderboardEntryId, setRecentLeaderboardEntryId] = useState<string | null>(null);
 
-  const { isAdmin } = useAdminAuth();
+  const { isLoggedIn, playerName: authPlayerName, isAdmin, logout } = usePlayerAuth();
 
   const isAnyModalOpen =
     isSettingsOpen ||
     isAchievementsOpen ||
     isGlobeExploreOpen ||
     isLeaderboardOpen ||
-    isConfirmNewGameOpen;
+    isConfirmNewGameOpen ||
+    isAuthModalOpen;
 
   const {
     settings,
@@ -98,6 +102,15 @@ export function App() {
     openStartModal();
   };
 
+  // Enforce player login: unauthenticated users cannot access active gameplay (#play)
+  useEffect(() => {
+    if (!isLoggedIn && isGameStarted) {
+      navigateToHome();
+      setAuthPromptMessage('Player login required. Sign in or create an account to start playing!');
+      setIsAuthModalOpen(true);
+    }
+  }, [isLoggedIn, isGameStarted, navigateToHome]);
+
   const handleOpenLeaderboard = (entryId?: string) => {
     setRecentLeaderboardEntryId(entryId || null);
     setIsLeaderboardOpen(true);
@@ -112,10 +125,16 @@ export function App() {
         level={currentRound?.level ?? 1}
         optionCount={currentRound?.optionCount ?? 2}
         settings={settings}
-        playerName={currentPlayerName}
+        playerName={isLoggedIn ? authPlayerName : undefined}
         gameElapsedSeconds={gameElapsedSeconds}
         isAdmin={isAdmin}
+        isLoggedIn={isLoggedIn}
         onOpenProfile={openStartModal}
+        onOpenAuth={() => {
+          setAuthPromptMessage('Sign in to record your scores and explore the globe!');
+          setIsAuthModalOpen(true);
+        }}
+        onSignOut={logout}
         onToggleSound={handleToggleSound}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onNewGame={handleNewGameClick}
@@ -182,9 +201,19 @@ export function App() {
           score={score}
           achievements={achievements}
           totalCountriesCount={countries.length}
-          playerName={currentPlayerName}
+          playerName={isLoggedIn ? authPlayerName : currentPlayerName}
           isAdmin={isAdmin}
+          isLoggedIn={isLoggedIn}
+          onOpenAuth={() => {
+            setAuthPromptMessage('Please log in or create an account to start playing!');
+            setIsAuthModalOpen(true);
+          }}
           onStartGame={(name, config) => {
+            if (!isLoggedIn) {
+              setAuthPromptMessage('Please log in or create an account to start playing!');
+              setIsAuthModalOpen(true);
+              return;
+            }
             resetScore();
             startGame(name, config);
           }}
@@ -371,12 +400,22 @@ export function App() {
       {/* Explorer Call Sign & Game Start Modal (prompts player name when game starts) */}
       <StartGameModal
         isOpen={isStartModalOpen}
-        initialPlayerName={currentPlayerName}
+        initialPlayerName={isLoggedIn ? authPlayerName : currentPlayerName}
         isAdmin={isAdmin}
+        isLoggedIn={isLoggedIn}
+        onOpenAuth={() => {
+          setAuthPromptMessage('Please log in or create an account to start playing!');
+          setIsAuthModalOpen(true);
+        }}
         gameMode={settings.gameMode}
         continentFilter={settings.continentFilter}
         timerMode={settings.timerMode}
         onStart={(name, config) => {
+          if (!isLoggedIn) {
+            setAuthPromptMessage('Please log in or create an account to start playing!');
+            setIsAuthModalOpen(true);
+            return;
+          }
           resetScore();
           startGame(name, config);
         }}
@@ -385,6 +424,13 @@ export function App() {
         }}
         onClose={closeStartModal}
         allowClose={isGameStarted}
+      />
+
+      {/* Player Authentication & Registration Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        promptMessage={authPromptMessage}
       />
     </div>
   );
