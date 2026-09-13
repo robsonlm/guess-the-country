@@ -16,6 +16,7 @@ import {
 import { GameMode, ContinentFilter, TimerMode, UserSettings, GameScore, Achievement } from '../types/game';
 import { getFilteredLeaderboard, formatTimeElapsed } from '../services/leaderboard';
 import { sanitizePlayerName } from '../utils/sanitize';
+import { APP_VERSION } from '../utils/version';
 
 interface MainPageViewProps {
   settings: UserSettings;
@@ -444,6 +445,12 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Side Version Indicator */}
+      <aside className="main-screen-version-badge" aria-label={`Version: ${APP_VERSION}`}>
+        <span className="main-screen-version-dot" aria-hidden="true" />
+        <span className="main-screen-version-text">{APP_VERSION}</span>
+      </aside>
     </div>
   );
 };
