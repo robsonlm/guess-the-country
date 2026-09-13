@@ -17,7 +17,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialMode = 'signin',
   promptMessage,
 }) => {
-  const { login, register } = usePlayerAuth();
+  const { login, register, loginWithGoogle } = usePlayerAuth();
   const [mode, setMode] = useState<'signin' | 'register'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,6 +68,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         } else {
           setErrorMessage(res.error || 'Registration failed. Please check your details.');
         }
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    if (isLoading) return;
+    setErrorMessage(null);
+    setIsLoading(true);
+    try {
+      const res = await loginWithGoogle();
+      if (res.success) {
+        onSuccess?.();
+        onClose();
+      } else {
+        setErrorMessage(res.error || 'Google sign-in was not completed.');
       }
     } finally {
       setIsLoading(false);
@@ -206,6 +223,68 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           >
             <UserPlus size={14} /> New Explorer
           </button>
+        </div>
+
+        {/* Google Sign-in Button */}
+        <button
+          type="button"
+          onClick={handleGoogleSignIn}
+          disabled={isLoading}
+          style={{
+            width: '100%',
+            padding: '0.7rem 1rem',
+            borderRadius: '10px',
+            border: '1px solid rgba(255, 255, 255, 0.16)',
+            background: 'rgba(255, 255, 255, 0.08)',
+            color: '#fff',
+            fontSize: '0.88rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            cursor: isLoading ? 'not-allowed' : 'pointer',
+            marginBottom: '1rem',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+            <path
+              fill="#EA4335"
+              d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+            />
+            <path
+              fill="#4285F4"
+              d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+            />
+            <path
+              fill="#FBBC05"
+              d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
+            />
+            <path
+              fill="#34A853"
+              d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
+            />
+          </svg>
+          <span>Continue with Google</span>
+        </button>
+
+        {/* Divider */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            margin: '0 0 1rem',
+            color: 'var(--text-dim)',
+            fontSize: '0.75rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}
+        >
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
+          <span>or with email</span>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.1)' }} />
         </div>
 
         {/* Error Alert */}

@@ -4,6 +4,7 @@ import {
   onAuthChanged,
   isCurrentUserAdmin,
   signInPlayer,
+  signInWithGoogle,
   registerPlayer,
   signOutCurrent,
   getCurrentUser,
@@ -18,6 +19,7 @@ export interface UsePlayerAuth {
   isAdmin: boolean;
   ready: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>;
   register: (
     email: string,
     password: string,
@@ -158,6 +160,29 @@ export function usePlayerAuth(): UsePlayerAuth {
     []
   );
 
+  const loginWithGoogle = useCallback(async () => {
+    try {
+      const loggedUser = await signInWithGoogle();
+      globalUser = loggedUser;
+      const admin = await isCurrentUserAdmin();
+      globalIsAdmin = admin;
+      globalReady = true;
+      notifyAll();
+      return { success: true };
+    } catch (err: any) {
+      const code = err?.code as string | undefined;
+      const message =
+        code === 'auth/popup-closed-by-user'
+          ? 'Sign-in was cancelled.'
+          : code === 'auth/cancelled-popup-request'
+          ? 'Only one sign-in window allowed at a time.'
+          : code === 'auth/popup-blocked'
+          ? 'Sign-in popup was blocked by your browser. Please allow popups.'
+          : err?.message || 'Google sign-in failed.';
+      return { success: false, error: message };
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     await signOutCurrent();
     globalUser = null;
@@ -173,6 +198,7 @@ export function usePlayerAuth(): UsePlayerAuth {
     isAdmin,
     ready,
     login,
+    loginWithGoogle,
     register,
     logout,
   };

@@ -18,6 +18,8 @@ import {
   signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
   updateProfile,
   signOut,
   onAuthStateChanged,
@@ -137,6 +139,15 @@ export async function signInPlayer(email: string, password: string): Promise<Use
 
 export function isPlayerAuthenticated(): boolean {
   return Boolean(auth?.currentUser && !auth.currentUser.isAnonymous);
+}
+
+export async function signInWithGoogle(): Promise<User> {
+  if (!auth) throw new Error('Firebase is not configured.');
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  const cred = await signInWithPopup(auth, provider);
+  await cred.user.getIdToken(true);
+  return cred.user;
 }
 
 export async function signInAdmin(email: string, password: string): Promise<User> {
