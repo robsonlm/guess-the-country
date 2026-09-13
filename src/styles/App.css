@@ -19,6 +19,35 @@
   overflow: hidden;
 }
 
+/* Globe Mode Full-Screen Workspace - Maximizes 3D Earth across desktop viewport */
+.app-container.globe-mode-active {
+  max-width: 100%;
+  width: 100%;
+  padding: 0.25rem 0.85rem;
+}
+
+.globe-mode-active .app-header {
+  margin-bottom: 0.25rem;
+  padding: 0.35rem 0.85rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.globe-mode-active .game-workspace {
+  width: 100%;
+  max-width: 100%;
+  gap: 0.25rem;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.globe-mode-active .mastered-tray,
+.globe-mode-active .game-pro-tip-footer {
+  display: none !important;
+}
+
 /* Main Landing Page - Natural Full Height with Browser Window Scrolling */
 .app-container.main-page-active {
   min-height: 100%;

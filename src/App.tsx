@@ -317,32 +317,36 @@ export function App() {
             </>
           )}
 
-          {/* Mastered Flags Tray with Continent Tabs & Trophy Shelf */}
-          <MasteredFlagsTray
-            solvedCountries={solvedCountriesList}
-            allCountries={countries}
-            onOpenAchievements={() => setIsAchievementsOpen(true)}
-            unlockedAchievementsCount={unlockedCount}
-            totalAchievementsCount={achievements.length}
-          />
+          {/* Mastered Flags Tray with Continent Tabs & Trophy Shelf (Cards mode only) */}
+          {settings.gameMode !== 'globe' && (
+            <MasteredFlagsTray
+              solvedCountries={solvedCountriesList}
+              allCountries={countries}
+              onOpenAchievements={() => setIsAchievementsOpen(true)}
+              unlockedAchievementsCount={unlockedCount}
+              totalAchievementsCount={achievements.length}
+            />
+          )}
 
-          <footer
-            className="game-pro-tip-footer"
-            style={{
-              marginTop: '0.15rem',
-              color: 'var(--text-dim)',
-              fontSize: '0.72rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.3rem',
-              flexShrink: 0,
-            }}
-          >
-            <Sparkles size={11} style={{ color: 'var(--primary-light)' }} />
-            <span>
-              Pro tip: Press [1] through [{currentRound.options.length}] on keyboard to guess rapidly
-            </span>
-          </footer>
+          {settings.gameMode !== 'globe' && (
+            <footer
+              className="game-pro-tip-footer"
+              style={{
+                marginTop: '0.15rem',
+                color: 'var(--text-dim)',
+                fontSize: '0.72rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                flexShrink: 0,
+              }}
+            >
+              <Sparkles size={11} style={{ color: 'var(--primary-light)' }} />
+              <span>
+                Pro tip: Press [1] through [{currentRound.options.length}] on keyboard to guess rapidly
+              </span>
+            </footer>
+          )}
         </main>
       )}
 

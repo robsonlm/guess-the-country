@@ -49,6 +49,8 @@ interface GlobeGameViewProps {
   };
 }
 
+const EMPTY_TARGETS: Country[] = [];
+
 export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   targetCountry,
   options,
@@ -64,7 +66,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   disabled = false,
   isAdmin = false,
   isFinalThree = false,
-  finalThreeTargets = [],
+  finalThreeTargets = EMPTY_TARGETS,
   onFinalThreeSubmit,
 }) => {
   const globeContainerRef = useRef<HTMLDivElement | null>(null);
@@ -89,7 +91,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
 
   // Reset Final 3 assignments when targets change, or pre-populate if admin
   useEffect(() => {
-    if (isAdmin && isFinalThree && finalThreeTargets.length > 0) {
+    if (!isFinalThree) return;
+    if (isAdmin && finalThreeTargets.length > 0) {
       const prePopulated: Record<string, string> = {};
       finalThreeTargets.forEach((c) => {
         prePopulated[c.alpha2] = c.alpha2;

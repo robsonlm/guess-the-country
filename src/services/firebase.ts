@@ -51,9 +51,7 @@ export const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '',
 };
 
-const USE_EMULATORS =
-  import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true' ||
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost' && import.meta.env.DEV);
+const USE_EMULATORS = import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true';
 
 const ENABLE_CLOUD_FUNCTIONS =
   import.meta.env.VITE_ENABLE_CLOUD_FUNCTIONS === 'true' || USE_EMULATORS;
