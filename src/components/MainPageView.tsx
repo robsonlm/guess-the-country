@@ -26,6 +26,7 @@ interface MainPageViewProps {
   isAdmin?: boolean;
   isLoggedIn?: boolean;
   onOpenAuth?: () => void;
+  onGoogleSignIn?: () => void;
   onStartGame: (name: string, config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }) => void;
   onOpenLeaderboard: () => void;
   onOpenAchievements: () => void;
@@ -62,6 +63,7 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
   isAdmin = false,
   isLoggedIn = false,
   onOpenAuth,
+  onGoogleSignIn,
   onStartGame,
   onOpenLeaderboard,
   onOpenAchievements,
@@ -310,19 +312,65 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
               <ArrowRight size={18} />
             </button>
           ) : (
-            <button
-              type="button"
-              className="main-btn-start-large"
-              onClick={onOpenAuth}
-              style={{
-                background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
-                boxShadow: '0 8px 24px -4px rgba(14, 165, 233, 0.45)',
-              }}
-            >
-              <LogIn size={18} />
-              <span>Log In to Play</span>
-              <ArrowRight size={18} />
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', width: '100%', maxWidth: '380px', margin: '0 auto' }}>
+              <button
+                type="button"
+                className="main-btn-start-large"
+                onClick={onOpenAuth}
+                style={{
+                  background: 'linear-gradient(135deg, #0ea5e9, #2563eb)',
+                  boxShadow: '0 8px 24px -4px rgba(14, 165, 233, 0.45)',
+                  width: '100%',
+                }}
+              >
+                <LogIn size={18} />
+                <span>Log In to Play</span>
+                <ArrowRight size={18} />
+              </button>
+              {onGoogleSignIn && (
+                <button
+                  type="button"
+                  onClick={onGoogleSignIn}
+                  style={{
+                    width: '100%',
+                    padding: '0.7rem 1rem',
+                    borderRadius: '9999px',
+                    border: '1px solid rgba(255, 255, 255, 0.18)',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: '#fff',
+                    fontSize: '0.86rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+                    <path
+                      fill="#EA4335"
+                      d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.3 9 5 12 5z"
+                    />
+                    <path
+                      fill="#4285F4"
+                      d="M23.5 12.3c0-.8-.1-1.7-.2-2.3H12v4.6h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.9z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.6 14.8c-.2-.7-.4-1.5-.4-2.8s.2-2.1.4-2.8L1.9 6.3C.7 8.7 0 10.3 0 12s.7 3.3 1.9 5.7l3.7-2.9z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.3-6.4-5.2L1.9 16c1.8 3.7 5.6 7 10.1 7z"
+                    />
+                  </svg>
+                  <span>Continue with Google</span>
+                </button>
+              )}
+            </div>
           )}
         </div>
       </section>

@@ -36,6 +36,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.token.admin == true;
     }
 
+    // Users collection: authenticated players can read profiles and manage their own document
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
     // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;

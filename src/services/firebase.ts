@@ -112,6 +112,36 @@ export function onAuthChanged(cb: (user: User | null) => void): () => void {
   return onAuthStateChanged(auth, cb);
 }
 
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  providerId: string;
+  lastLoginAt: string;
+}
+
+/**
+ * Saves or updates player profile in Firestore /users/{uid}
+ */
+export async function syncUserProfile(user: User): Promise<void> {
+  if (!db || !user || user.isAnonymous) return;
+  try {
+    const userDocRef = doc(db, 'users', user.uid);
+    const profileData: UserProfile = {
+      uid: user.uid,
+      email: user.email ?? null,
+      displayName: user.displayName?.trim() || user.email?.split('@')[0] || 'World Explorer',
+      photoURL: user.photoURL ?? null,
+      providerId: user.providerData?.[0]?.providerId || 'password',
+      lastLoginAt: new Date().toISOString(),
+    };
+    await setDoc(userDocRef, profileData, { merge: true });
+  } catch (err) {
+    console.warn('[Firebase] Notice: could not persist user profile to Firestore:', err);
+  }
+}
+
 export async function registerPlayer(
   email: string,
   password: string,
@@ -127,6 +157,7 @@ export async function registerPlayer(
     console.warn('[Firebase] Could not set display name on profile:', err);
   }
   await cred.user.getIdToken(true);
+  await syncUserProfile(cred.user);
   return cred.user;
 }
 
@@ -134,6 +165,7 @@ export async function signInPlayer(email: string, password: string): Promise<Use
   if (!auth) throw new Error('Firebase is not configured.');
   const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
   await cred.user.getIdToken(true);
+  await syncUserProfile(cred.user);
   return cred.user;
 }
 
@@ -147,6 +179,7 @@ export async function signInWithGoogle(): Promise<User> {
   provider.setCustomParameters({ prompt: 'select_account' });
   const cred = await signInWithPopup(auth, provider);
   await cred.user.getIdToken(true);
+  await syncUserProfile(cred.user);
   return cred.user;
 }
 

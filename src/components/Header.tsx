@@ -8,6 +8,7 @@ interface HeaderProps {
   optionCount?: number;
   settings: UserSettings;
   playerName?: string;
+  userPhotoUrl?: string | null;
   gameElapsedSeconds?: number;
   isAdmin?: boolean;
   isLoggedIn?: boolean;
@@ -26,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentStreak,
   settings,
   playerName,
+  userPhotoUrl,
   gameElapsedSeconds,
   isAdmin = false,
   isLoggedIn = false,
@@ -98,7 +100,20 @@ export const Header: React.FC<HeaderProps> = ({
                 gap: '5px',
               }}
             >
-              {isAdmin ? (
+              {userPhotoUrl ? (
+                <img
+                  src={userPhotoUrl}
+                  alt={playerName || 'Explorer'}
+                  referrerPolicy="no-referrer"
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    boxShadow: '0 0 4px rgba(0,0,0,0.5)',
+                  }}
+                />
+              ) : isAdmin ? (
                 <ShieldCheck size={14} style={{ color: '#10b981' }} />
               ) : (
                 <User size={14} style={{ color: '#38bdf8' }} />

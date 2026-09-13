@@ -33,8 +33,14 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authPromptMessage, setAuthPromptMessage] = useState<string | undefined>(undefined);
   const [recentLeaderboardEntryId, setRecentLeaderboardEntryId] = useState<string | null>(null);
-
-  const { isLoggedIn, playerName: authPlayerName, isAdmin, logout } = usePlayerAuth();
+  const {
+    isLoggedIn,
+    playerName: authPlayerName,
+    userPhotoUrl,
+    isAdmin,
+    loginWithGoogle,
+    logout,
+  } = usePlayerAuth();
 
   const isAnyModalOpen =
     isSettingsOpen ||
@@ -126,6 +132,7 @@ export function App() {
         optionCount={currentRound?.optionCount ?? 2}
         settings={settings}
         playerName={isLoggedIn ? authPlayerName : undefined}
+        userPhotoUrl={isLoggedIn ? userPhotoUrl : null}
         gameElapsedSeconds={gameElapsedSeconds}
         isAdmin={isAdmin}
         isLoggedIn={isLoggedIn}
@@ -207,6 +214,13 @@ export function App() {
           onOpenAuth={() => {
             setAuthPromptMessage('Please log in or create an account to start playing!');
             setIsAuthModalOpen(true);
+          }}
+          onGoogleSignIn={async () => {
+            const res = await loginWithGoogle();
+            if (!res.success && res.error) {
+              setAuthPromptMessage(res.error);
+              setIsAuthModalOpen(true);
+            }
           }}
           onStartGame={(name, config) => {
             if (!isLoggedIn) {

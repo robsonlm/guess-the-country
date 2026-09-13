@@ -9,6 +9,7 @@ import {
   signOutCurrent,
   getCurrentUser,
   ensureSignedIn,
+  syncUserProfile,
 } from '../services/firebase';
 
 export interface UsePlayerAuth {
@@ -16,6 +17,8 @@ export interface UsePlayerAuth {
   isLoggedIn: boolean;
   playerName: string;
   userEmail: string | null;
+  userPhotoUrl: string | null;
+  providerId: string | null;
   isAdmin: boolean;
   ready: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -56,6 +59,11 @@ function initAuthListener() {
       globalReady = true;
       notifyAll();
       return;
+    }
+    try {
+      await syncUserProfile(user);
+    } catch {
+      // ignore
     }
     try {
       const admin = await isCurrentUserAdmin();
@@ -190,11 +198,16 @@ export function usePlayerAuth(): UsePlayerAuth {
     notifyAll();
   }, []);
 
+  const userPhotoUrl = user?.photoURL ?? null;
+  const providerId = user?.providerData?.[0]?.providerId || (user?.isAnonymous ? 'anonymous' : 'password');
+
   return {
     user,
     isLoggedIn,
     playerName,
     userEmail,
+    userPhotoUrl,
+    providerId,
     isAdmin,
     ready,
     login,
