@@ -38,6 +38,7 @@ interface GlobeGameViewProps {
   lifelineState: LifelineState;
   onUseCapital: () => void;
   disabled?: boolean;
+  isAdmin?: boolean;
   isFinalThree?: boolean;
   finalThreeTargets?: Country[];
   onFinalThreeSubmit?: (assignments: Record<string, string>) => {
@@ -59,6 +60,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   lifelineState,
   onUseCapital,
   disabled = false,
+  isAdmin = false,
   isFinalThree = false,
   finalThreeTargets = [],
   onFinalThreeSubmit,
@@ -71,15 +73,32 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
 
   // Final 3 state
   const [activeTargetIndex, setActiveTargetIndex] = useState<number>(0);
-  const [selectedAssignments, setSelectedAssignments] = useState<Record<string, string>>({});
+  const [selectedAssignments, setSelectedAssignments] = useState<Record<string, string>>(() => {
+    if (isAdmin && isFinalThree && finalThreeTargets.length > 0) {
+      const initial: Record<string, string> = {};
+      finalThreeTargets.forEach((c) => {
+        initial[c.alpha2] = c.alpha2;
+      });
+      return initial;
+    }
+    return {};
+  });
   const [validationResults, setValidationResults] = useState<Record<string, boolean> | null>(null);
 
-  // Reset Final 3 assignments when targets change
+  // Reset Final 3 assignments when targets change, or pre-populate if admin
   useEffect(() => {
-    setSelectedAssignments({});
+    if (isAdmin && isFinalThree && finalThreeTargets.length > 0) {
+      const prePopulated: Record<string, string> = {};
+      finalThreeTargets.forEach((c) => {
+        prePopulated[c.alpha2] = c.alpha2;
+      });
+      setSelectedAssignments(prePopulated);
+    } else {
+      setSelectedAssignments({});
+    }
     setValidationResults(null);
     setActiveTargetIndex(0);
-  }, [finalThreeTargets]);
+  }, [finalThreeTargets, isAdmin, isFinalThree]);
 
   const currentFocusedCountry = isFinalThree && finalThreeTargets.length > 0
     ? finalThreeTargets[activeTargetIndex] || finalThreeTargets[0]

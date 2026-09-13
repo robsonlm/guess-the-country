@@ -255,6 +255,7 @@ export function App() {
               lifelineState={lifelineState}
               onUseCapital={onUseCapital}
               disabled={isPaused}
+              isAdmin={isAdmin}
               isFinalThree={currentRound.isFinalThree}
               finalThreeTargets={currentRound.finalThreeTargets}
               onFinalThreeSubmit={handleFinalThreeSubmit}

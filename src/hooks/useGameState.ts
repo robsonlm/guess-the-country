@@ -139,7 +139,13 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       currentPlayerName.toUpperCase() === 'ADMIN' ||
       currentPlayerName.toUpperCase() === 'ADMINMODE';
 
-    if (isEffectiveAdmin && currentRound && currentRound.options && currentRound.options.length >= 2) {
+    if (
+      isEffectiveAdmin &&
+      currentRound &&
+      !currentRound.isFinalThree &&
+      currentRound.options &&
+      currentRound.options.length >= 2
+    ) {
       const correctIdx = currentRound.options.findIndex((o) => o.isCorrect);
       if (correctIdx !== 1 && correctIdx !== -1) {
         const newOptions = [...currentRound.options];
@@ -205,15 +211,23 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         const finalThreeTargets = [...unsolvedPool];
         finalThreeTargets.forEach((c) => preloadFlag(c.flagUrl));
 
+        const isEffectiveAdmin =
+          adminRef.current ||
+          isAdmin ||
+          currentPlayerNameRef.current?.toUpperCase() === 'ADMIN' ||
+          currentPlayerNameRef.current?.toUpperCase() === 'ADMINMODE';
+
         const options: ChoiceOption[] = finalThreeTargets.map((c) => ({
           name: c.name,
           isCorrect: true,
           country: c,
         }));
 
-        for (let i = options.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [options[i], options[j]] = [options[j], options[i]];
+        if (!isEffectiveAdmin) {
+          for (let i = options.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [options[i], options[j]] = [options[j], options[i]];
+          }
         }
 
         setSelectedOptionIndex(null);
