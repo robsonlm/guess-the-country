@@ -13,7 +13,7 @@ import {
   LogIn,
   Lock,
 } from 'lucide-react';
-import { GameMode, ContinentFilter, TimerMode, UserSettings, GameScore, Achievement } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode, UserSettings, GameScore, Achievement, GameEdition, USRegionFilter } from '../types/game';
 import { getFilteredLeaderboard, formatTimeElapsed } from '../services/leaderboard';
 import { sanitizePlayerName } from '../utils/sanitize';
 import { APP_VERSION } from '../utils/version';
@@ -27,12 +27,26 @@ interface MainPageViewProps {
   isAdmin?: boolean;
   isLoggedIn?: boolean;
   onOpenAuth?: () => void;
-  onStartGame: (name: string, config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }) => void;
+  onStartGame: (
+    name: string,
+    config?: {
+      edition?: GameEdition;
+      mode?: GameMode;
+      continent?: ContinentFilter;
+      usRegion?: USRegionFilter;
+      timer?: TimerMode;
+    }
+  ) => void;
   onOpenLeaderboard: () => void;
   onOpenAchievements: () => void;
   onOpenSettings?: () => void;
   onEnableAdmin: () => void;
 }
+
+const EDITION_OPTIONS: { id: GameEdition; label: string; icon: string; desc: string }[] = [
+  { id: 'world', label: 'World Countries', icon: '🌐', desc: '197 Sovereign nations and official UN country flags' },
+  { id: 'us-states', label: 'US State Flags', icon: '🇺🇸', desc: 'All 50 US States + DC authentic state flags & capitals' },
+];
 
 const GAME_MODES: { id: GameMode; label: string; icon: string; desc: string }[] = [
   { id: 'globe', label: '3D Globe', icon: '🌍', desc: 'Pinpoint and conquer highlighted territories on interactive 3D Earth' },
@@ -47,6 +61,14 @@ const CONTINENT_OPTIONS: { id: ContinentFilter; label: string; icon: string }[] 
   { id: 'Asia', label: 'Asia', icon: '🌏' },
   { id: 'Europe', label: 'Europe', icon: '🌍' },
   { id: 'Oceania', label: 'Oceania', icon: '🌏' },
+];
+
+const US_REGION_OPTIONS: { id: USRegionFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All 50 States', icon: '🇺🇸' },
+  { id: 'Northeast', label: 'Northeast', icon: '🌲' },
+  { id: 'Midwest', label: 'Midwest', icon: '🌾' },
+  { id: 'South', label: 'South', icon: '☀️' },
+  { id: 'West', label: 'West', icon: '🏔️' },
 ];
 
 const TIMER_OPTIONS: { id: TimerMode; label: string; icon: string; desc: string }[] = [
@@ -69,8 +91,10 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
   onEnableAdmin,
 }) => {
   const [name, setName] = useState(initialPlayerName);
+  const [selectedEdition, setSelectedEdition] = useState<GameEdition>(settings.edition || 'world');
   const [selectedMode, setSelectedMode] = useState<GameMode>(settings.gameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(settings.continentFilter);
+  const [selectedUsRegion, setSelectedUsRegion] = useState<USRegionFilter>(settings.usRegionFilter || 'all');
   const [selectedTimer, setSelectedTimer] = useState<TimerMode>(settings.timerMode);
 
   useEffect(() => {
@@ -96,8 +120,10 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
       return;
     }
     onStartGame(sanitizePlayerName(name || initialPlayerName), {
+      edition: selectedEdition,
       mode: selectedMode,
       continent: selectedContinent,
+      usRegion: selectedUsRegion,
       timer: selectedTimer,
     });
   };
@@ -236,6 +262,27 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
           </button>
         </div>
 
+        {/* Game Edition Selector */}
+        <div className="main-config-row">
+          <span className="main-config-label">
+            <Globe2 size={13} /> Edition:
+          </span>
+          <div className="main-mode-pills">
+            {EDITION_OPTIONS.map((ed) => (
+              <button
+                key={ed.id}
+                type="button"
+                className={`main-mode-pill ${selectedEdition === ed.id ? 'active' : ''}`}
+                onClick={() => setSelectedEdition(ed.id)}
+                title={ed.desc}
+              >
+                <span>{ed.icon}</span>
+                <span className="main-pill-name">{ed.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Game Mode Selector */}
         <div className="main-config-row">
           <span className="main-config-label">
@@ -257,23 +304,35 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
           </div>
         </div>
 
-        {/* Scope / Continent Selector */}
+        {/* Scope / Territory Selector */}
         <div className="main-config-row">
           <span className="main-config-label">
             <Compass size={13} /> Territory:
           </span>
           <div className="main-continent-pills">
-            {CONTINENT_OPTIONS.map((cont) => (
-              <button
-                key={cont.id}
-                type="button"
-                className={`main-continent-pill ${selectedContinent === cont.id ? 'active' : ''}`}
-                onClick={() => handleContinentChange(cont.id)}
-              >
-                <span>{cont.icon}</span>
-                <span>{cont.label}</span>
-              </button>
-            ))}
+            {selectedEdition === 'us-states'
+              ? US_REGION_OPTIONS.map((reg) => (
+                  <button
+                    key={reg.id}
+                    type="button"
+                    className={`main-continent-pill ${selectedUsRegion === reg.id ? 'active' : ''}`}
+                    onClick={() => setSelectedUsRegion(reg.id)}
+                  >
+                    <span>{reg.icon}</span>
+                    <span>{reg.label}</span>
+                  </button>
+                ))
+              : CONTINENT_OPTIONS.map((cont) => (
+                  <button
+                    key={cont.id}
+                    type="button"
+                    className={`main-continent-pill ${selectedContinent === cont.id ? 'active' : ''}`}
+                    onClick={() => handleContinentChange(cont.id)}
+                  >
+                    <span>{cont.icon}</span>
+                    <span>{cont.label}</span>
+                  </button>
+                ))}
           </div>
         </div>
 

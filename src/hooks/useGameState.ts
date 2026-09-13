@@ -9,6 +9,8 @@ import {
   ChoiceOption,
   GameMode,
   ContinentFilter,
+  USRegionFilter,
+  GameEdition,
   TimerMode,
   LifelineState,
   Achievement,
@@ -46,10 +48,10 @@ const INITIAL_LIFELINES: LifelineState = {
 
 export function useGameState(isExternalModalOpen: boolean = false, isAdmin: boolean = false) {
   const [settings, setSettingsState] = useState<UserSettings>(loadSettings);
-  const [score, setScore] = useState<GameScore>(loadScore);
+  const [score, setScore] = useState<GameScore>(() => loadScore(loadSettings().edition));
   const [countries, setCountries] = useState<Country[]>([]);
-  const [solvedAlphas, setSolvedAlphas] = useState<string[]>(loadSolvedCountryAlphas);
-  const [globeMistakes, setGlobeMistakes] = useState<number>(loadGlobeMistakes);
+  const [solvedAlphas, setSolvedAlphas] = useState<string[]>(() => loadSolvedCountryAlphas(loadSettings().edition));
+  const [globeMistakes, setGlobeMistakes] = useState<number>(() => loadGlobeMistakes(loadSettings().edition));
   const [achievements, setAchievements] = useState<Achievement[]>(loadAchievements);
   const [currentRound, setCurrentRound] = useState<Round | null>(null);
   const [lastAnswer, setLastAnswer] = useState<LastAnswer | null>(null);
@@ -188,9 +190,13 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     ) => {
       if (!countryList || countryList.length === 0) return;
 
-      // Filter by continent if active
+      // Filter by continent or US region if active
       let pool = countryList;
-      if (currentSettings.continentFilter !== 'all') {
+      if (currentSettings.edition === 'us-states') {
+        if (currentSettings.usRegionFilter && currentSettings.usRegionFilter !== 'all') {
+          pool = countryList.filter((c) => c.region === currentSettings.usRegionFilter);
+        }
+      } else if (currentSettings.continentFilter !== 'all') {
         pool = countryList.filter((c) => c.region === currentSettings.continentFilter);
       }
       if (pool.length === 0) pool = countryList;
@@ -383,12 +389,14 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       return;
     }
     playLifeline();
+    const isState = settingsRef.current.edition === 'us-states';
     const cap = currentRound.targetCountry.capital || 'Capital not recorded';
+    const cluePrefix = isState ? '🏛️ State Capital Clue' : '🏛️ Capital Clue';
     setLifelineState((prev) => ({
       ...prev,
       capitalCredits: Math.max(0, prev.capitalCredits - 1),
       capitalUsedOnCurrentRound: true,
-      activeHintText: `🏛️ Capital Clue: The capital is "${cap}"`,
+      activeHintText: `${cluePrefix}: The capital is "${cap}"`,
     }));
   }, [lifelineState.capitalCredits, lifelineState.capitalUsedOnCurrentRound, currentRound, isResolving, isPaused, isModalActive, playLifeline]);
 
@@ -439,16 +447,103 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     playLifeline,
   ]);
 
+  // Load countries/states once on mount or when switching edition
+  const initCountries = useCallback(async (forcedEdition?: GameEdition, updatedSettings?: UserSettings) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const activeSettings = updatedSettings || settingsRef.current;
+      const edition = forcedEdition || activeSettings.edition || 'world';
+      const res = await loadCountries(edition);
+      setCountries(res.countries);
+      countriesRef.current = res.countries;
+      setDataSource(res.source);
+
+      // Restore edition-specific progress
+      const currentSolved = loadSolvedCountryAlphas(edition);
+      setSolvedAlphas(currentSolved);
+      solvedAlphasRef.current = currentSolved;
+
+      const restoredScore = loadScore(edition);
+      setScore(restoredScore);
+      scoreRef.current = restoredScore;
+
+      const restoredMistakes = loadGlobeMistakes(edition);
+      setGlobeMistakes(restoredMistakes);
+      globeMistakesRef.current = restoredMistakes;
+
+      let pool = res.countries;
+      if (edition === 'us-states') {
+        if (activeSettings.usRegionFilter && activeSettings.usRegionFilter !== 'all') {
+          pool = res.countries.filter((c) => c.region === activeSettings.usRegionFilter);
+        }
+      } else if (activeSettings.continentFilter !== 'all') {
+        pool = res.countries.filter((c) => c.region === activeSettings.continentFilter);
+      }
+      const unsolved = pool.filter((c) => !currentSolved.includes(c.alpha2));
+
+      if (currentSolved.length > 0 && unsolved.length === 0) {
+        // Clear cached progress so the game starts a clean new expedition
+        clearGameProgress(edition);
+        setSolvedAlphas([]);
+        saveSolvedCountryAlphas([], edition);
+        setGlobeMistakes(0);
+        saveGlobeMistakes(0, edition);
+        const emptyScore: GameScore = { right: 0, wrong: 0, total: 0, currentStreak: 0, bestStreak: 0 };
+        setScore(emptyScore);
+        saveScore(emptyScore, edition);
+        setIsGameComplete(false);
+        setGameElapsedSeconds(0);
+        generateRound(res.countries, activeSettings, 0, []);
+      } else {
+        generateRound(
+          res.countries,
+          activeSettings,
+          restoredScore.currentStreak,
+          currentSolved
+        );
+      }
+
+      // If user refreshed directly on #play, ensure preloader syncs before starting timer
+      if (getCurrentRoute() === 'play') {
+        setIsPreloading(true);
+        setPreloadProgress(15);
+        setPreloadStage('Synchronizing Geographical Telemetry...');
+        preloadAllGameResources(
+          currentRoundRef.current,
+          activeSettings.gameMode,
+          (p) => {
+            setPreloadProgress(p.percent);
+            setPreloadStage(p.stage);
+          },
+          { unsolvedPool: unsolved, countryList: res.countries }
+        )
+          .catch(() => {})
+          .finally(() => {
+            setIsPreloading(false);
+            if (activeSettings.timerMode === 'timed') {
+              setTimeLeft(10);
+            }
+          });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load local territory data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [generateRound]);
+
   // Reset Score & Mastery
   const resetScore = useCallback((promptNewName: boolean = false) => {
-    clearGameProgress();
+    const currentEdition = settingsRef.current.edition || 'world';
+    clearGameProgress(currentEdition);
     const emptyScore: GameScore = { right: 0, wrong: 0, total: 0, currentStreak: 0, bestStreak: 0 };
     setScore(emptyScore);
-    saveScore(emptyScore);
+    saveScore(emptyScore, currentEdition);
     setSolvedAlphas([]);
-    saveSolvedCountryAlphas([]);
+    saveSolvedCountryAlphas([], currentEdition);
     setGlobeMistakes(0);
-    saveGlobeMistakes(0);
+    saveGlobeMistakes(0, currentEdition);
     setLastAnswer(null);
     setLevelUpNotice(null);
     setLifelineState(INITIAL_LIFELINES);
@@ -470,7 +565,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     }
   }, [generateRound]);
 
-  // Update Settings: restarts game from 0 if game mode / timer / continent changed
+  // Update Settings: restarts game from 0 if game mode / timer / region changed
   const updateSettings = useCallback(
     (newSettings: Partial<UserSettings>) => {
       setSettingsState((prev) => {
@@ -482,20 +577,30 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
           document.documentElement.setAttribute('data-theme', updated.theme);
         }
 
+        const editionChanged = newSettings.edition !== undefined && newSettings.edition !== prev.edition;
+
+        if (editionChanged) {
+          initCountries(newSettings.edition, updated);
+          return updated;
+        }
+
         const gameTypeChanged =
           (newSettings.gameMode !== undefined && newSettings.gameMode !== prev.gameMode) ||
           (newSettings.timerMode !== undefined && newSettings.timerMode !== prev.timerMode) ||
-          (newSettings.continentFilter !== undefined && newSettings.continentFilter !== prev.continentFilter);
+          (newSettings.continentFilter !== undefined && newSettings.continentFilter !== prev.continentFilter) ||
+          (newSettings.usRegionFilter !== undefined && newSettings.usRegionFilter !== prev.usRegionFilter);
+
+        const currentEdition = updated.edition || 'world';
 
         if (gameTypeChanged) {
           // Restart game from 0
           const emptyScore: GameScore = { right: 0, wrong: 0, total: 0, currentStreak: 0, bestStreak: 0 };
           setScore(emptyScore);
-          saveScore(emptyScore);
+          saveScore(emptyScore, currentEdition);
           setSolvedAlphas([]);
-          saveSolvedCountryAlphas([]);
+          saveSolvedCountryAlphas([], currentEdition);
           setGlobeMistakes(0);
-          saveGlobeMistakes(0);
+          saveGlobeMistakes(0, currentEdition);
           setLastAnswer(null);
           if (isGameStartedRef.current) {
             setLevelUpNotice('🔄 Game restarted from 0 for the selected settings.');
@@ -528,7 +633,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         return updated;
       });
     },
-    [generateRound]
+    [generateRound, initCountries]
   );
 
   // Resume game from paused state
@@ -552,75 +657,6 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', settings.theme);
   }, [settings.theme]);
-
-  // Load countries once on mount
-  const initCountries = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await loadCountries();
-      setCountries(res.countries);
-      setDataSource(res.source);
-
-      // Check if previous session was already completed (e.g. user refreshed after victory)
-      const currentSolved = solvedAlphasRef.current;
-      const continent = settingsRef.current.continentFilter;
-      const pool =
-        continent === 'all'
-          ? res.countries
-          : res.countries.filter((c) => c.region === continent);
-      const unsolved = pool.filter((c) => !currentSolved.includes(c.alpha2));
-
-      if (currentSolved.length > 0 && unsolved.length === 0) {
-        // Clear cached progress so the game starts a clean new expedition
-        clearGameProgress();
-        setSolvedAlphas([]);
-        saveSolvedCountryAlphas([]);
-        setGlobeMistakes(0);
-        saveGlobeMistakes(0);
-        const emptyScore: GameScore = { right: 0, wrong: 0, total: 0, currentStreak: 0, bestStreak: 0 };
-        setScore(emptyScore);
-        saveScore(emptyScore);
-        setIsGameComplete(false);
-        setGameElapsedSeconds(0);
-        generateRound(res.countries, settingsRef.current, 0, []);
-      } else {
-        generateRound(
-          res.countries,
-          settingsRef.current,
-          scoreRef.current.currentStreak,
-          solvedAlphasRef.current
-        );
-      }
-
-      // If user refreshed directly on #play, ensure preloader syncs before starting timer
-      if (getCurrentRoute() === 'play') {
-        setIsPreloading(true);
-        setPreloadProgress(15);
-        setPreloadStage('Synchronizing Geographical Telemetry...');
-        preloadAllGameResources(
-          currentRoundRef.current,
-          settingsRef.current.gameMode,
-          (p) => {
-            setPreloadProgress(p.percent);
-            setPreloadStage(p.stage);
-          },
-          { unsolvedPool: unsolved, countryList: res.countries }
-        )
-          .catch(() => {})
-          .finally(() => {
-            setIsPreloading(false);
-            if (settingsRef.current.timerMode === 'timed') {
-              setTimeLeft(10);
-            }
-          });
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load local country data');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [generateRound]);
 
   const reSyncData = useCallback(async () => {
     setIsLoading(true);
@@ -674,18 +710,19 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       if (isCorrect) playCorrect();
       else playWrong();
 
+      const currentEdition = settingsRef.current.edition || 'world';
       const prevSolved = solvedAlphasRef.current;
       let nextSolved = prevSolved;
       if (isCorrect && !prevSolved.includes(targetAlpha)) {
         nextSolved = [...prevSolved, targetAlpha];
         setSolvedAlphas(nextSolved);
-        saveSolvedCountryAlphas(nextSolved);
+        saveSolvedCountryAlphas(nextSolved, currentEdition);
       }
 
       if (!isCorrect) {
         const nextMistakes = globeMistakesRef.current + 1;
         setGlobeMistakes(nextMistakes);
-        saveGlobeMistakes(nextMistakes);
+        saveGlobeMistakes(nextMistakes, currentEdition);
       }
 
       const prevScore = scoreRef.current;
@@ -704,7 +741,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       };
 
       setScore(newScore);
-      saveScore(newScore);
+      saveScore(newScore, currentEdition);
 
       // Check achievements
       const { updatedList, newlyUnlocked } = checkNewAchievements(
@@ -804,9 +841,10 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     const nextWrong = prevScore.wrong + 1;
     const nextTotal = prevScore.total + 1;
 
+    const currentEdition = settingsRef.current.edition || 'world';
     const nextMistakes = globeMistakesRef.current + 1;
     setGlobeMistakes(nextMistakes);
-    saveGlobeMistakes(nextMistakes);
+    saveGlobeMistakes(nextMistakes, currentEdition);
 
     const newScore: GameScore = {
       right: prevScore.right,
@@ -817,7 +855,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     };
 
     setScore(newScore);
-    saveScore(newScore);
+    saveScore(newScore, currentEdition);
 
     setLastAnswer({
       country: currentRound.targetCountry,
@@ -893,6 +931,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       });
 
       const isAllCorrect = wrongCount === 0;
+      const currentEdition = settingsRef.current.edition || 'world';
 
       if (isAllCorrect) {
         setIsResolving(true);
@@ -903,7 +942,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         const prevSolved = solvedAlphasRef.current;
         const nextSolved = Array.from(new Set([...prevSolved, ...targets.map((t) => t.alpha2)]));
         setSolvedAlphas(nextSolved);
-        saveSolvedCountryAlphas(nextSolved);
+        saveSolvedCountryAlphas(nextSolved, currentEdition);
 
         const prevScore = scoreRef.current;
         const addedCount = targets.length;
@@ -916,7 +955,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
           bestStreak: Math.max(prevScore.bestStreak, nextStreak),
         };
         setScore(newScore);
-        saveScore(newScore);
+        saveScore(newScore, currentEdition);
 
         // Check achievements
         const { updatedList, newlyUnlocked } = checkNewAchievements(
@@ -941,7 +980,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         playWrong();
         const nextMistakes = globeMistakesRef.current + wrongCount;
         setGlobeMistakes(nextMistakes);
-        saveGlobeMistakes(nextMistakes);
+        saveGlobeMistakes(nextMistakes, currentEdition);
 
         const prevScore = scoreRef.current;
         const newScore: GameScore = {
@@ -952,7 +991,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
           bestStreak: prevScore.bestStreak,
         };
         setScore(newScore);
-        saveScore(newScore);
+        saveScore(newScore, currentEdition);
 
         return { success: false, results };
       }
@@ -990,7 +1029,13 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
   // Start Game and Player Setup callbacks
   const startGame = useCallback((
     playerName?: string,
-    config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }
+    config?: {
+      edition?: GameEdition;
+      mode?: GameMode;
+      continent?: ContinentFilter;
+      usRegion?: USRegionFilter;
+      timer?: TimerMode;
+    }
   ) => {
     if (playerName && playerName.trim()) {
       const trimmed = playerName.trim();
@@ -1000,8 +1045,10 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     }
     if (config) {
       updateSettings({
+        ...(config.edition ? { edition: config.edition } : {}),
         ...(config.mode ? { gameMode: config.mode } : {}),
         ...(config.continent ? { continentFilter: config.continent } : {}),
+        ...(config.usRegion ? { usRegionFilter: config.usRegion } : {}),
         ...(config.timer ? { timerMode: config.timer } : {}),
       });
     }
@@ -1021,10 +1068,20 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     }
 
     const effectiveMode = config?.mode || settingsRef.current.gameMode;
+    const effectiveEdition = config?.edition || settingsRef.current.edition || 'world';
     const effectiveContinent = config?.continent || settingsRef.current.continentFilter;
-    const pool = effectiveContinent !== 'all'
-      ? countriesRef.current.filter((c) => c.region === effectiveContinent)
-      : countriesRef.current;
+    const effectiveUsRegion = config?.usRegion || settingsRef.current.usRegionFilter || 'all';
+
+    let pool = countriesRef.current;
+    if (effectiveEdition === 'us-states') {
+      if (effectiveUsRegion !== 'all') {
+        pool = countriesRef.current.filter((c) => c.region === effectiveUsRegion);
+      }
+    } else if (effectiveContinent !== 'all') {
+      pool = countriesRef.current.filter((c) => c.region === effectiveContinent);
+    }
+    if (pool.length === 0) pool = countriesRef.current;
+
     const solvedSet = new Set(solvedAlphasRef.current);
     const unsolvedPool = pool.filter((c) => !solvedSet.has(c.alpha2));
 
@@ -1091,7 +1148,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     timeLeft,
     gameElapsedSeconds,
     maxTime: 10,
-    localInfo: getLocalDataInfo(),
+    localInfo: getLocalDataInfo(settings.edition),
     isGameStarted,
     isStartModalOpen,
     currentPlayerName,

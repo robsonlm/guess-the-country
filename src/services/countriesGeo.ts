@@ -1,4 +1,4 @@
-import { Country } from '../types/game';
+import { Country, GameEdition } from '../types/game';
 
 export interface GeoFeature {
   type: string;
@@ -13,6 +13,8 @@ export interface GeoFeature {
     ADM0_A3?: string;
     CONTINENT?: string;
     SUBREGION?: string;
+    alpha2?: string;
+    code?: string;
     [key: string]: any;
   };
   geometry: {
@@ -24,7 +26,62 @@ export interface GeoFeature {
 }
 
 let cachedFeatures: GeoFeature[] | null = null;
+let cachedStateFeatures: GeoFeature[] | null = null;
 const alpha2ToFeatureMap = new Map<string, GeoFeature>();
+
+export const KNOWN_STATE_CENTROIDS: Record<string, { lat: number; lng: number }> = {
+  'US-AL': { lat: 32.8067, lng: -86.7911 },
+  'US-AK': { lat: 61.3707, lng: -152.4044 },
+  'US-AZ': { lat: 33.7298, lng: -111.4312 },
+  'US-AR': { lat: 34.9697, lng: -92.3731 },
+  'US-CA': { lat: 36.1162, lng: -119.6816 },
+  'US-CO': { lat: 39.0598, lng: -105.3111 },
+  'US-CT': { lat: 41.5978, lng: -72.7554 },
+  'US-DE': { lat: 39.3185, lng: -75.5071 },
+  'US-FL': { lat: 27.7663, lng: -81.6868 },
+  'US-GA': { lat: 33.0406, lng: -83.6431 },
+  'US-HI': { lat: 21.0943, lng: -157.4983 },
+  'US-ID': { lat: 44.2405, lng: -114.4788 },
+  'US-IL': { lat: 40.3495, lng: -88.9861 },
+  'US-IN': { lat: 39.8494, lng: -86.2583 },
+  'US-IA': { lat: 42.0115, lng: -93.2105 },
+  'US-KS': { lat: 38.5266, lng: -96.7265 },
+  'US-KY': { lat: 37.6681, lng: -84.6701 },
+  'US-LA': { lat: 31.1695, lng: -91.8678 },
+  'US-ME': { lat: 44.6939, lng: -69.3819 },
+  'US-MD': { lat: 39.0639, lng: -76.8021 },
+  'US-MA': { lat: 42.2302, lng: -71.5301 },
+  'US-MI': { lat: 43.3266, lng: -84.5361 },
+  'US-MN': { lat: 45.6945, lng: -93.9002 },
+  'US-MS': { lat: 32.7416, lng: -89.6787 },
+  'US-MO': { lat: 38.4561, lng: -92.2884 },
+  'US-MT': { lat: 46.9219, lng: -110.4544 },
+  'US-NE': { lat: 41.1254, lng: -98.2681 },
+  'US-NV': { lat: 38.3135, lng: -117.0554 },
+  'US-NH': { lat: 43.4525, lng: -71.5639 },
+  'US-NJ': { lat: 40.2989, lng: -74.5210 },
+  'US-NM': { lat: 34.8405, lng: -106.2485 },
+  'US-NY': { lat: 42.1657, lng: -74.9481 },
+  'US-NC': { lat: 35.6301, lng: -79.8064 },
+  'US-ND': { lat: 47.5289, lng: -99.7840 },
+  'US-OH': { lat: 40.3888, lng: -82.7649 },
+  'US-OK': { lat: 35.5653, lng: -96.9289 },
+  'US-OR': { lat: 44.5720, lng: -122.0709 },
+  'US-PA': { lat: 40.5908, lng: -77.2098 },
+  'US-RI': { lat: 41.6809, lng: -71.5118 },
+  'US-SC': { lat: 33.8569, lng: -80.9450 },
+  'US-SD': { lat: 44.2998, lng: -99.4388 },
+  'US-TN': { lat: 35.7478, lng: -86.6923 },
+  'US-TX': { lat: 31.0545, lng: -97.5635 },
+  'US-UT': { lat: 40.1500, lng: -111.8624 },
+  'US-VT': { lat: 44.0459, lng: -72.7107 },
+  'US-VA': { lat: 37.7693, lng: -78.1700 },
+  'US-WA': { lat: 47.4009, lng: -121.4905 },
+  'US-WV': { lat: 38.4912, lng: -80.9545 },
+  'US-WI': { lat: 44.2685, lng: -89.6165 },
+  'US-WY': { lat: 42.7560, lng: -107.3025 },
+  'US-DC': { lat: 38.9072, lng: -77.0369 },
+};
 
 // Special case mappings for Natural Earth 110m codes
 const SPECIAL_CODE_MAP: Record<string, string> = {
@@ -290,6 +347,13 @@ function computePolygonCentroid(geometry: any): { lat: number; lng: number } {
 }
 
 export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
+  if (props.alpha2) {
+    return props.alpha2.toUpperCase();
+  }
+  if (props.code && props.code.length === 2) {
+    return `US-${props.code.toUpperCase()}`;
+  }
+
   const name = props.NAME || props.ADMIN || '';
   if (SPECIAL_CODE_MAP[name]) {
     return SPECIAL_CODE_MAP[name];
@@ -319,7 +383,42 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
   return '';
 }
 
-export async function loadGeoFeatures(): Promise<GeoFeature[]> {
+export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<GeoFeature[]> {
+  if (edition === 'us-states') {
+    if (cachedStateFeatures && cachedStateFeatures.length > 0) {
+      return cachedStateFeatures;
+    }
+
+    try {
+      const base = import.meta.env.BASE_URL || '/';
+      const cleanBase = base.endsWith('/') ? base : `${base}/`;
+      const res = await fetch(`${cleanBase}us_states.geojson`);
+      if (res.ok) {
+        const geojson = await res.json();
+        if (geojson && Array.isArray(geojson.features)) {
+          const stateFeatures: GeoFeature[] = geojson.features.map((f: any) => {
+            const alpha2 = resolveFeatureAlpha2(f.properties) || f.properties?.alpha2 || (f.properties?.code ? `US-${f.properties.code}` : '');
+            const centroid = KNOWN_STATE_CENTROIDS[alpha2] || computePolygonCentroid(f.geometry);
+            const feature: GeoFeature = {
+              ...f,
+              alpha2,
+              centroid,
+            };
+            if (alpha2) {
+              alpha2ToFeatureMap.set(alpha2, feature);
+            }
+            return feature;
+          });
+          cachedStateFeatures = stateFeatures;
+          return stateFeatures;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load us_states.geojson:', err);
+    }
+    return [];
+  }
+
   if (cachedFeatures && cachedFeatures.length > 0) {
     return cachedFeatures;
   }
@@ -427,12 +526,18 @@ export async function loadGeoFeatures(): Promise<GeoFeature[]> {
 
 export function getCountryCoordinates(alpha2: string): { lat: number; lng: number } {
   const upper = alpha2.toUpperCase();
+  if (upper.startsWith('US-') && KNOWN_STATE_CENTROIDS[upper]) {
+    return KNOWN_STATE_CENTROIDS[upper];
+  }
   if (KNOWN_CENTROIDS[upper]) {
     return KNOWN_CENTROIDS[upper];
   }
   const feature = alpha2ToFeatureMap.get(upper);
   if (feature && feature.centroid) {
     return feature.centroid;
+  }
+  if (upper.startsWith('US-')) {
+    return { lat: 39.8283, lng: -98.5795 };
   }
   return { lat: 20, lng: 0 };
 }

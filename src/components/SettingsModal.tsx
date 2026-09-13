@@ -7,8 +7,9 @@ import {
   Volume2,
   Palette,
   Check,
+  Globe,
 } from 'lucide-react';
-import { UserSettings, ThemeMode } from '../types/game';
+import { UserSettings, ThemeMode, GameEdition } from '../types/game';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onResetScore,
   onReSyncData,
 }) => {
+  const [edition, setEdition] = useState<GameEdition>(settings.edition || 'world');
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [theme, setTheme] = useState<ThemeMode>(settings.theme);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
@@ -43,6 +45,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setEdition(settings.edition || 'world');
       setSoundEnabled(settings.soundEnabled);
       setTheme(settings.theme);
       setShowConfirmReset(false);
@@ -65,6 +68,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSaveSettings({
+      edition,
       soundEnabled,
       theme,
     });
@@ -98,6 +102,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         <form className="modal-body" onSubmit={handleSubmit} style={{ maxHeight: '72vh', overflowY: 'auto' }}>
 
+          {/* Game Edition Selector */}
+          <div className="form-group">
+            <label className="form-label">
+              <Globe size={15} style={{ display: 'inline', marginRight: 5 }} />
+              Game Edition
+            </label>
+            <div className="theme-options-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+              <button
+                type="button"
+                className={`theme-chip ${edition === 'world' ? 'active' : ''}`}
+                onClick={() => setEdition('world')}
+              >
+                <span>🌐</span>
+                <span>World Countries</span>
+                {edition === 'world' && <Check size={14} className="theme-check" />}
+              </button>
+              <button
+                type="button"
+                className={`theme-chip ${edition === 'us-states' ? 'active' : ''}`}
+                onClick={() => setEdition('us-states')}
+              >
+                <span>🇺🇸</span>
+                <span>US State Flags</span>
+                {edition === 'us-states' && <Check size={14} className="theme-check" />}
+              </button>
+            </div>
+          </div>
 
           {/* Theme Selector */}
           <div className="form-group">
@@ -148,7 +179,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 Offline Database & Flags
               </span>
               <span className="toggle-desc" style={{ color: '#94a3b8' }}>
-                {localInfo.count} sovereign UN countries & flags stored locally (100% offline, 0 API calls)
+                {edition === 'us-states'
+                  ? `${localInfo.count} US State flags & territories stored locally (100% offline, 0 API calls)`
+                  : `${localInfo.count} sovereign UN countries & flags stored locally (100% offline, 0 API calls)`}
               </span>
             </div>
             <button

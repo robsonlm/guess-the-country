@@ -1,9 +1,11 @@
 export interface Country {
   name: string;
   alpha2: string;
+  code?: string;
   capital?: string;
   region: string;
   subregion?: string;
+  nickname?: string;
   mapUrl: string;
   flagUrl?: string;
   lowFlagUrl?: string;
@@ -17,17 +19,21 @@ export interface GameScore {
   bestStreak: number;
 }
 
+export type GameEdition = 'world' | 'us-states';
 export type GameMode = 'globe' | 'flag-to-name' | 'name-to-flag';
 export type TimerMode = 'timed' | 'relaxed'; // timed = 10s per flag, relaxed = untimed
 export type ThemeMode = 'deep-space' | 'cyberpunk' | 'vintage-atlas' | 'emerald-forest';
 export type ContinentFilter = 'all' | 'Africa' | 'Americas' | 'Asia' | 'Europe' | 'Oceania';
+export type USRegionFilter = 'all' | 'Northeast' | 'Midwest' | 'South' | 'West';
 
 export interface UserSettings {
   soundEnabled: boolean;
+  edition: GameEdition;
   gameMode: GameMode;
   timerMode: TimerMode;
   theme: ThemeMode;
   continentFilter: ContinentFilter;
+  usRegionFilter: USRegionFilter;
 }
 
 export interface ChoiceOption {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Award, ExternalLink, Search, Trophy, Globe, X } from 'lucide-react';
-import { Country, ContinentFilter } from '../types/game';
+import { Award, ExternalLink, Search, Trophy, Globe, X, MapPin } from 'lucide-react';
+import { Country, GameEdition } from '../types/game';
 import { ProgressiveFlag } from './ProgressiveFlag';
 
 interface MasteredFlagsTrayProps {
@@ -9,9 +9,10 @@ interface MasteredFlagsTrayProps {
   onOpenAchievements: () => void;
   unlockedAchievementsCount: number;
   totalAchievementsCount: number;
+  edition?: GameEdition;
 }
 
-const CONTINENT_TABS: { id: ContinentFilter; label: string }[] = [
+const CONTINENT_TABS: { id: string; label: string }[] = [
   { id: 'all', label: 'All Continents' },
   { id: 'Europe', label: 'Europe' },
   { id: 'Asia', label: 'Asia' },
@@ -20,33 +21,45 @@ const CONTINENT_TABS: { id: ContinentFilter; label: string }[] = [
   { id: 'Oceania', label: 'Oceania' },
 ];
 
+const US_REGION_TABS: { id: string; label: string }[] = [
+  { id: 'all', label: 'All 50 States' },
+  { id: 'Northeast', label: 'Northeast' },
+  { id: 'Midwest', label: 'Midwest' },
+  { id: 'South', label: 'South' },
+  { id: 'West', label: 'West' },
+];
+
 export const MasteredFlagsTray: React.FC<MasteredFlagsTrayProps> = ({
   solvedCountries,
   allCountries,
   onOpenAchievements,
   unlockedAchievementsCount,
   totalAchievementsCount,
+  edition = 'world',
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>('all');
+  const [selectedContinent, setSelectedContinent] = useState<string>('all');
 
-  const total = allCountries.length || 197;
+  const isUsStatesEdition = edition === 'us-states' || (allCountries.length > 0 && allCountries[0]?.alpha2?.startsWith('US-'));
+  const activeTabs = isUsStatesEdition ? US_REGION_TABS : CONTINENT_TABS;
+
+  const total = allCountries.length || (isUsStatesEdition ? 50 : 197);
   const count = solvedCountries.length;
   const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
 
-  // Filter by search & selected continent
+  // Filter by search & selected region
   const filtered = solvedCountries.filter((c) => {
     const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase().trim());
     const matchesContinent = selectedContinent === 'all' || c.region === selectedContinent;
     return matchesSearch && matchesContinent;
   });
 
-  // Calculate counts per continent
-  const getContinentStats = (region: string) => {
-    const continentTotal = allCountries.filter((c) => c.region === region).length;
-    const continentSolved = solvedCountries.filter((c) => c.region === region).length;
-    return { solved: continentSolved, total: continentTotal };
+  // Calculate counts per region
+  const getRegionStats = (region: string) => {
+    const regionTotal = allCountries.filter((c) => c.region === region).length;
+    const regionSolved = solvedCountries.filter((c) => c.region === region).length;
+    return { solved: regionSolved, total: regionTotal };
   };
 
   return (
@@ -124,13 +137,13 @@ export const MasteredFlagsTray: React.FC<MasteredFlagsTrayProps> = ({
             </div>
 
             <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
-              {/* Continent Filter Chips */}
+              {/* Region Filter Chips */}
               <div className="continent-chips-row" style={{ marginTop: '0.5rem', marginBottom: '0.75rem' }}>
-                {CONTINENT_TABS.map((tab) => {
+                {activeTabs.map((tab) => {
                   const isSelected = selectedContinent === tab.id;
                   let badge = '';
                   if (tab.id !== 'all') {
-                    const stats = getContinentStats(tab.id);
+                    const stats = getRegionStats(tab.id);
                     badge = ` (${stats.solved}/${stats.total})`;
                   }
                   return (
@@ -140,7 +153,7 @@ export const MasteredFlagsTray: React.FC<MasteredFlagsTrayProps> = ({
                       className={`continent-chip ${isSelected ? 'active' : ''}`}
                       onClick={() => setSelectedContinent(tab.id)}
                     >
-                      <Globe size={12} />
+                      {isUsStatesEdition ? <MapPin size={12} /> : <Globe size={12} />}
                       <span>
                         {tab.label}
                         {badge}
@@ -156,7 +169,7 @@ export const MasteredFlagsTray: React.FC<MasteredFlagsTrayProps> = ({
                   <Search size={14} style={{ color: 'var(--text-muted)' }} />
                   <input
                     type="text"
-                    placeholder="Search mastered countries…"
+                    placeholder={isUsStatesEdition ? "Search mastered states…" : "Search mastered countries…"}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="mastered-search-input"

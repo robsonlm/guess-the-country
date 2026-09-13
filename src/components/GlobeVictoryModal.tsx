@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   User,
 } from 'lucide-react';
-import { ContinentFilter, TimerMode } from '../types/game';
+import { ContinentFilter, TimerMode, GameEdition } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
@@ -27,6 +27,7 @@ interface GlobeVictoryModalProps {
   continentFilter?: ContinentFilter;
   timerMode?: TimerMode;
   playerName?: string;
+  edition?: GameEdition;
   onPlayAgain: () => void;
   onExplore: () => void;
   onOpenLeaderboard?: (entryId?: string) => void;
@@ -43,6 +44,7 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
   continentFilter = 'all',
   timerMode = 'timed',
   playerName: initialPlayerName,
+  edition = 'world',
   onPlayAgain,
   onExplore,
   onOpenLeaderboard,
@@ -52,29 +54,30 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
   const hasSubmittedRef = useRef(false);
   const playerName = initialPlayerName?.trim() || getLastPlayerName();
 
+  const isUsStatesEdition = edition === 'us-states';
   const totalGuesses = conqueredCount + mistakesCount;
   const accuracy = totalGuesses > 0 ? Math.round((conqueredCount / totalGuesses) * 100) : 100;
 
   // Rank Calculation
   let rank = 'C';
-  let rankTitle = 'World Pioneer';
+  let rankTitle = isUsStatesEdition ? 'State Pioneer' : 'World Pioneer';
   let rankColor = '#94a3b8';
 
   if (mistakesCount === 0) {
     rank = 'S+';
-    rankTitle = 'Flawless Master Cartographer';
+    rankTitle = isUsStatesEdition ? 'Flawless Master of the States' : 'Flawless Master Cartographer';
     rankColor = '#ffd166';
   } else if (mistakesCount <= 3) {
     rank = 'S';
-    rankTitle = 'Grand Explorer';
+    rankTitle = isUsStatesEdition ? 'Grand State Explorer' : 'Grand Explorer';
     rankColor = '#06d6a0';
   } else if (mistakesCount <= 8) {
     rank = 'A';
-    rankTitle = 'Veteran Navigator';
+    rankTitle = isUsStatesEdition ? 'Veteran Navigator' : 'Veteran Navigator';
     rankColor = '#48cae4';
   } else if (mistakesCount <= 15) {
     rank = 'B';
-    rankTitle = 'Skilled Voyager';
+    rankTitle = isUsStatesEdition ? 'Skilled Voyager' : 'Skilled Voyager';
     rankColor = '#818cf8';
   }
 
@@ -96,10 +99,10 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
     hasSubmittedRef.current = true;
 
     // Instantly clear browser cached game progress so refresh never restores completed state
-    clearGameProgress();
+    clearGameProgress(edition);
 
     const result = addLeaderboardEntry({
-      playerName: playerName.trim() || 'World Explorer',
+      playerName: playerName.trim() || (isUsStatesEdition ? 'US State Champion' : 'Globe Master'),
       gameMode: 'globe',
       continentFilter,
       timerMode,
@@ -108,25 +111,28 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
       mistakesCount,
       accuracy,
       timeElapsedSeconds,
-      bestStreak: Math.max(bestStreak, conqueredCount),
+      bestStreak,
     });
 
     setPlacementResult(result);
     if (onSubmitSuccess) {
       onSubmitSuccess();
     }
-  }, [isOpen, playerName, continentFilter, timerMode, totalCountries, conqueredCount, mistakesCount, accuracy, timeElapsedSeconds, bestStreak, onSubmitSuccess]);
+  }, [isOpen, playerName, continentFilter, timerMode, totalCountries, conqueredCount, mistakesCount, accuracy, timeElapsedSeconds, bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay fade-in" style={{ zIndex: 100 }} role="dialog" aria-modal="true">
+    <div className="modal-overlay fade-in" role="dialog" aria-modal="true" style={{ zIndex: 100 }}>
       <div
         className="modal-content victory-content"
         style={{
-          maxWidth: '540px',
           textAlign: 'center',
-          borderColor: 'rgba(42, 157, 143, 0.6)',
+          padding: '1.75rem 1.5rem',
+          maxWidth: '540px',
+          border: '1px solid rgba(42, 157, 143, 0.5)',
+          background: 'rgba(10, 18, 30, 0.95)',
+          backdropFilter: 'blur(16px)',
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(42, 157, 143, 0.3)',
           maxHeight: '92vh',
           overflowY: 'auto',
@@ -151,10 +157,12 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
         </div>
 
         <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.2rem' }}>
-          Entire Globe Conquered!
+          {isUsStatesEdition ? 'All 50 US States Conquered!' : 'Entire Globe Conquered!'}
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '1rem' }}>
-          You have successfully identified every territory across Planet Earth!
+          {isUsStatesEdition
+            ? 'You have successfully identified every US state flag across the nation!'
+            : 'You have successfully identified every territory across Planet Earth!'}
         </p>
 
         {/* Rank Showcase */}

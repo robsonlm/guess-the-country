@@ -18,7 +18,7 @@ import {
   Compass,
   Trophy,
 } from 'lucide-react';
-import { Country, ChoiceOption, LifelineState } from '../types/game';
+import { Country, ChoiceOption, LifelineState, GameEdition } from '../types/game';
 import {
   loadGeoFeatures,
   getCountryCoordinates,
@@ -26,11 +26,12 @@ import {
   resolveFeatureAlpha2,
   GeoFeature,
 } from '../services/countriesGeo';
-import { getEarthTextureUrls } from '../services/countriesApi';
+import { getEarthTextureUrls, getFlagUrl } from '../services/countriesApi';
 import { ProgressiveFlag } from './ProgressiveFlag';
 import '../styles/GlobeGame.css';
 
 interface GlobeGameViewProps {
+  edition?: GameEdition;
   targetCountry: Country;
   options: ChoiceOption[];
   onSelect: (index: number) => void;
@@ -58,6 +59,7 @@ interface GlobeGameViewProps {
 const EMPTY_TARGETS: Country[] = [];
 
 export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
+  edition,
   targetCountry,
   options,
   onSelect,
@@ -83,6 +85,12 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   const [geoFeatures, setGeoFeatures] = useState<GeoFeature[]>([]);
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const [isGlobeReady, setIsGlobeReady] = useState(false);
+
+  const isUsStatesEdition =
+    edition === 'us-states' ||
+    targetCountry?.alpha2?.startsWith('US-') ||
+    (allCountries.length > 0 && allCountries[0]?.alpha2?.startsWith('US-'));
+  const activeEdition: GameEdition = isUsStatesEdition ? 'us-states' : 'world';
 
   // Explore Mode state: selected country card & hover highlight
   const [selectedExploreCountry, setSelectedExploreCountry] = useState<Country | null>(null);
@@ -130,10 +138,10 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
   const totalAttempts = conqueredCount + mistakesCount;
   const accuracy = totalAttempts > 0 ? Math.round((conqueredCount / totalAttempts) * 100) : 100;
 
-  // 1. Load GeoJSON features on mount
+  // 1. Load GeoJSON features on mount or edition change
   useEffect(() => {
     let isMounted = true;
-    loadGeoFeatures().then((features) => {
+    loadGeoFeatures(activeEdition).then((features) => {
       if (isMounted) {
         setGeoFeatures(features);
       }
@@ -141,7 +149,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [activeEdition]);
 
   // 2. Initialize Globe instance
   useEffect(() => {
@@ -444,8 +452,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
             region: polygon.properties.CONTINENT || polygon.properties.REGION || 'World',
             subregion: polygon.properties.SUBREGION || '',
             mapUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(polygon.properties.NAME || '')}`,
-            flagUrl: `https://flagcdn.com/w320/${alpha.toLowerCase()}.png`,
-            lowFlagUrl: `https://flagcdn.com/w80/${alpha.toLowerCase()}.png`,
+            flagUrl: getFlagUrl(alpha, 'high'),
+            lowFlagUrl: getFlagUrl(alpha, 'low'),
           };
           setSelectedExploreCountry(fallback);
           focusTargetCountry(fallback, 900);
@@ -809,9 +817,15 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                 </div>
 
                 <div className="explore-meta-grid">
+                  {selectedExploreCountry.nickname && (
+                    <div className="explore-meta-item">
+                      <span className="meta-label">Nickname</span>
+                      <span className="meta-value">{selectedExploreCountry.nickname}</span>
+                    </div>
+                  )}
                   {selectedExploreCountry.capital && (
                     <div className="explore-meta-item">
-                      <span className="meta-label">Capital</span>
+                      <span className="meta-label">{isUsStatesEdition ? 'State Capital' : 'Capital'}</span>
                       <span className="meta-value">{selectedExploreCountry.capital}</span>
                     </div>
                   )}
@@ -831,7 +845,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                     type="button"
                     className="explore-action-btn"
                     onClick={() => focusTargetCountry(selectedExploreCountry, 800)}
-                    title="Center camera on this country"
+                    title="Center camera on this territory"
                   >
                     <Target size={13} /> Re-center
                   </button>
@@ -848,9 +862,9 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                         setSelectedExploreCountry(nextCountry);
                         focusTargetCountry(nextCountry, 900);
                       }}
-                      title="Explore next territory"
+                      title={isUsStatesEdition ? 'Explore next US state' : 'Explore next territory'}
                     >
-                      Next Territory →
+                      {isUsStatesEdition ? 'Next State →' : 'Next Territory →'}
                     </button>
                   )}
                 </div>
@@ -859,7 +873,11 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
           ) : (
             <div className="globe-explore-guide-pill fade-in">
               <Sparkles size={14} style={{ color: '#38bdf8' }} />
-              <span>Click any country on the 3D globe to view its flag and details</span>
+              <span>
+                {isUsStatesEdition
+                  ? 'Click any US State on the 3D globe to view its flag and details'
+                  : 'Click any country on the 3D globe to view its flag and details'}
+              </span>
             </div>
           )
         ) : (
@@ -876,6 +894,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                       Target #{activeTargetIndex + 1}
                     </span>
                   </>
+                ) : isUsStatesEdition ? (
+                  'Highlighted US State'
                 ) : (
                   'Highlighted Territory'
                 )}
@@ -900,7 +920,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       {!isExploreMode && !isFinalThree && (
         <div className="globe-clues-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
           <span className="globe-prompt-text" style={{ fontSize: '0.86rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Choose the correct flag for the highlighted territory:
+            Choose the correct flag for the highlighted {isUsStatesEdition ? 'US state' : 'territory'}:
           </span>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
@@ -938,7 +958,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                 <span>FINAL {finalThreeTargets.length} SHOWDOWN</span>
               </div>
               <p className="final-three-instruction">
-                Select a territory, then pick its flag below.
+                Select a {isUsStatesEdition ? 'state' : 'territory'}, then pick its flag below.
               </p>
             </div>
 

@@ -55,11 +55,35 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="brand-icon" aria-hidden="true">
           <Globe2 size={22} />
         </div>
-        <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <h1 className="brand-title">
-            <span className="brand-title-full">Guess the Country</span>
-            <span className="brand-title-compact">Guess Country</span>
+            <span className="brand-title-full">
+              {settings.edition === 'us-states' ? 'Guess the US State' : 'Guess the Country'}
+            </span>
+            <span className="brand-title-compact">
+              {settings.edition === 'us-states' ? 'US States' : 'Guess Country'}
+            </span>
           </h1>
+          {settings.edition === 'us-states' && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '0.70rem',
+                fontWeight: 800,
+                padding: '2px 7px',
+                borderRadius: '9999px',
+                background: 'rgba(239, 68, 68, 0.18)',
+                color: '#fca5a5',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
+              }}
+              title="Active Edition: US State Flags"
+            >
+              <span>🇺🇸</span>
+              <span>USA</span>
+            </div>
+          )}
         </div>
       </div>
 

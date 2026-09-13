@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { sanitizePlayerName } from '../utils/sanitize';
-import { GameMode, ContinentFilter, TimerMode } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode, GameEdition, USRegionFilter } from '../types/game';
 
 interface StartGameModalProps {
   isOpen: boolean;
@@ -24,14 +24,30 @@ interface StartGameModalProps {
   isAdmin: boolean;
   isLoggedIn?: boolean;
   onOpenAuth?: () => void;
+  edition?: GameEdition;
   gameMode: GameMode;
   continentFilter: ContinentFilter;
+  usRegionFilter?: USRegionFilter;
   timerMode: TimerMode;
-  onStart: (playerName: string, config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }) => void;
+  onStart: (
+    playerName: string,
+    config?: {
+      edition?: GameEdition;
+      mode?: GameMode;
+      continent?: ContinentFilter;
+      usRegion?: USRegionFilter;
+      timer?: TimerMode;
+    }
+  ) => void;
   onEnableAdmin?: () => void;
   onClose?: () => void;
   allowClose?: boolean;
 }
+
+const EDITION_OPTIONS: { id: GameEdition; label: string; icon: string }[] = [
+  { id: 'world', label: 'World Countries', icon: '🌐' },
+  { id: 'us-states', label: 'US State Flags', icon: '🇺🇸' },
+];
 
 const GAME_MODES: { id: GameMode; label: string; icon: string }[] = [
   { id: 'globe', label: '3D Globe', icon: '🌍' },
@@ -48,6 +64,14 @@ const CONTINENT_OPTIONS: { id: ContinentFilter; label: string; icon: string }[] 
   { id: 'Oceania', label: 'Oceania', icon: '🌏' },
 ];
 
+const US_REGION_OPTIONS: { id: USRegionFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All 50 States', icon: '🇺🇸' },
+  { id: 'Northeast', label: 'Northeast', icon: '🌲' },
+  { id: 'Midwest', label: 'Midwest', icon: '🌾' },
+  { id: 'South', label: 'South', icon: '☀️' },
+  { id: 'West', label: 'West', icon: '🏔️' },
+];
+
 const TIMER_OPTIONS: { id: TimerMode; label: string; icon: string }[] = [
   { id: 'timed', label: '10s Timed', icon: '⏱️' },
   { id: 'relaxed', label: 'Relaxed', icon: '🧘' },
@@ -59,8 +83,10 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   isAdmin,
   isLoggedIn = false,
   onOpenAuth,
+  edition = 'world',
   gameMode,
   continentFilter,
+  usRegionFilter = 'all',
   timerMode,
   onStart,
   onEnableAdmin,
@@ -69,8 +95,10 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
 }) => {
   const { isAdmin: hookIsAdmin, signInAsAdmin, signOut: signOutAdmin } = useAdminAuth();
   const [playerName, setPlayerName] = useState(initialPlayerName);
+  const [selectedEdition, setSelectedEdition] = useState<GameEdition>(edition);
   const [selectedMode, setSelectedMode] = useState<GameMode>(gameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(continentFilter);
+  const [selectedUsRegion, setSelectedUsRegion] = useState<USRegionFilter>(usRegionFilter);
   const [selectedTimer, setSelectedTimer] = useState<TimerMode>(timerMode);
 
   const [isAdminModeRequested, setIsAdminModeRequested] = useState(false);
@@ -90,8 +118,10 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setPlayerName(initialPlayerName);
+      setSelectedEdition(edition);
       setSelectedMode(gameMode);
       setSelectedContinent(continentFilter);
+      setSelectedUsRegion(usRegionFilter);
       setSelectedTimer(timerMode);
       setIsAdminModeRequested(false);
       setAdminEmail('');
@@ -102,7 +132,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
         inputRef.current?.select();
       }, 100);
     }
-  }, [isOpen, initialPlayerName, gameMode, continentFilter, timerMode]);
+  }, [isOpen, initialPlayerName, edition, gameMode, continentFilter, usRegionFilter, timerMode]);
 
   if (!isOpen) return null;
 
@@ -116,8 +146,10 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
     if (rawTrimmed.toUpperCase() === 'ADMINMODE') {
       if (isAdmin || hookIsAdmin) {
         onStart('Admin', {
+          edition: selectedEdition,
           mode: selectedMode,
           continent: selectedContinent,
+          usRegion: selectedUsRegion,
           timer: selectedTimer,
         });
         return;
@@ -126,8 +158,10 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
       return;
     }
     onStart(sanitizePlayerName(playerName), {
+      edition: selectedEdition,
       mode: selectedMode,
       continent: selectedContinent,
+      usRegion: selectedUsRegion,
       timer: selectedTimer,
     });
   };
@@ -235,6 +269,26 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
             </div>
 
             <div className="start-modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+              {/* Game Edition Selector */}
+              <div className="main-config-row">
+                <span className="main-config-label">
+                  <Globe size={13} /> Edition:
+                </span>
+                <div className="main-mode-pills">
+                  {EDITION_OPTIONS.map((ed) => (
+                    <button
+                      key={ed.id}
+                      type="button"
+                      className={`main-mode-pill ${selectedEdition === ed.id ? 'active' : ''}`}
+                      onClick={() => setSelectedEdition(ed.id)}
+                    >
+                      <span>{ed.icon}</span>
+                      <span>{ed.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Game Mode Selector */}
               <div className="main-config-row">
                 <span className="main-config-label">
@@ -255,23 +309,35 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                 </div>
               </div>
 
-              {/* Continent Selector */}
+              {/* Territory / Region Selector */}
               <div className="main-config-row">
                 <span className="main-config-label">
                   <Layers size={13} /> Region:
                 </span>
                 <div className="main-continent-pills">
-                  {CONTINENT_OPTIONS.map((cont) => (
-                    <button
-                      key={cont.id}
-                      type="button"
-                      className={`main-continent-pill ${selectedContinent === cont.id ? 'active' : ''}`}
-                      onClick={() => setSelectedContinent(cont.id)}
-                    >
-                      <span>{cont.icon}</span>
-                      <span>{cont.label}</span>
-                    </button>
-                  ))}
+                  {selectedEdition === 'us-states'
+                    ? US_REGION_OPTIONS.map((reg) => (
+                        <button
+                          key={reg.id}
+                          type="button"
+                          className={`main-continent-pill ${selectedUsRegion === reg.id ? 'active' : ''}`}
+                          onClick={() => setSelectedUsRegion(reg.id)}
+                        >
+                          <span>{reg.icon}</span>
+                          <span>{reg.label}</span>
+                        </button>
+                      ))
+                    : CONTINENT_OPTIONS.map((cont) => (
+                        <button
+                          key={cont.id}
+                          type="button"
+                          className={`main-continent-pill ${selectedContinent === cont.id ? 'active' : ''}`}
+                          onClick={() => setSelectedContinent(cont.id)}
+                        >
+                          <span>{cont.icon}</span>
+                          <span>{cont.label}</span>
+                        </button>
+                      ))}
                 </div>
               </div>
 

@@ -1,0 +1,818 @@
+[
+  {
+    "name": "Alabama",
+    "alpha2": "US-AL",
+    "code": "AL",
+    "capital": "Montgomery",
+    "region": "South",
+    "subregion": "East South Central",
+    "nickname": "The Yellowhammer State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Alabama%2C%20USA",
+    "flagUrl": "/flags/us-states/al.png",
+    "lowFlagUrl": "/flags/us-states/low/al.png",
+    "centroid": {
+      "lat": 32.8067,
+      "lng": -86.7911
+    }
+  },
+  {
+    "name": "Alaska",
+    "alpha2": "US-AK",
+    "code": "AK",
+    "capital": "Juneau",
+    "region": "West",
+    "subregion": "Pacific",
+    "nickname": "The Last Frontier",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Alaska%2C%20USA",
+    "flagUrl": "/flags/us-states/ak.png",
+    "lowFlagUrl": "/flags/us-states/low/ak.png",
+    "centroid": {
+      "lat": 61.3707,
+      "lng": -152.4044
+    }
+  },
+  {
+    "name": "Arizona",
+    "alpha2": "US-AZ",
+    "code": "AZ",
+    "capital": "Phoenix",
+    "region": "West",
+    "subregion": "Mountain",
+    "nickname": "The Grand Canyon State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Arizona%2C%20USA",
+    "flagUrl": "/flags/us-states/az.png",
+    "lowFlagUrl": "/flags/us-states/low/az.png",
+    "centroid": {
+      "lat": 33.7298,
+      "lng": -111.4312
+    }
+  },
+  {
+    "name": "Arkansas",
+    "alpha2": "US-AR",
+    "code": "AR",
+    "capital": "Little Rock",
+    "region": "South",
+    "subregion": "West South Central",
+    "nickname": "The Natural State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Arkansas%2C%20USA",
+    "flagUrl": "/flags/us-states/ar.png",
+    "lowFlagUrl": "/flags/us-states/low/ar.png",
+    "centroid": {
+      "lat": 34.9697,
+      "lng": -92.3731
+    }
+  },
+  {
+    "name": "California",
+    "alpha2": "US-CA",
+    "code": "CA",
+    "capital": "Sacramento",
+    "region": "West",
+    "subregion": "Pacific",
+    "nickname": "The Golden State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=California%2C%20USA",
+    "flagUrl": "/flags/us-states/ca.png",
+    "lowFlagUrl": "/flags/us-states/low/ca.png",
+    "centroid": {
+      "lat": 36.1162,
+      "lng": -119.6816
+    }
+  },
+  {
+    "name": "Colorado",
+    "alpha2": "US-CO",
+    "code": "CO",
+    "capital": "Denver",
+    "region": "West",
+    "subregion": "Mountain",
+    "nickname": "The Centennial State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Colorado%2C%20USA",
+    "flagUrl": "/flags/us-states/co.png",
+    "lowFlagUrl": "/flags/us-states/low/co.png",
+    "centroid": {
+      "lat": 39.0598,
+      "lng": -105.3111
+    }
+  },
+  {
+    "name": "Connecticut",
+    "alpha2": "US-CT",
+    "code": "CT",
+    "capital": "Hartford",
+    "region": "Northeast",
+    "subregion": "New England",
+    "nickname": "The Constitution State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Connecticut%2C%20USA",
+    "flagUrl": "/flags/us-states/ct.png",
+    "lowFlagUrl": "/flags/us-states/low/ct.png",
+    "centroid": {
+      "lat": 41.5978,
+      "lng": -72.7554
+    }
+  },
+  {
+    "name": "Delaware",
+    "alpha2": "US-DE",
+    "code": "DE",
+    "capital": "Dover",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "The First State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Delaware%2C%20USA",
+    "flagUrl": "/flags/us-states/de.png",
+    "lowFlagUrl": "/flags/us-states/low/de.png",
+    "centroid": {
+      "lat": 39.3185,
+      "lng": -75.5071
+    }
+  },
+  {
+    "name": "Florida",
+    "alpha2": "US-FL",
+    "code": "FL",
+    "capital": "Tallahassee",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "The Sunshine State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Florida%2C%20USA",
+    "flagUrl": "/flags/us-states/fl.png",
+    "lowFlagUrl": "/flags/us-states/low/fl.png",
+    "centroid": {
+      "lat": 27.7663,
+      "lng": -81.6868
+    }
+  },
+  {
+    "name": "Georgia",
+    "alpha2": "US-GA",
+    "code": "GA",
+    "capital": "Atlanta",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "The Peach State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Georgia%2C%20USA",
+    "flagUrl": "/flags/us-states/ga.png",
+    "lowFlagUrl": "/flags/us-states/low/ga.png",
+    "centroid": {
+      "lat": 33.0406,
+      "lng": -83.6431
+    }
+  },
+  {
+    "name": "Hawaii",
+    "alpha2": "US-HI",
+    "code": "HI",
+    "capital": "Honolulu",
+    "region": "West",
+    "subregion": "Pacific",
+    "nickname": "The Aloha State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Hawaii%2C%20USA",
+    "flagUrl": "/flags/us-states/hi.png",
+    "lowFlagUrl": "/flags/us-states/low/hi.png",
+    "centroid": {
+      "lat": 21.0943,
+      "lng": -157.4983
+    }
+  },
+  {
+    "name": "Idaho",
+    "alpha2": "US-ID",
+    "code": "ID",
+    "capital": "Boise",
+    "region": "West",
+    "subregion": "Mountain",
+    "nickname": "The Gem State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Idaho%2C%20USA",
+    "flagUrl": "/flags/us-states/id.png",
+    "lowFlagUrl": "/flags/us-states/low/id.png",
+    "centroid": {
+      "lat": 44.2405,
+      "lng": -114.4788
+    }
+  },
+  {
+    "name": "Illinois",
+    "alpha2": "US-IL",
+    "code": "IL",
+    "capital": "Springfield",
+    "region": "Midwest",
+    "subregion": "East North Central",
+    "nickname": "The Prairie State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Illinois%2C%20USA",
+    "flagUrl": "/flags/us-states/il.png",
+    "lowFlagUrl": "/flags/us-states/low/il.png",
+    "centroid": {
+      "lat": 40.3495,
+      "lng": -88.9861
+    }
+  },
+  {
+    "name": "Indiana",
+    "alpha2": "US-IN",
+    "code": "IN",
+    "capital": "Indianapolis",
+    "region": "Midwest",
+    "subregion": "East North Central",
+    "nickname": "The Hoosier State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Indiana%2C%20USA",
+    "flagUrl": "/flags/us-states/in.png",
+    "lowFlagUrl": "/flags/us-states/low/in.png",
+    "centroid": {
+      "lat": 39.8494,
+      "lng": -86.2583
+    }
+  },
+  {
+    "name": "Iowa",
+    "alpha2": "US-IA",
+    "code": "IA",
+    "capital": "Des Moines",
+    "region": "Midwest",
+    "subregion": "West North Central",
+    "nickname": "The Hawkeye State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Iowa%2C%20USA",
+    "flagUrl": "/flags/us-states/ia.png",
+    "lowFlagUrl": "/flags/us-states/low/ia.png",
+    "centroid": {
+      "lat": 42.0115,
+      "lng": -93.2105
+    }
+  },
+  {
+    "name": "Kansas",
+    "alpha2": "US-KS",
+    "code": "KS",
+    "capital": "Topeka",
+    "region": "Midwest",
+    "subregion": "West North Central",
+    "nickname": "The Sunflower State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Kansas%2C%20USA",
+    "flagUrl": "/flags/us-states/ks.png",
+    "lowFlagUrl": "/flags/us-states/low/ks.png",
+    "centroid": {
+      "lat": 38.5266,
+      "lng": -96.7265
+    }
+  },
+  {
+    "name": "Kentucky",
+    "alpha2": "US-KY",
+    "code": "KY",
+    "capital": "Frankfort",
+    "region": "South",
+    "subregion": "East South Central",
+    "nickname": "The Bluegrass State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Kentucky%2C%20USA",
+    "flagUrl": "/flags/us-states/ky.png",
+    "lowFlagUrl": "/flags/us-states/low/ky.png",
+    "centroid": {
+      "lat": 37.6681,
+      "lng": -84.6701
+    }
+  },
+  {
+    "name": "Louisiana",
+    "alpha2": "US-LA",
+    "code": "LA",
+    "capital": "Baton Rouge",
+    "region": "South",
+    "subregion": "West South Central",
+    "nickname": "The Pelican State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Louisiana%2C%20USA",
+    "flagUrl": "/flags/us-states/la.png",
+    "lowFlagUrl": "/flags/us-states/low/la.png",
+    "centroid": {
+      "lat": 31.1695,
+      "lng": -91.8678
+    }
+  },
+  {
+    "name": "Maine",
+    "alpha2": "US-ME",
+    "code": "ME",
+    "capital": "Augusta",
+    "region": "Northeast",
+    "subregion": "New England",
+    "nickname": "The Pine Tree State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Maine%2C%20USA",
+    "flagUrl": "/flags/us-states/me.png",
+    "lowFlagUrl": "/flags/us-states/low/me.png",
+    "centroid": {
+      "lat": 44.6939,
+      "lng": -69.3819
+    }
+  },
+  {
+    "name": "Maryland",
+    "alpha2": "US-MD",
+    "code": "MD",
+    "capital": "Annapolis",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "The Old Line State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Maryland%2C%20USA",
+    "flagUrl": "/flags/us-states/md.png",
+    "lowFlagUrl": "/flags/us-states/low/md.png",
+    "centroid": {
+      "lat": 39.0639,
+      "lng": -76.8021
+    }
+  },
+  {
+    "name": "Massachusetts",
+    "alpha2": "US-MA",
+    "code": "MA",
+    "capital": "Boston",
+    "region": "Northeast",
+    "subregion": "New England",
+    "nickname": "The Bay State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Massachusetts%2C%20USA",
+    "flagUrl": "/flags/us-states/ma.png",
+    "lowFlagUrl": "/flags/us-states/low/ma.png",
+    "centroid": {
+      "lat": 42.2302,
+      "lng": -71.5301
+    }
+  },
+  {
+    "name": "Michigan",
+    "alpha2": "US-MI",
+    "code": "MI",
+    "capital": "Lansing",
+    "region": "Midwest",
+    "subregion": "East North Central",
+    "nickname": "The Great Lakes State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Michigan%2C%20USA",
+    "flagUrl": "/flags/us-states/mi.png",
+    "lowFlagUrl": "/flags/us-states/low/mi.png",
+    "centroid": {
+      "lat": 43.3266,
+      "lng": -84.5361
+    }
+  },
+  {
+    "name": "Minnesota",
+    "alpha2": "US-MN",
+    "code": "MN",
+    "capital": "Saint Paul",
+    "region": "Midwest",
+    "subregion": "West North Central",
+    "nickname": "The North Star State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Minnesota%2C%20USA",
+    "flagUrl": "/flags/us-states/mn.png",
+    "lowFlagUrl": "/flags/us-states/low/mn.png",
+    "centroid": {
+      "lat": 45.6945,
+      "lng": -93.9002
+    }
+  },
+  {
+    "name": "Mississippi",
+    "alpha2": "US-MS",
+    "code": "MS",
+    "capital": "Jackson",
+    "region": "South",
+    "subregion": "East South Central",
+    "nickname": "The Magnolia State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Mississippi%2C%20USA",
+    "flagUrl": "/flags/us-states/ms.png",
+    "lowFlagUrl": "/flags/us-states/low/ms.png",
+    "centroid": {
+      "lat": 32.7416,
+      "lng": -89.6787
+    }
+  },
+  {
+    "name": "Missouri",
+    "alpha2": "US-MO",
+    "code": "MO",
+    "capital": "Jefferson City",
+    "region": "Midwest",
+    "subregion": "West North Central",
+    "nickname": "The Show-Me State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Missouri%2C%20USA",
+    "flagUrl": "/flags/us-states/mo.png",
+    "lowFlagUrl": "/flags/us-states/low/mo.png",
+    "centroid": {
+      "lat": 38.4561,
+      "lng": -92.2884
+    }
+  },
+  {
+    "name": "Montana",
+    "alpha2": "US-MT",
+    "code": "MT",
+    "capital": "Helena",
+    "region": "West",
+    "subregion": "Mountain",
+    "nickname": "The Treasure State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Montana%2C%20USA",
+    "flagUrl": "/flags/us-states/mt.png",
+    "lowFlagUrl": "/flags/us-states/low/mt.png",
+    "centroid": {
+      "lat": 46.9219,
+      "lng": -110.4544
+    }
+  },
+  {
+    "name": "Nebraska",
+    "alpha2": "US-NE",
+    "code": "NE",
+    "capital": "Lincoln",
+    "region": "Midwest",
+    "subregion": "West North Central",
+    "nickname": "The Cornhusker State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Nebraska%2C%20USA",
+    "flagUrl": "/flags/us-states/ne.png",
+    "lowFlagUrl": "/flags/us-states/low/ne.png",
+    "centroid": {
+      "lat": 41.1254,
+      "lng": -98.2681
+    }
+  },
+  {
+    "name": "Nevada",
+    "alpha2": "US-NV",
+    "code": "NV",
+    "capital": "Carson City",
+    "region": "West",
+    "subregion": "Mountain",
+    "nickname": "The Silver State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Nevada%2C%20USA",
+    "flagUrl": "/flags/us-states/nv.png",
+    "lowFlagUrl": "/flags/us-states/low/nv.png",
+    "centroid": {
+      "lat": 38.3135,
+      "lng": -117.0554
+    }
+  },
+  {
+    "name": "New Hampshire",
+    "alpha2": "US-NH",
+    "code": "NH",
+    "capital": "Concord",
+    "region": "Northeast",
+    "subregion": "New England",
+    "nickname": "The Granite State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=New%20Hampshire%2C%20USA",
+    "flagUrl": "/flags/us-states/nh.png",
+    "lowFlagUrl": "/flags/us-states/low/nh.png",
+    "centroid": {
+      "lat": 43.4525,
+      "lng": -71.5639
+    }
+  },
+  {
+    "name": "New Jersey",
+    "alpha2": "US-NJ",
+    "code": "NJ",
+    "capital": "Trenton",
+    "region": "Northeast",
+    "subregion": "Mid-Atlantic",
+    "nickname": "The Garden State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=New%20Jersey%2C%20USA",
+    "flagUrl": "/flags/us-states/nj.png",
+    "lowFlagUrl": "/flags/us-states/low/nj.png",
+    "centroid": {
+      "lat": 40.2989,
+      "lng": -74.521
+    }
+  },
+  {
+    "name": "New Mexico",
+    "alpha2": "US-NM",
+    "code": "NM",
+    "capital": "Santa Fe",
+    "region": "West",
+    "subregion": "Mountain",
+    "nickname": "The Land of Enchantment",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=New%20Mexico%2C%20USA",
+    "flagUrl": "/flags/us-states/nm.png",
+    "lowFlagUrl": "/flags/us-states/low/nm.png",
+    "centroid": {
+      "lat": 34.8405,
+      "lng": -106.2485
+    }
+  },
+  {
+    "name": "New York",
+    "alpha2": "US-NY",
+    "code": "NY",
+    "capital": "Albany",
+    "region": "Northeast",
+    "subregion": "Mid-Atlantic",
+    "nickname": "The Empire State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=New%20York%2C%20USA",
+    "flagUrl": "/flags/us-states/ny.png",
+    "lowFlagUrl": "/flags/us-states/low/ny.png",
+    "centroid": {
+      "lat": 42.1657,
+      "lng": -74.9481
+    }
+  },
+  {
+    "name": "North Carolina",
+    "alpha2": "US-NC",
+    "code": "NC",
+    "capital": "Raleigh",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "The Tar Heel State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=North%20Carolina%2C%20USA",
+    "flagUrl": "/flags/us-states/nc.png",
+    "lowFlagUrl": "/flags/us-states/low/nc.png",
+    "centroid": {
+      "lat": 35.6301,
+      "lng": -79.8064
+    }
+  },
+  {
+    "name": "North Dakota",
+    "alpha2": "US-ND",
+    "code": "ND",
+    "capital": "Bismarck",
+    "region": "Midwest",
+    "subregion": "West North Central",
+    "nickname": "The Peace Garden State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=North%20Dakota%2C%20USA",
+    "flagUrl": "/flags/us-states/nd.png",
+    "lowFlagUrl": "/flags/us-states/low/nd.png",
+    "centroid": {
+      "lat": 47.5289,
+      "lng": -99.784
+    }
+  },
+  {
+    "name": "Ohio",
+    "alpha2": "US-OH",
+    "code": "OH",
+    "capital": "Columbus",
+    "region": "Midwest",
+    "subregion": "East North Central",
+    "nickname": "The Buckeye State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Ohio%2C%20USA",
+    "flagUrl": "/flags/us-states/oh.png",
+    "lowFlagUrl": "/flags/us-states/low/oh.png",
+    "centroid": {
+      "lat": 40.3888,
+      "lng": -82.7649
+    }
+  },
+  {
+    "name": "Oklahoma",
+    "alpha2": "US-OK",
+    "code": "OK",
+    "capital": "Oklahoma City",
+    "region": "South",
+    "subregion": "West South Central",
+    "nickname": "The Sooner State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Oklahoma%2C%20USA",
+    "flagUrl": "/flags/us-states/ok.png",
+    "lowFlagUrl": "/flags/us-states/low/ok.png",
+    "centroid": {
+      "lat": 35.5653,
+      "lng": -96.9289
+    }
+  },
+  {
+    "name": "Oregon",
+    "alpha2": "US-OR",
+    "code": "OR",
+    "capital": "Salem",
+    "region": "West",
+    "subregion": "Pacific",
+    "nickname": "The Beaver State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Oregon%2C%20USA",
+    "flagUrl": "/flags/us-states/or.png",
+    "lowFlagUrl": "/flags/us-states/low/or.png",
+    "centroid": {
+      "lat": 44.572,
+      "lng": -122.0709
+    }
+  },
+  {
+    "name": "Pennsylvania",
+    "alpha2": "US-PA",
+    "code": "PA",
+    "capital": "Harrisburg",
+    "region": "Northeast",
+    "subregion": "Mid-Atlantic",
+    "nickname": "The Keystone State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Pennsylvania%2C%20USA",
+    "flagUrl": "/flags/us-states/pa.png",
+    "lowFlagUrl": "/flags/us-states/low/pa.png",
+    "centroid": {
+      "lat": 40.5908,
+      "lng": -77.2098
+    }
+  },
+  {
+    "name": "Rhode Island",
+    "alpha2": "US-RI",
+    "code": "RI",
+    "capital": "Providence",
+    "region": "Northeast",
+    "subregion": "New England",
+    "nickname": "The Ocean State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Rhode%20Island%2C%20USA",
+    "flagUrl": "/flags/us-states/ri.png",
+    "lowFlagUrl": "/flags/us-states/low/ri.png",
+    "centroid": {
+      "lat": 41.6809,
+      "lng": -71.5118
+    }
+  },
+  {
+    "name": "South Carolina",
+    "alpha2": "US-SC",
+    "code": "SC",
+    "capital": "Columbia",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "The Palmetto State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=South%20Carolina%2C%20USA",
+    "flagUrl": "/flags/us-states/sc.png",
+    "lowFlagUrl": "/flags/us-states/low/sc.png",
+    "centroid": {
+      "lat": 33.8569,
+      "lng": -80.945
+    }
+  },
+  {
+    "name": "South Dakota",
+    "alpha2": "US-SD",
+    "code": "SD",
+    "capital": "Pierre",
+    "region": "Midwest",
+    "subregion": "West North Central",
+    "nickname": "The Mount Rushmore State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=South%20Dakota%2C%20USA",
+    "flagUrl": "/flags/us-states/sd.png",
+    "lowFlagUrl": "/flags/us-states/low/sd.png",
+    "centroid": {
+      "lat": 44.2998,
+      "lng": -99.4388
+    }
+  },
+  {
+    "name": "Tennessee",
+    "alpha2": "US-TN",
+    "code": "TN",
+    "capital": "Nashville",
+    "region": "South",
+    "subregion": "East South Central",
+    "nickname": "The Volunteer State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Tennessee%2C%20USA",
+    "flagUrl": "/flags/us-states/tn.png",
+    "lowFlagUrl": "/flags/us-states/low/tn.png",
+    "centroid": {
+      "lat": 35.7478,
+      "lng": -86.6923
+    }
+  },
+  {
+    "name": "Texas",
+    "alpha2": "US-TX",
+    "code": "TX",
+    "capital": "Austin",
+    "region": "South",
+    "subregion": "West South Central",
+    "nickname": "The Lone Star State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Texas%2C%20USA",
+    "flagUrl": "/flags/us-states/tx.png",
+    "lowFlagUrl": "/flags/us-states/low/tx.png",
+    "centroid": {
+      "lat": 31.0545,
+      "lng": -97.5635
+    }
+  },
+  {
+    "name": "Utah",
+    "alpha2": "US-UT",
+    "code": "UT",
+    "capital": "Salt Lake City",
+    "region": "West",
+    "subregion": "Mountain",
+    "nickname": "The Beehive State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Utah%2C%20USA",
+    "flagUrl": "/flags/us-states/ut.png",
+    "lowFlagUrl": "/flags/us-states/low/ut.png",
+    "centroid": {
+      "lat": 40.15,
+      "lng": -111.8624
+    }
+  },
+  {
+    "name": "Vermont",
+    "alpha2": "US-VT",
+    "code": "VT",
+    "capital": "Montpelier",
+    "region": "Northeast",
+    "subregion": "New England",
+    "nickname": "The Green Mountain State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Vermont%2C%20USA",
+    "flagUrl": "/flags/us-states/vt.png",
+    "lowFlagUrl": "/flags/us-states/low/vt.png",
+    "centroid": {
+      "lat": 44.0459,
+      "lng": -72.7107
+    }
+  },
+  {
+    "name": "Virginia",
+    "alpha2": "US-VA",
+    "code": "VA",
+    "capital": "Richmond",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "The Old Dominion State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Virginia%2C%20USA",
+    "flagUrl": "/flags/us-states/va.png",
+    "lowFlagUrl": "/flags/us-states/low/va.png",
+    "centroid": {
+      "lat": 37.7693,
+      "lng": -78.17
+    }
+  },
+  {
+    "name": "Washington",
+    "alpha2": "US-WA",
+    "code": "WA",
+    "capital": "Olympia",
+    "region": "West",
+    "subregion": "Pacific",
+    "nickname": "The Evergreen State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Washington%2C%20USA",
+    "flagUrl": "/flags/us-states/wa.png",
+    "lowFlagUrl": "/flags/us-states/low/wa.png",
+    "centroid": {
+      "lat": 47.4009,
+      "lng": -121.4905
+    }
+  },
+  {
+    "name": "West Virginia",
+    "alpha2": "US-WV",
+    "code": "WV",
+    "capital": "Charleston",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "The Mountain State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=West%20Virginia%2C%20USA",
+    "flagUrl": "/flags/us-states/wv.png",
+    "lowFlagUrl": "/flags/us-states/low/wv.png",
+    "centroid": {
+      "lat": 38.4912,
+      "lng": -80.9545
+    }
+  },
+  {
+    "name": "Wisconsin",
+    "alpha2": "US-WI",
+    "code": "WI",
+    "capital": "Madison",
+    "region": "Midwest",
+    "subregion": "East North Central",
+    "nickname": "The Badger State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Wisconsin%2C%20USA",
+    "flagUrl": "/flags/us-states/wi.png",
+    "lowFlagUrl": "/flags/us-states/low/wi.png",
+    "centroid": {
+      "lat": 44.2685,
+      "lng": -89.6165
+    }
+  },
+  {
+    "name": "Wyoming",
+    "alpha2": "US-WY",
+    "code": "WY",
+    "capital": "Cheyenne",
+    "region": "West",
+    "subregion": "Mountain",
+    "nickname": "The Equality State",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=Wyoming%2C%20USA",
+    "flagUrl": "/flags/us-states/wy.png",
+    "lowFlagUrl": "/flags/us-states/low/wy.png",
+    "centroid": {
+      "lat": 42.756,
+      "lng": -107.3025
+    }
+  },
+  {
+    "name": "District of Columbia",
+    "alpha2": "US-DC",
+    "code": "DC",
+    "capital": "Washington",
+    "region": "South",
+    "subregion": "South Atlantic",
+    "nickname": "Nation's Capital",
+    "mapUrl": "https://www.google.com/maps/search/?api=1&query=District%20of%20Columbia%2C%20USA",
+    "flagUrl": "/flags/us-states/dc.png",
+    "lowFlagUrl": "/flags/us-states/low/dc.png",
+    "centroid": {
+      "lat": 38.9072,
+      "lng": -77.0369
+    }
+  }
+]

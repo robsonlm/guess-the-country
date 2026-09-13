@@ -192,7 +192,7 @@ export function App() {
           <button
             type="button"
             className="icon-btn"
-            onClick={initCountries}
+            onClick={() => { initCountries(); }}
             title="Retry"
             style={{ width: 32, height: 32 }}
           >
@@ -266,6 +266,7 @@ export function App() {
           {/* Render 3D Globe Mode OR Classic/Challenger Card Mode */}
           {settings.gameMode === 'globe' ? (
             <GlobeGameView
+              edition={settings.edition}
               targetCountry={currentRound?.targetCountry ?? countries[0]}
               options={currentRound?.options ?? []}
               onSelect={handleChoice}
@@ -326,6 +327,7 @@ export function App() {
           {/* Mastered Flags Tray with Continent Tabs & Trophy Shelf (Cards mode only) */}
           {settings.gameMode !== 'globe' && (
             <MasteredFlagsTray
+              edition={settings.edition}
               solvedCountries={solvedCountriesList}
               allCountries={countries}
               onOpenAchievements={() => setIsAchievementsOpen(true)}
@@ -363,6 +365,7 @@ export function App() {
       {isGameComplete && settings.gameMode === 'globe' && (
         <GlobeVictoryModal
           isOpen={!isGlobeExploreOpen}
+          edition={settings.edition}
           conqueredCount={solvedAlphas.length}
           totalCountries={countries.length}
           mistakesCount={globeMistakes}
@@ -383,6 +386,7 @@ export function App() {
       {/* Victory Modal when all flags are conquered (Cards Mode) */}
       {isGameComplete && settings.gameMode !== 'globe' && (
         <VictoryModal
+          edition={settings.edition}
           score={score}
           totalCountries={countries.length}
           timeElapsedSeconds={gameElapsedSeconds}
@@ -447,6 +451,8 @@ export function App() {
         gameMode={settings.gameMode}
         continentFilter={settings.continentFilter}
         timerMode={settings.timerMode}
+        edition={settings.edition}
+        usRegionFilter={settings.usRegionFilter}
         onStart={(name, config) => {
           if (!isLoggedIn) {
             setAuthPromptMessage('Please log in or create an account to start playing!');

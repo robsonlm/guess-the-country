@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, User } from 'lucide-react';
-import { GameMode, ContinentFilter, GameScore, TimerMode } from '../types/game';
+import { GameMode, ContinentFilter, GameScore, TimerMode, GameEdition } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
@@ -17,6 +17,7 @@ interface VictoryModalProps {
   continentFilter?: ContinentFilter;
   timerMode?: TimerMode;
   playerName?: string;
+  edition?: GameEdition;
   onPlayAgain: () => void;
   onOpenLeaderboard?: (entryId?: string) => void;
   onSubmitSuccess?: () => void;
@@ -30,6 +31,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   continentFilter = 'all',
   timerMode = 'timed',
   playerName: initialPlayerName,
+  edition = 'world',
   onPlayAgain,
   onOpenLeaderboard,
   onSubmitSuccess,
@@ -37,6 +39,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   const [placementResult, setPlacementResult] = useState<LeaderboardPlacementResult | null>(null);
   const hasSubmittedRef = useRef(false);
 
+  const isUsStatesEdition = edition === 'us-states';
   const percentageNum = score.total === 0 ? 100 : Math.round((score.right / score.total) * 100);
   const percentageStr = percentageNum.toString();
   const playerName = initialPlayerName?.trim() || getLastPlayerName();
@@ -46,10 +49,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     hasSubmittedRef.current = true;
 
     // Instantly clear browser cached game progress so refresh never restores completed state
-    clearGameProgress();
+    clearGameProgress(edition);
 
     const result = addLeaderboardEntry({
-      playerName: playerName.trim() || 'World Master',
+      playerName: playerName.trim() || (isUsStatesEdition ? 'US State Champion' : 'World Master'),
       gameMode,
       continentFilter,
       timerMode,
@@ -65,7 +68,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     if (onSubmitSuccess) {
       onSubmitSuccess();
     }
-  }, [playerName, gameMode, continentFilter, timerMode, totalCountries, score.right, score.wrong, percentageNum, timeElapsedSeconds, score.bestStreak, onSubmitSuccess]);
+  }, [playerName, gameMode, continentFilter, timerMode, totalCountries, score.right, score.wrong, percentageNum, timeElapsedSeconds, score.bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
 
   return (
     <div className="modal-overlay fade-in" role="dialog" aria-modal="true" style={{ zIndex: 100 }}>
@@ -84,10 +87,12 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         <h2 className="victory-title" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>
-          World Flag Grand Master!
+          {isUsStatesEdition ? 'US State Flag Grand Master!' : 'World Flag Grand Master!'}
         </h2>
         <p className="victory-subtitle" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
-          Incredible! You have correctly identified all <strong>{totalCountries}</strong> world country flags!
+          {isUsStatesEdition
+            ? <>Incredible! You have correctly identified all <strong>{totalCountries}</strong> US state flags!</>
+            : <>Incredible! You have correctly identified all <strong>{totalCountries}</strong> world country flags!</>}
         </p>
 
         {/* Stats Grid */}
