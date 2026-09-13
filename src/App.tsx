@@ -38,7 +38,6 @@ export function App() {
     playerName: authPlayerName,
     userPhotoUrl,
     isAdmin,
-    loginWithGoogle,
     logout,
   } = usePlayerAuth();
 
@@ -214,13 +213,6 @@ export function App() {
           onOpenAuth={() => {
             setAuthPromptMessage('Please log in or create an account to start playing!');
             setIsAuthModalOpen(true);
-          }}
-          onGoogleSignIn={async () => {
-            const res = await loginWithGoogle();
-            if (!res.success && res.error) {
-              setAuthPromptMessage(res.error);
-              setIsAuthModalOpen(true);
-            }
           }}
           onStartGame={(name, config) => {
             if (!isLoggedIn) {

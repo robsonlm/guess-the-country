@@ -135,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
           </div>
-        ) : (
+        ) : isInGame && onOpenAuth ? (
           <button
             type="button"
             className="action-btn"
@@ -158,7 +158,7 @@ export const Header: React.FC<HeaderProps> = ({
             <LogIn size={13} />
             <span>Log In to Play</span>
           </button>
-        )}
+        ) : null}
 
         {isInGame && typeof gameElapsedSeconds === 'number' && (
           <div
