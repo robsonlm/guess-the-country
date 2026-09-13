@@ -43,7 +43,7 @@ const INITIAL_LIFELINES: LifelineState = {
   activeHintText: null,
 };
 
-export function useGameState(isExternalModalOpen: boolean = false) {
+export function useGameState(isExternalModalOpen: boolean = false, isAdmin: boolean = false) {
   const [settings, setSettingsState] = useState<UserSettings>(loadSettings);
   const [score, setScore] = useState<GameScore>(loadScore);
   const [countries, setCountries] = useState<Country[]>([]);
@@ -267,7 +267,7 @@ export function useGameState(isExternalModalOpen: boolean = false) {
         ...distractors.map((c) => ({ name: c.name, isCorrect: false, country: c })),
       ];
 
-      if (currentSettings.adminTestMode) {
+      if (isAdmin) {
         // Admin Test Mode: ALWAYS place the correct answer on the 2nd position (index 1 / Key [2])
         if (options.length >= 2) {
           const correctOption = options[0];

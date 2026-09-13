@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Globe,
-  KeyRound,
   Eye,
   EyeOff,
   ArrowRight,
@@ -14,7 +13,8 @@ import {
   Layers,
   Clock,
 } from 'lucide-react';
-import { verifyAdminPassword } from '../services/firebase';
+import { useAdminAuth } from '../hooks/useAdminAuth';
+import { sanitizePlayerName } from '../utils/sanitize';
 import { GameMode, ContinentFilter, TimerMode } from '../types/game';
 
 interface StartGameModalProps {
@@ -25,7 +25,7 @@ interface StartGameModalProps {
   continentFilter: ContinentFilter;
   timerMode: TimerMode;
   onStart: (playerName: string, config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }) => void;
-  onEnableAdmin: () => void;
+  onEnableAdmin?: () => void;
   onClose?: () => void;
   allowClose?: boolean;
 }
@@ -62,12 +62,14 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   onClose,
   allowClose = false,
 }) => {
+  const { isAdmin: hookIsAdmin, signInAsAdmin, signOut: signOutAdmin } = useAdminAuth();
   const [playerName, setPlayerName] = useState(initialPlayerName);
   const [selectedMode, setSelectedMode] = useState<GameMode>(gameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(continentFilter);
   const [selectedTimer, setSelectedTimer] = useState<TimerMode>(timerMode);
 
   const [isAdminModeRequested, setIsAdminModeRequested] = useState(false);
+  const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -77,6 +79,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   } | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -86,6 +89,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
       setSelectedContinent(continentFilter);
       setSelectedTimer(timerMode);
       setIsAdminModeRequested(false);
+      setAdminEmail('');
       setAdminPassword('');
       setAdminFeedback(null);
       setTimeout(() => {
@@ -99,46 +103,50 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
 
   const handleNameSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanName = playerName.trim();
-
-    // Trigger Admin Password verification when user enters "ADMINMODE" (case-insensitive)
-    if (cleanName.toUpperCase() === 'ADMINMODE') {
-      setIsAdminModeRequested(true);
-      setAdminPassword('');
-      setAdminFeedback(null);
-      setTimeout(() => passwordInputRef.current?.focus(), 150);
-      return;
-    }
-
-    // Start game with selected configuration
-    onStart(cleanName || 'World Explorer', {
+    onStart(sanitizePlayerName(playerName), {
       mode: selectedMode,
       continent: selectedContinent,
       timer: selectedTimer,
     });
   };
 
+  const handleOpenAdmin = () => {
+    if (hookIsAdmin) {
+      setAdminFeedback({
+        type: 'success',
+        message: '⚡ Admin Mode is already active for this account.',
+      });
+      setIsAdminModeRequested(false);
+      return;
+    }
+    setIsAdminModeRequested(true);
+    setAdminEmail('');
+    setAdminPassword('');
+    setAdminFeedback(null);
+    setTimeout(() => emailInputRef.current?.focus(), 150);
+  };
+
   const handleVerifyAdminPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adminPassword.trim() || isVerifying) return;
+    if (!adminEmail.trim() || !adminPassword || isVerifying) return;
 
     setIsVerifying(true);
     setAdminFeedback(null);
 
     try {
-      const res = await verifyAdminPassword(adminPassword);
+      const res = await signInAsAdmin(adminEmail, adminPassword);
       if (res.success) {
-        onEnableAdmin();
         setAdminFeedback({
           type: 'success',
           message:
             '⚡ Admin Mode unlocked! Correct answers locked to position #2 and Leaderboard controls authorized.',
         });
         setPlayerName('Admin');
+        onEnableAdmin?.();
       } else {
         setAdminFeedback({
           type: 'error',
-          message: res.error || '❌ Incorrect administrator password.',
+          message: res.error || '❌ Sign-in failed.',
         });
       }
     } catch (err: any) {
@@ -149,6 +157,14 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const handleSignOutAdmin = async () => {
+    await signOutAdmin();
+    setAdminFeedback({
+      type: 'success',
+      message: 'Admin signed out. Standard play is restored.',
+    });
   };
 
   return (
@@ -281,6 +297,40 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                 <ArrowRight size={18} />
               </button>
 
+              {isAdmin ? (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleSignOutAdmin}
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem',
+                    fontSize: '0.82rem',
+                    borderRadius: 10,
+                  }}
+                >
+                  Sign out of Admin
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleOpenAdmin}
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem',
+                    fontSize: '0.82rem',
+                    borderRadius: 10,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                  }}
+                >
+                  <ShieldCheck size={13} /> Sign in as Admin
+                </button>
+              )}
+
               {allowClose && onClose && (
                 <button
                   type="button"
@@ -299,15 +349,16 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
             </div>
           </form>
         ) : (
-          /* Admin Password Verification View */
+          /* Admin Sign-in View (Firebase Authentication) */
           <div>
             <div className="start-modal-header">
               <div className="start-modal-icon admin">
                 <Lock size={26} />
               </div>
-              <h2 className="start-modal-title">Admin Authorization</h2>
+              <h2 className="start-modal-title">Admin Sign-in</h2>
               <p className="start-modal-subtitle">
-                Username <strong>ADMINMODE</strong> detected. Please enter the administrator password.
+                Sign in with the administrator account. Only accounts with the
+                <strong> admin</strong> custom claim are granted elevated rights.
               </p>
             </div>
 
@@ -315,9 +366,26 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
               {!adminFeedback || adminFeedback.type !== 'success' ? (
                 <form onSubmit={handleVerifyAdminPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div className="start-input-group">
+                    <label htmlFor="admin-email-input" className="start-input-label">
+                      <User size={14} style={{ color: '#f87171' }} />
+                      <span>Admin Email:</span>
+                    </label>
+                    <input
+                      id="admin-email-input"
+                      ref={emailInputRef}
+                      type="email"
+                      className="start-text-input"
+                      placeholder="admin@example.com"
+                      value={adminEmail}
+                      onChange={(e) => setAdminEmail(e.target.value)}
+                      autoComplete="username"
+                      required
+                    />
+                  </div>
+                  <div className="start-input-group">
                     <label htmlFor="admin-password-input" className="start-input-label">
-                      <KeyRound size={14} style={{ color: '#f87171' }} />
-                      <span>Admin Password (from Firebase):</span>
+                      <Lock size={14} style={{ color: '#f87171' }} />
+                      <span>Password:</span>
                     </label>
                     <div className="start-password-input-wrapper">
                       <input
@@ -325,11 +393,11 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                         ref={passwordInputRef}
                         type={showPassword ? 'text' : 'password'}
                         className="start-password-input"
-                        placeholder="Enter admin password..."
+                        placeholder="••••••••"
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
+                        autoComplete="current-password"
                         required
-                        autoFocus
                       />
                       <button
                         type="button"
@@ -377,7 +445,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                   <button
                     type="submit"
                     className="btn-primary"
-                    disabled={isVerifying || !adminPassword.trim()}
+                    disabled={isVerifying || !adminEmail.trim() || !adminPassword}
                     style={{
                       width: '100%',
                       padding: '0.75rem',
@@ -386,7 +454,16 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                       background: 'linear-gradient(135deg, #ef4444, #dc2626)',
                     }}
                   >
-                    {isVerifying ? 'Verifying Password…' : 'Authenticate as Admin'}
+                    {isVerifying ? 'Signing in…' : 'Sign in as Admin'}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={() => setIsAdminModeRequested(false)}
+                    style={{ width: '100%', padding: '0.6rem', fontSize: '0.82rem', borderRadius: 10 }}
+                  >
+                    Cancel
                   </button>
                 </form>
               ) : (

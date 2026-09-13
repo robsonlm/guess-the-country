@@ -10,14 +10,10 @@ import {
   ShieldCheck,
   User,
   ArrowRight,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  Lock,
 } from 'lucide-react';
 import { GameMode, ContinentFilter, TimerMode, UserSettings, GameScore, Achievement } from '../types/game';
 import { getFilteredLeaderboard, formatTimeElapsed } from '../services/leaderboard';
-import { verifyAdminPassword } from '../services/firebase';
+import { sanitizePlayerName } from '../utils/sanitize';
 
 interface MainPageViewProps {
   settings: UserSettings;
@@ -25,6 +21,7 @@ interface MainPageViewProps {
   achievements: Achievement[];
   totalCountriesCount: number;
   playerName: string;
+  isAdmin?: boolean;
   onStartGame: (name: string, config?: { mode?: GameMode; continent?: ContinentFilter; timer?: TimerMode }) => void;
   onOpenLeaderboard: () => void;
   onOpenAchievements: () => void;
@@ -58,6 +55,7 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
   achievements,
   totalCountriesCount,
   playerName: initialPlayerName,
+  isAdmin = false,
   onStartGame,
   onOpenLeaderboard,
   onOpenAchievements,
@@ -68,18 +66,10 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(settings.continentFilter);
   const [selectedTimer, setSelectedTimer] = useState<TimerMode>(settings.timerMode);
 
-  // Admin authentication inline state
-  const [isAdminModeRequested, setIsAdminModeRequested] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [adminFeedback, setAdminFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
   useEffect(() => {
     setName(initialPlayerName);
   }, [initialPlayerName]);
 
-  // Selection handlers (local until launch)
   const handleModeChange = (mode: GameMode) => {
     setSelectedMode(mode);
   };
@@ -94,44 +84,11 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
 
   const handleLaunch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const cleanName = name.trim();
-
-    if (cleanName.toUpperCase() === 'ADMINMODE') {
-      setIsAdminModeRequested(true);
-      setAdminPassword('');
-      setAdminFeedback(null);
-      return;
-    }
-
-    onStartGame(cleanName || 'World Explorer', {
+    onStartGame(sanitizePlayerName(name), {
       mode: selectedMode,
       continent: selectedContinent,
       timer: selectedTimer,
     });
-  };
-
-  const handleVerifyAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!adminPassword.trim() || isVerifying) return;
-
-    setIsVerifying(true);
-    setAdminFeedback(null);
-
-    try {
-      const res = await verifyAdminPassword(adminPassword);
-      if (res.success) {
-        onEnableAdmin();
-        setAdminFeedback({ type: 'success', message: 'Admin authenticated! You can now start in Admin Mode.' });
-        setIsAdminModeRequested(false);
-        setName('ADMIN');
-      } else {
-        setAdminFeedback({ type: 'error', message: res.error || 'Invalid administrator password.' });
-      }
-    } catch (err: any) {
-      setAdminFeedback({ type: 'error', message: err.message || 'Verification failed.' });
-    } finally {
-      setIsVerifying(false);
-    }
   };
 
   // Top records for summary widget
@@ -168,7 +125,7 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
             </div>
           </div>
 
-          {settings.adminTestMode && (
+          {isAdmin && (
             <div className="main-admin-badge">
               <ShieldCheck size={14} />
               <span>Admin Mode Active</span>
@@ -196,43 +153,26 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
           </div>
         </form>
 
-        {/* Admin Password Prompt if ADMINMODE entered */}
-        {isAdminModeRequested && (
-          <div className="main-admin-prompt fade-in">
-            <div className="main-admin-prompt-header">
-              <Lock size={15} style={{ color: '#f87171' }} />
-              <span>Enter Admin Password to Unlock Developer Mode</span>
-            </div>
-            <form onSubmit={handleVerifyAdmin} className="main-admin-form">
-              <div className="main-password-wrapper">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="main-password-input"
-                  placeholder="Admin password..."
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  autoFocus
-                />
-                <button
-                  type="button"
-                  className="main-password-toggle"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                </button>
-              </div>
-              <button type="submit" className="main-admin-verify-btn" disabled={isVerifying}>
-                {isVerifying ? 'Verifying…' : 'Unlock Admin'}
-              </button>
-            </form>
-            {adminFeedback && (
-              <div className={`main-admin-feedback ${adminFeedback.type}`}>
-                <AlertCircle size={13} />
-                <span>{adminFeedback.message}</span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Sign in as Admin button (replaces legacy "ADMINMODE" text entry) */}
+        <div className="main-launch-actions" style={{ marginTop: '0.5rem' }}>
+          <button
+            type="button"
+            className="action-btn"
+            onClick={onEnableAdmin}
+            title={isAdmin ? 'Admin Mode is already active' : 'Sign in as administrator'}
+            style={{
+              fontSize: '0.78rem',
+              padding: '6px 14px',
+              borderRadius: 9999,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <ShieldCheck size={13} />
+            <span>{isAdmin ? 'Admin Active' : 'Sign in as Admin'}</span>
+          </button>
+        </div>
 
         {/* Game Mode Selector */}
         <div className="main-config-row">

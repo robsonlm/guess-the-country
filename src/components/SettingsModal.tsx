@@ -7,7 +7,6 @@ import {
   Volume2,
   Palette,
   Check,
-  ShieldCheck,
 } from 'lucide-react';
 import { UserSettings, ThemeMode } from '../types/game';
 
@@ -39,7 +38,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 }) => {
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [theme, setTheme] = useState<ThemeMode>(settings.theme);
-  const [adminTestMode, setAdminTestMode] = useState<boolean>(!!settings.adminTestMode);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -47,7 +45,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (isOpen) {
       setSoundEnabled(settings.soundEnabled);
       setTheme(settings.theme);
-      setAdminTestMode(!!settings.adminTestMode);
       setShowConfirmReset(false);
       setIsSyncing(false);
     }
@@ -70,13 +67,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onSaveSettings({
       soundEnabled,
       theme,
-      adminTestMode,
     });
     onClose();
-  };
-
-  const handleDisableAdminMode = () => {
-    setAdminTestMode(false);
   };
 
   const handleResetClick = () => {
@@ -169,43 +161,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <RefreshCw size={16} className={isSyncing ? 'spin' : ''} />
             </button>
           </div>
-
-          {/* Admin Mode Status & Logout (Only visible when Admin Mode is active) */}
-          {adminTestMode && (
-            <div
-              className="toggle-row"
-              style={{
-                background: 'rgba(16, 185, 129, 0.1)',
-                borderColor: 'rgba(16, 185, 129, 0.35)',
-              }}
-            >
-              <div className="toggle-info">
-                <span
-                  className="toggle-title"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    color: '#34d399',
-                  }}
-                >
-                  <ShieldCheck size={16} style={{ color: '#10b981' }} />
-                  Admin Mode Active
-                </span>
-                <span className="toggle-desc" style={{ color: '#a7f3d0' }}>
-                  ⚡ Correct answers locked to position #2 & global leaderboard controls authorized.
-                </span>
-              </div>
-              <button
-                type="button"
-                className="btn-danger-outline"
-                onClick={handleDisableAdminMode}
-                style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
-              >
-                Logout Admin
-              </button>
-            </div>
-          )}
 
           {/* Reset Score Action */}
           <div className="toggle-row">

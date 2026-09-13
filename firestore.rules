@@ -1,12 +1,44 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /leaderboard/{document=**} {
-      allow read, write: if true;
+    // Leaderboard collection: read by any authenticated player,
+    // created with strict schema validation, never updated,
+    // and only deleted by users with the admin claim.
+    match /leaderboard/{entryId} {
+      allow read: if request.auth != null;
+
+      // Allow authenticated players (including anonymous) to create valid scores
+      allow create: if request.auth != null
+        && !entryId.matches('^seed-.*')
+        && request.resource.data.id == entryId
+        && request.resource.data.playerName is string
+        && request.resource.data.playerName.size() >= 1
+        && request.resource.data.playerName.size() <= 24
+        && request.resource.data.score is number
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 1000000
+        && request.resource.data.date is string;
+
+      // Entries cannot be modified once posted
+      allow update: if false;
+
+      // Only administrators can delete leaderboard entries
+      allow delete: if request.auth != null && request.auth.token.admin == true;
+
+      // Subcollections are not used
+      match /{document=**} {
+        allow read, write: if false;
+      }
     }
+
+    // Admin collection: only accessible by users with the admin claim
     match /admin/{document=**} {
-      allow read: if true;
-      allow write: if false;
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
+
+    // Default deny for everything else
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

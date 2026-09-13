@@ -40,7 +40,6 @@ export function loadSettings(): UserSettings {
         timerMode: timer,
         theme: parsed.theme || 'deep-space',
         continentFilter: parsed.continentFilter || 'all',
-        adminTestMode: parsed.adminTestMode ?? false,
       };
     }
   } catch {
@@ -53,7 +52,6 @@ export function loadSettings(): UserSettings {
     timerMode: 'relaxed',
     theme: 'deep-space',
     continentFilter: 'all',
-    adminTestMode: false,
   };
 }
 

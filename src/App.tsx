@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, RefreshCw, Sparkles, Flame } from 'lucide-react';
 import { useGameState } from './hooks/useGameState';
+import { useAdminAuth } from './hooks/useAdminAuth';
 import { Header } from './components/Header';
 import { MainPageView } from './components/MainPageView';
 import { FlagCard } from './components/FlagCard';
@@ -29,6 +30,8 @@ export function App() {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isConfirmNewGameOpen, setIsConfirmNewGameOpen] = useState(false);
   const [recentLeaderboardEntryId, setRecentLeaderboardEntryId] = useState<string | null>(null);
+
+  const { isAdmin } = useAdminAuth();
 
   const isAnyModalOpen =
     isSettingsOpen ||
@@ -76,7 +79,7 @@ export function App() {
     initCountries,
     onUseCapital,
     onUseFiftyFifty,
-  } = useGameState(isAnyModalOpen);
+  } = useGameState(isAnyModalOpen, isAdmin);
 
   const handleToggleSound = () => {
     updateSettings({ soundEnabled: !settings.soundEnabled });
@@ -111,6 +114,7 @@ export function App() {
         settings={settings}
         playerName={currentPlayerName}
         gameElapsedSeconds={gameElapsedSeconds}
+        isAdmin={isAdmin}
         onOpenProfile={openStartModal}
         onToggleSound={handleToggleSound}
         onOpenSettings={() => setIsSettingsOpen(true)}
@@ -179,6 +183,7 @@ export function App() {
           achievements={achievements}
           totalCountriesCount={countries.length}
           playerName={currentPlayerName}
+          isAdmin={isAdmin}
           onStartGame={(name, config) => {
             resetScore();
             startGame(name, config);
@@ -186,7 +191,9 @@ export function App() {
           onOpenLeaderboard={() => handleOpenLeaderboard()}
           onOpenAchievements={() => setIsAchievementsOpen(true)}
           onOpenSettings={() => setIsSettingsOpen(true)}
-          onEnableAdmin={() => updateSettings({ adminTestMode: true })}
+          onEnableAdmin={() => {
+            openStartModal();
+          }}
         />
       )}
 
@@ -331,7 +338,7 @@ export function App() {
         defaultGameMode={settings.gameMode}
         defaultContinent={settings.continentFilter}
         defaultTimerMode={settings.timerMode}
-        isAdmin={Boolean(settings.adminTestMode)}
+        isAdmin={isAdmin}
       />
 
       {/* Trophy Shelf & Achievements Modal */}
@@ -365,7 +372,7 @@ export function App() {
       <StartGameModal
         isOpen={isStartModalOpen}
         initialPlayerName={currentPlayerName}
-        isAdmin={Boolean(settings.adminTestMode)}
+        isAdmin={isAdmin}
         gameMode={settings.gameMode}
         continentFilter={settings.continentFilter}
         timerMode={settings.timerMode}
@@ -373,7 +380,9 @@ export function App() {
           resetScore();
           startGame(name, config);
         }}
-        onEnableAdmin={() => updateSettings({ adminTestMode: true })}
+        onEnableAdmin={() => {
+          openStartModal();
+        }}
         onClose={closeStartModal}
         allowClose={isGameStarted}
       />

@@ -6,6 +6,7 @@ import {
   subscribeToFirebaseLeaderboard,
   clearFirebaseLeaderboard,
 } from './firebase';
+import { safeId, sanitizePlayerName } from '../utils/sanitize';
 
 export { isFirebaseConfigured, subscribeToFirebaseLeaderboard, clearFirebaseLeaderboard };
 
@@ -38,32 +39,30 @@ export interface LeaderboardPlacementResult {
 
 const LEADERBOARD_KEY = 'guess_the_country_leaderboard_v3';
 const LAST_PLAYER_NAME_KEY = 'guess_the_country_last_player_name';
-const GLOBAL_CLOUD_BIN_ID = 'ff808181a067127101a08f93d81e7345';
-const CLOUD_API_URL = `https://api.restful-api.dev/objects/${GLOBAL_CLOUD_BIN_ID}`;
+
+function normalizeEntry(e: LeaderboardEntry): LeaderboardEntry {
+  return {
+    ...e,
+    playerName: sanitizePlayerName(e.playerName),
+    timerMode: e.timerMode || 'timed',
+  };
+}
 
 export function mergeAndDeduplicate(local: LeaderboardEntry[], remote: LeaderboardEntry[]): LeaderboardEntry[] {
   const map = new Map<string, LeaderboardEntry>();
 
-  // Add remote entries first
   if (Array.isArray(remote)) {
     remote.forEach((e) => {
       if (e && e.id && e.playerName && !e.id.startsWith('seed-')) {
-        map.set(e.id, {
-          ...e,
-          timerMode: e.timerMode || 'timed',
-        });
+        map.set(e.id, normalizeEntry(e));
       }
     });
   }
 
-  // Add/overwrite with local entries
   if (Array.isArray(local)) {
     local.forEach((e) => {
       if (e && e.id && e.playerName && !e.id.startsWith('seed-')) {
-        map.set(e.id, {
-          ...e,
-          timerMode: e.timerMode || 'timed',
-        });
+        map.set(e.id, normalizeEntry(e));
       }
     });
   }
@@ -73,7 +72,6 @@ export function mergeAndDeduplicate(local: LeaderboardEntry[], remote: Leaderboa
 
 export function loadLeaderboard(): LeaderboardEntry[] {
   try {
-    // Purge legacy storage versions if present
     localStorage.removeItem('guess_the_country_leaderboard');
     localStorage.removeItem('guess_the_country_leaderboard_v2');
 
@@ -100,7 +98,8 @@ export function saveLeaderboard(entries: LeaderboardEntry[]): void {
 }
 
 /**
- * Clears all leaderboard entries locally, in Firestore, and in the cloud REST bin.
+ * Clears all leaderboard entries locally and in Firestore.
+ * The fallback REST bin has been removed; Firestore is the single source of truth.
  */
 export async function clearAllLeaderboardEntries(): Promise<void> {
   try {
@@ -114,30 +113,16 @@ export async function clearAllLeaderboardEntries(): Promise<void> {
   if (isFirebaseConfigured()) {
     await clearFirebaseLeaderboard().catch((err) => console.warn('[Firebase] Clear error:', err));
   }
-
-  try {
-    await fetch(CLOUD_API_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'guess-the-country-leaderboard',
-        data: { entries: [] },
-      }),
-    });
-  } catch {
-    // safe
-  }
 }
 
 /**
- * Synchronizes the leaderboard with Firebase Firestore or fallback cloud backend.
+ * Synchronizes the leaderboard with Firebase Firestore.
  * Fetches all global entries submitted by all players worldwide,
  * merges them with local records, and returns the unified list.
  */
 export async function syncGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
   const local = loadLeaderboard();
 
-  // If Firebase Firestore is configured, use it directly
   if (isFirebaseConfigured()) {
     try {
       const firebaseEntries = await fetchFirebaseLeaderboard();
@@ -149,67 +134,30 @@ export async function syncGlobalLeaderboard(): Promise<LeaderboardEntry[]> {
       return local;
     } catch (err) {
       console.warn('[Leaderboard] Firebase sync notice:', err);
+      return local;
     }
-  }
-
-  // Fallback cloud sync
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 5000);
-
-    const res = await fetch(CLOUD_API_URL, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-
-    if (res.ok) {
-      const json = await res.json();
-      const remoteEntries: LeaderboardEntry[] = json?.data?.entries || [];
-      const merged = mergeAndDeduplicate(local, remoteEntries);
-      saveLeaderboard(merged);
-      return merged;
-    }
-  } catch {
-    // Offline fallback
   }
 
   return local;
 }
 
 /**
- * Asynchronously pushes updated leaderboard entries to Firebase Firestore and fallback backend.
+ * Asynchronously pushes an updated leaderboard entry to Firebase Firestore.
+ * The write is performed by the secure 'submitScore' Cloud Function.
  */
-export async function pushGlobalLeaderboard(entry: LeaderboardEntry, allEntries: LeaderboardEntry[]): Promise<void> {
-  // Push individual document to Firebase Firestore
+export async function pushGlobalLeaderboard(
+  entry: LeaderboardEntry,
+  _allEntries: LeaderboardEntry[]
+): Promise<void> {
   if (isFirebaseConfigured()) {
     saveEntryToFirebase(entry).catch((err) => console.warn('[Firebase] Background write notice:', err));
-  }
-
-  // Also push array to fallback cloud REST bin
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
-
-    await fetch(CLOUD_API_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'guess-the-country-leaderboard',
-        data: { entries: allEntries },
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-  } catch {
-    // safe background sync fail
   }
 }
 
 export function getLastPlayerName(): string {
   try {
-    return localStorage.getItem(LAST_PLAYER_NAME_KEY) || 'World Explorer';
+    const stored = localStorage.getItem(LAST_PLAYER_NAME_KEY);
+    return sanitizePlayerName(stored);
   } catch {
     return 'World Explorer';
   }
@@ -217,7 +165,8 @@ export function getLastPlayerName(): string {
 
 export function setLastPlayerName(name: string): void {
   try {
-    localStorage.setItem(LAST_PLAYER_NAME_KEY, name.trim());
+    const clean = sanitizePlayerName(name);
+    localStorage.setItem(LAST_PLAYER_NAME_KEY, clean);
   } catch {
     // ignore
   }
@@ -235,11 +184,10 @@ export function addLeaderboardEntry(
   entryData: Omit<LeaderboardEntry, 'id' | 'date' | 'rankBadge'>
 ): LeaderboardPlacementResult {
   const currentList = loadLeaderboard();
-  const trimmedName = entryData.playerName?.trim() || 'Anonymous Explorer';
+  const trimmedName = sanitizePlayerName(entryData.playerName);
   setLastPlayerName(trimmedName);
   const targetTimerMode = entryData.timerMode || 'timed';
 
-  // Check for duplicate submission within recent timeframe (last 3 minutes)
   const existingDuplicate = currentList.find((e) => {
     const isSamePlayer = e.playerName.trim().toLowerCase() === trimmedName.toLowerCase();
     const isSameGame =
@@ -253,14 +201,14 @@ export function addLeaderboardEntry(
     if (!isSamePlayer || !isSameGame) return false;
 
     const diffMs = Math.abs(Date.now() - new Date(e.date).getTime());
-    return diffMs < 180000; // 3 minutes window
+    return diffMs < 180000;
   });
 
   const entryToRank: LeaderboardEntry = existingDuplicate || {
     ...entryData,
-    timerMode: targetTimerMode,
-    id: `entry-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     playerName: trimmedName,
+    timerMode: targetTimerMode,
+    id: safeId('entry'),
     date: new Date().toISOString(),
     rankBadge: calculateRankBadge(entryData.mistakesCount, entryData.accuracy),
   };
@@ -269,11 +217,9 @@ export function addLeaderboardEntry(
   if (!existingDuplicate) {
     updatedList = [entryToRank, ...currentList];
     saveLeaderboard(updatedList);
-    // Trigger background cloud sync so all players across the world receive this score
     pushGlobalLeaderboard(entryToRank, updatedList);
   }
 
-  // Compute player's ranks strictly in this exact game combination
   const sameScopeList = updatedList.filter(
     (e) =>
       e.gameMode === entryData.gameMode &&
@@ -313,7 +259,6 @@ export function addLeaderboardEntry(
 
 /**
  * Returns strictly the leaderboard for a single game combination (gameMode + continent + timerMode).
- * No general or mixed modes!
  */
 export function getFilteredLeaderboard(
   gameMode: GameMode,
@@ -330,7 +275,6 @@ export function getFilteredLeaderboard(
       (e.timerMode || 'timed') === timerMode
   );
 
-  // Sorting based on category within this exact combination
   const sorted = [...filtered].sort((a, b) => {
     if (category === 'fastest') {
       if (a.timeElapsedSeconds !== b.timeElapsedSeconds) {
@@ -349,20 +293,15 @@ export function getFilteredLeaderboard(
       return a.timeElapsedSeconds - b.timeElapsedSeconds;
     }
 
-    // Default 'least-mistakes' / mastery:
-    // 1. Fewest mistakes
     if (a.mistakesCount !== b.mistakesCount) {
       return a.mistakesCount - b.mistakesCount;
     }
-    // 2. Highest accuracy
     if (a.accuracy !== b.accuracy) {
       return b.accuracy - a.accuracy;
     }
-    // 3. Fastest time
     if (a.timeElapsedSeconds !== b.timeElapsedSeconds) {
       return a.timeElapsedSeconds - b.timeElapsedSeconds;
     }
-    // 4. Highest streak
     return b.bestStreak - a.bestStreak;
   });
 
@@ -379,4 +318,3 @@ export function formatTimeElapsed(totalSeconds: number): string {
   }
   return `${mins.toString().padStart(2, '0')}:${remainingSecs.toString().padStart(2, '0')}`;
 }
-

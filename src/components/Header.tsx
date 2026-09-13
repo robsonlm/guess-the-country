@@ -9,6 +9,7 @@ interface HeaderProps {
   settings: UserSettings;
   playerName?: string;
   gameElapsedSeconds?: number;
+  isAdmin?: boolean;
   onOpenProfile?: () => void;
   onToggleSound: () => void;
   onOpenSettings: () => void;
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   settings,
   playerName,
   gameElapsedSeconds,
+  isAdmin = false,
   onOpenProfile,
   onToggleSound,
   onOpenSettings,
@@ -71,25 +73,25 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             className="action-btn header-player-btn"
             onClick={onOpenProfile}
-            title={`Player: ${playerName} (Click to change explorer name or enter ADMINMODE)`}
+            title={`Player: ${playerName} (Click to change explorer name or sign in as admin)`}
             style={{
               fontSize: '0.78rem',
               fontWeight: 600,
               padding: '5px 11px',
               borderRadius: '9999px',
-              border: settings.adminTestMode
+              border: isAdmin
                 ? '1px solid rgba(16, 185, 129, 0.5)'
                 : '1px solid rgba(255, 255, 255, 0.12)',
-              background: settings.adminTestMode
+              background: isAdmin
                 ? 'rgba(16, 185, 129, 0.2)'
                 : 'rgba(255, 255, 255, 0.05)',
-              color: settings.adminTestMode ? '#34d399' : 'var(--text-muted)',
+              color: isAdmin ? '#34d399' : 'var(--text-muted)',
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
             }}
           >
-            {settings.adminTestMode ? (
+            {isAdmin ? (
               <ShieldCheck size={14} style={{ color: '#10b981' }} />
             ) : (
               <User size={14} style={{ color: 'var(--primary-light)' }} />

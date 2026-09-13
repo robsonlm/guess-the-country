@@ -158,7 +158,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     return () => {
       resizeObserver.disconnect();
       if (globeContainerRef.current) {
-        globeContainerRef.current.innerHTML = '';
+        globeContainerRef.current.replaceChildren();
       }
       globeInstanceRef.current = null;
     };

@@ -5,27 +5,38 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b0f19" />
-    <meta
-      name="description"
-      content="Test your geography knowledge in Guess the Country, a sleek and fast modern flag guessing game powered by the REST Countries API."
-    />
+    <meta name="description" content="Test your geography knowledge in Guess the Country, a sleek and fast modern flag guessing game powered by the REST Countries API." />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://*.firebaseio.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.cloudfunctions.net wss://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" />
     <title>Guess the Country | Modern Flag Trivia</title>
     <script type="text/javascript">
-      // SPA route restoration for GitHub Pages
+      // SPA route restoration for GitHub Pages.
+      // Only single-segment paths made of [a-z0-9-] are accepted to prevent
+      // open-redirect and path-injection through the ?p= query parameter.
       (function(l) {
-        if (l.search) {
-          var q = {};
-          l.search.slice(1).split('&').forEach(function(v) {
-            var a = v.split('=');
-            q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
-          });
-          if (q.p !== undefined) {
-            var decodedPath = decodeURIComponent(q.p);
-            var cleanBase = l.pathname.replace(/\/$/, '');
-            var fullPath = cleanBase + (decodedPath.startsWith('/') ? decodedPath : '/' + decodedPath);
-            var extraSearch = q.q ? '?' + decodeURIComponent(q.q) : '';
-            window.history.replaceState(null, null, fullPath + extraSearch + l.hash);
+        if (!l.search) return;
+        var SAFE_PATH = /^\/[A-Za-z0-9_-]+$/;
+        var q = {};
+        l.search.slice(1).split('&').forEach(function(v) {
+          if (!v) return;
+          var a = v.split('=');
+          q[a[0]] = a.slice(1).join('=').replace(/~and~/g, '&');
+        });
+        if (q.p !== undefined) {
+          var decoded;
+          try {
+            decoded = decodeURIComponent(q.p);
+          } catch (_) {
+            return;
           }
+          if (!SAFE_PATH.test(decoded)) return;
+          var cleanBase = l.pathname.replace(/\/$/, '');
+          var fullPath = cleanBase + decoded;
+          var extraSearch = q.q && SAFE_PATH.test(decodeURIComponent(q.q)) ? '?' + decodeURIComponent(q.q) : '';
+          window.history.replaceState(null, null, fullPath + extraSearch + l.hash);
         }
       }(window.location));
     </script>
