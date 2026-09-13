@@ -360,13 +360,13 @@ export function App() {
           bestStreak={score.bestStreak}
           continentFilter={settings.continentFilter}
           timerMode={settings.timerMode}
+          playerName={isLoggedIn ? authPlayerName : currentPlayerName}
           onPlayAgain={() => {
             setIsGlobeExploreOpen(false);
             resetScore();
           }}
           onExplore={() => setIsGlobeExploreOpen(true)}
           onOpenLeaderboard={handleOpenLeaderboard}
-          onSubmitSuccess={resetScore}
         />
       )}
 
@@ -379,9 +379,9 @@ export function App() {
           gameMode={settings.gameMode}
           continentFilter={settings.continentFilter}
           timerMode={settings.timerMode}
+          playerName={isLoggedIn ? authPlayerName : currentPlayerName}
           onPlayAgain={resetScore}
           onOpenLeaderboard={handleOpenLeaderboard}
-          onSubmitSuccess={resetScore}
         />
       )}
 
