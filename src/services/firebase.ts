@@ -15,6 +15,8 @@ import {
 } from 'firebase/firestore';
 import {
   getAuth,
+  setPersistence,
+  browserLocalPersistence,
   signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -72,6 +74,11 @@ if (isFirebaseConfigured()) {
     app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
     db = getFirestore(app);
     auth = getAuth(app);
+    if (typeof window !== 'undefined') {
+      setPersistence(auth, browserLocalPersistence).catch((err) => {
+        console.warn('[Firebase] setPersistence notice:', err);
+      });
+    }
     functions = getFunctions(app);
 
     if (USE_EMULATORS) {
@@ -100,7 +107,59 @@ export function getCurrentUser(): User | null {
   return auth?.currentUser ?? null;
 }
 
+export interface CachedAuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string;
+  photoURL: string | null;
+  providerId: string | null;
+  isAdmin: boolean;
+}
+
+const AUTH_STORAGE_KEY = 'guessTheCountry.authUser';
+
+export function getStoredAuthUser(): CachedAuthUser | null {
+  try {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredAuthUser(user: CachedAuthUser): void {
+  try {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
+  } catch {
+    // ignore
+  }
+}
+
+export function clearStoredAuthUser(): void {
+  try {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 export async function ensureSignedIn(): Promise<User | null> {
+  if (!auth) return null;
+  if (auth.currentUser) return auth.currentUser;
+
+  // Wait for initial auth state resolution so persisted sessions are not wiped
+  try {
+    if (typeof (auth as any).authStateReady === 'function') {
+      await (auth as any).authStateReady();
+    }
+  } catch {
+    // ignore
+  }
+
+  return auth.currentUser ?? null;
+}
+
+export async function ensureAnonymousFallback(): Promise<User | null> {
   if (!auth) return null;
   if (auth.currentUser) return auth.currentUser;
   try {
@@ -142,6 +201,17 @@ export async function syncUserProfile(user: User): Promise<void> {
       lastLoginAt: new Date().toISOString(),
     };
     await setDoc(userDocRef, profileData, { merge: true });
+
+    // Synchronously update local auth cache for instant recognition on page reload
+    const admin = await isCurrentUserAdmin();
+    setStoredAuthUser({
+      uid: user.uid,
+      email: user.email ?? null,
+      displayName: profileData.displayName ?? 'World Explorer',
+      photoURL: user.photoURL ?? null,
+      providerId: profileData.providerId,
+      isAdmin: admin,
+    });
   } catch (err) {
     console.warn('[Firebase] Notice: could not persist user profile to Firestore:', err);
   }
@@ -196,6 +266,7 @@ export async function signInAdmin(email: string, password: string): Promise<User
 }
 
 export async function signOutCurrent(): Promise<void> {
+  clearStoredAuthUser();
   if (auth) await signOut(auth);
 }
 

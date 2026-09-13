@@ -40,6 +40,7 @@ export function App() {
     playerName: authPlayerName,
     userPhotoUrl,
     isAdmin,
+    ready: authReady,
     logout,
   } = usePlayerAuth();
 
@@ -119,12 +120,12 @@ export function App() {
 
   // Enforce player login: unauthenticated users cannot access active gameplay (#play)
   useEffect(() => {
-    if (!isLoggedIn && isGameStarted) {
+    if (authReady && !isLoggedIn && isGameStarted) {
       navigateToHome();
       setAuthPromptMessage('Player login required. Sign in or create an account to start playing!');
       setIsAuthModalOpen(true);
     }
-  }, [isLoggedIn, isGameStarted, navigateToHome]);
+  }, [authReady, isLoggedIn, isGameStarted, navigateToHome]);
 
   const handleOpenLeaderboard = (entryId?: string) => {
     setRecentLeaderboardEntryId(entryId || null);

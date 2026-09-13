@@ -32,7 +32,7 @@ import { getNeighboringCountries } from '../services/countriesGeo';
 import { getLastPlayerName, setLastPlayerName } from '../services/leaderboard';
 import { useSoundEffects } from './useSoundEffects';
 import { getCurrentRoute, navigateToRoute } from '../utils/router';
-import { preloadAllGameResources } from '../services/resourcePreloader';
+import { preloadAllGameResources, preloadUpcomingQuestionsFlags } from '../services/resourcePreloader';
 
 const INITIAL_LIFELINES: LifelineState = {
   capitalCredits: 1,
@@ -360,6 +360,10 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         questionType: qType,
         isFinalThree: false,
       });
+
+      // Lookahead: Preload all flags for the next 3 questions in the background
+      const nextRemaining = unsolvedPool.filter((c) => c.alpha2 !== targetCountry.alpha2);
+      preloadUpcomingQuestionsFlags(nextRemaining, countryList, currentSettings.gameMode, 3).catch(() => {});
     },
     []
   );
@@ -594,10 +598,15 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         setIsPreloading(true);
         setPreloadProgress(15);
         setPreloadStage('Synchronizing Geographical Telemetry...');
-        preloadAllGameResources(currentRoundRef.current, settingsRef.current.gameMode, (p) => {
-          setPreloadProgress(p.percent);
-          setPreloadStage(p.stage);
-        })
+        preloadAllGameResources(
+          currentRoundRef.current,
+          settingsRef.current.gameMode,
+          (p) => {
+            setPreloadProgress(p.percent);
+            setPreloadStage(p.stage);
+          },
+          { unsolvedPool: unsolved, countryList: res.countries }
+        )
           .catch(() => {})
           .finally(() => {
             setIsPreloading(false);
@@ -1012,10 +1021,22 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     }
 
     const effectiveMode = config?.mode || settingsRef.current.gameMode;
-    preloadAllGameResources(currentRoundRef.current, effectiveMode, (p) => {
-      setPreloadProgress(p.percent);
-      setPreloadStage(p.stage);
-    })
+    const effectiveContinent = config?.continent || settingsRef.current.continentFilter;
+    const pool = effectiveContinent !== 'all'
+      ? countriesRef.current.filter((c) => c.region === effectiveContinent)
+      : countriesRef.current;
+    const solvedSet = new Set(solvedAlphasRef.current);
+    const unsolvedPool = pool.filter((c) => !solvedSet.has(c.alpha2));
+
+    preloadAllGameResources(
+      currentRoundRef.current,
+      effectiveMode,
+      (p) => {
+        setPreloadProgress(p.percent);
+        setPreloadStage(p.stage);
+      },
+      { unsolvedPool, countryList: countriesRef.current }
+    )
       .catch((err) => {
         console.warn('Resource preloading warning:', err);
       })

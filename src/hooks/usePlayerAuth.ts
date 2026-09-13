@@ -10,6 +10,9 @@ import {
   getCurrentUser,
   ensureSignedIn,
   syncUserProfile,
+  getStoredAuthUser,
+  setStoredAuthUser,
+  clearStoredAuthUser,
 } from '../services/firebase';
 
 export interface UsePlayerAuth {
@@ -55,6 +58,7 @@ function initAuthListener() {
   onAuthChanged(async (user) => {
     globalUser = user;
     if (!user || user.isAnonymous) {
+      clearStoredAuthUser();
       globalIsAdmin = false;
       globalReady = true;
       notifyAll();
@@ -65,12 +69,21 @@ function initAuthListener() {
     } catch {
       // ignore
     }
+    let admin = false;
     try {
-      const admin = await isCurrentUserAdmin();
+      admin = await isCurrentUserAdmin();
       globalIsAdmin = admin;
     } catch {
       globalIsAdmin = false;
     }
+    setStoredAuthUser({
+      uid: user.uid,
+      email: user.email ?? null,
+      displayName: user.displayName?.trim() || user.email?.split('@')[0] || 'World Explorer',
+      photoURL: user.photoURL ?? null,
+      providerId: user.providerData?.[0]?.providerId || 'password',
+      isAdmin: admin,
+    });
     globalReady = true;
     notifyAll();
   });
@@ -82,8 +95,9 @@ function initAuthListener() {
 export function usePlayerAuth(): UsePlayerAuth {
   initAuthListener();
 
+  const initialCache = getStoredAuthUser();
   const [user, setUser] = useState<User | null>(globalUser ?? getCurrentUser());
-  const [isAdmin, setIsAdmin] = useState<boolean>(globalIsAdmin);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => globalIsAdmin || Boolean(initialCache?.isAdmin));
   const [ready, setReady] = useState<boolean>(globalReady);
 
   useEffect(() => {
@@ -99,9 +113,18 @@ export function usePlayerAuth(): UsePlayerAuth {
     };
   }, []);
 
-  const isLoggedIn = Boolean(user && !user.isAnonymous);
-  const playerName = user?.displayName?.trim() || user?.email?.split('@')[0] || 'World Explorer';
-  const userEmail = user?.email ?? null;
+  const isLoggedIn = Boolean((user && !user.isAnonymous) || (!ready && initialCache?.uid));
+  const playerName =
+    user?.displayName?.trim() ||
+    user?.email?.split('@')[0] ||
+    initialCache?.displayName ||
+    'World Explorer';
+  const userEmail = user?.email ?? initialCache?.email ?? null;
+  const userPhotoUrl = user?.photoURL ?? initialCache?.photoURL ?? null;
+  const providerId =
+    user?.providerData?.[0]?.providerId ||
+    initialCache?.providerId ||
+    (user?.isAnonymous ? 'anonymous' : 'password');
 
   const login = useCallback(async (email: string, password: string) => {
     if (!email.trim() || !password) {
@@ -192,14 +215,13 @@ export function usePlayerAuth(): UsePlayerAuth {
   }, []);
 
   const logout = useCallback(async () => {
+    clearStoredAuthUser();
     await signOutCurrent();
     globalUser = null;
     globalIsAdmin = false;
+    globalReady = true;
     notifyAll();
   }, []);
-
-  const userPhotoUrl = user?.photoURL ?? null;
-  const providerId = user?.providerData?.[0]?.providerId || (user?.isAnonymous ? 'anonymous' : 'password');
 
   return {
     user,

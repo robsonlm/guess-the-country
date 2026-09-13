@@ -1,5 +1,5 @@
-import { Round, GameMode } from '../types/game';
-import { loadGeoFeatures } from './countriesGeo';
+import { Country, Round, GameMode } from '../types/game';
+import { loadGeoFeatures, getNeighboringCountries } from './countriesGeo';
 import { getFlagUrl } from './countriesApi';
 
 export interface PreloadProgress {
@@ -10,6 +10,7 @@ export interface PreloadProgress {
 let hasStartedBackgroundPrewarm = false;
 let isGeoWarm = false;
 let areTexturesWarm = false;
+const preloadedImageUrls = new Set<string>();
 
 /**
  * Preloads an image and decodes it so it's ready in GPU memory without jank.
@@ -17,6 +18,7 @@ let areTexturesWarm = false;
  */
 export function preloadImage(url: string, timeoutMs: number = 6000): Promise<boolean> {
   if (!url) return Promise.resolve(false);
+  if (preloadedImageUrls.has(url)) return Promise.resolve(true);
 
   return new Promise((resolve) => {
     let settled = false;
@@ -31,6 +33,7 @@ export function preloadImage(url: string, timeoutMs: number = 6000): Promise<boo
 
     img.onload = () => {
       if (settled) return;
+      preloadedImageUrls.add(url);
       if (typeof img.decode === 'function') {
         img.decode()
           .then(() => {
@@ -165,12 +168,62 @@ export async function preloadRoundFlags(
 }
 
 /**
- * Coordinates all game resources required before starting gameplay countdown.
+ * Proactively preloads and hardware-decodes all flags for the next N questions
+ * in the background so round transitions after Question 1 are instantaneous.
+ */
+export async function preloadUpcomingQuestionsFlags(
+  unsolvedPool: Country[],
+  countryList: Country[],
+  gameMode: GameMode,
+  lookaheadCount: number = 3
+): Promise<void> {
+  if (!unsolvedPool || unsolvedPool.length === 0) return;
+
+  const flagUrls = new Set<string>();
+  const isGlobe = gameMode === 'globe';
+  const optionCount = isGlobe ? 3 : 4;
+
+  const countToPreload = Math.min(lookaheadCount, unsolvedPool.length);
+
+  for (let i = 0; i < countToPreload; i++) {
+    const target = unsolvedPool[i];
+    if (!target) continue;
+
+    const targetUrl = target.flagUrl || getFlagUrl(target.alpha2);
+    if (targetUrl) flagUrls.add(targetUrl);
+
+    if (isGlobe) {
+      const distractorPool = unsolvedPool.filter((c) => c.alpha2 !== target.alpha2);
+      const distractors = getNeighboringCountries(target, distractorPool, optionCount - 1);
+      distractors.forEach((d) => {
+        const dUrl = d.flagUrl || getFlagUrl(d.alpha2);
+        if (dUrl) flagUrls.add(dUrl);
+      });
+    } else {
+      for (let j = 0; j < optionCount - 1; j++) {
+        const randIdx = (i * (optionCount - 1) + j) % countryList.length;
+        const d = countryList[randIdx];
+        if (d) {
+          const dUrl = d.flagUrl || getFlagUrl(d.alpha2);
+          if (dUrl) flagUrls.add(dUrl);
+        }
+      }
+    }
+  }
+
+  // Preload and hardware-decode in parallel
+  await Promise.all(Array.from(flagUrls).map((url) => preloadImage(url, 5000)));
+}
+
+/**
+ * Coordinates all game resources required before starting gameplay countdown,
+ * including both the active round and lookahead preloading for the next 3 questions.
  */
 export async function preloadAllGameResources(
   round: Round | null,
   gameMode: GameMode,
-  onProgressUpdate?: (progress: PreloadProgress) => void
+  onProgressUpdate?: (progress: PreloadProgress) => void,
+  upcomingContext?: { unsolvedPool: Country[]; countryList: Country[] }
 ): Promise<void> {
   const update = (stage: string, percent: number) => {
     if (onProgressUpdate) {
@@ -181,35 +234,68 @@ export async function preloadAllGameResources(
   const isGlobeMode = gameMode === 'globe';
 
   if (isGlobeMode) {
-    // Stage 1: GeoJSON Cartography (0% -> 40%)
+    // Stage 1: GeoJSON Cartography (0% -> 35%)
     update('Calibrating 3D Earth Cartography & Polygons...', 15);
     await preloadGeoData();
-    update('Cartography Calibrated', 40);
+    update('Cartography Calibrated', 35);
 
-    // Stage 2: Earth Textures (40% -> 75%)
-    update('Rendering High-Resolution Blue Marble Textures...', 50);
+    // Stage 2: Earth Textures (35% -> 70%)
+    update('Rendering High-Resolution Blue Marble Textures...', 45);
     await preloadEarthTextures((p) => {
-      update('Rendering High-Resolution Blue Marble Textures...', 40 + Math.round((p * 35) / 100));
+      update('Rendering High-Resolution Blue Marble Textures...', 35 + Math.round((p * 35) / 100));
     });
-    update('Textures Loaded', 75);
+    update('Textures Loaded', 70);
 
-    // Stage 3: Round Flags (75% -> 100%)
+    // Stage 3: Round 1 Flags + Lookahead Next 3 Questions (70% -> 100%)
+    update('Acquiring National Flags for Current & Upcoming Rounds...', 75);
+    const preloadTasks: Promise<any>[] = [];
+
     if (round) {
-      update('Acquiring National Ensigns & Flag Standards...', 80);
-      await preloadRoundFlags(round, (p) => {
-        update('Acquiring National Ensigns & Flag Standards...', 75 + Math.round((p * 25) / 100));
-      });
+      preloadTasks.push(
+        preloadRoundFlags(round, (p) => {
+          update('Acquiring National Flags for Current & Upcoming Rounds...', 70 + Math.round((p * 20) / 100));
+        })
+      );
     }
 
+    if (upcomingContext && upcomingContext.unsolvedPool.length > 0) {
+      preloadTasks.push(
+        preloadUpcomingQuestionsFlags(
+          upcomingContext.unsolvedPool,
+          upcomingContext.countryList,
+          gameMode,
+          3
+        )
+      );
+    }
+
+    await Promise.all(preloadTasks);
     update('Expedition Ready! Launching...', 100);
   } else {
-    // Standard Card Quiz Mode: focus on flag images
-    update('Acquiring National Ensigns & Flag Standards...', 20);
+    // Standard Card Quiz Mode
+    update('Acquiring National Flags for Current & Upcoming Rounds...', 20);
+    const preloadTasks: Promise<any>[] = [];
+
     if (round) {
-      await preloadRoundFlags(round, (p) => {
-        update('Acquiring National Ensigns & Flag Standards...', 20 + Math.round((p * 75) / 100));
-      });
+      preloadTasks.push(
+        preloadRoundFlags(round, (p) => {
+          update('Acquiring National Flags for Current & Upcoming Rounds...', 20 + Math.round((p * 70) / 100));
+        })
+      );
     }
+
+    if (upcomingContext && upcomingContext.unsolvedPool.length > 0) {
+      preloadTasks.push(
+        preloadUpcomingQuestionsFlags(
+          upcomingContext.unsolvedPool,
+          upcomingContext.countryList,
+          gameMode,
+          3
+        )
+      );
+    }
+
+    await Promise.all(preloadTasks);
     update('Expedition Ready! Launching...', 100);
   }
 
@@ -225,7 +311,6 @@ export function startBackgroundPrewarm(): void {
   if (hasStartedBackgroundPrewarm) return;
   hasStartedBackgroundPrewarm = true;
 
-  // Use requestIdleCallback if available, otherwise setTimeout
   const runner = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 1200));
 
   runner(() => {

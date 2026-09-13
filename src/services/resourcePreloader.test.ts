@@ -3,12 +3,29 @@ import {
   preloadImage,
   preloadRoundFlags,
   preloadAllGameResources,
+  preloadUpcomingQuestionsFlags,
 } from './resourcePreloader';
 import { Round } from '../types/game';
 
 describe('resourcePreloader', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.stubGlobal(
+      'Image',
+      vi.fn().mockImplementation(() => {
+        const imgInstance: any = {
+          onload: null,
+          onerror: null,
+          decode: vi.fn().mockResolvedValue(undefined),
+          set src(_val: string) {
+            setTimeout(() => {
+              if (this.onload) this.onload();
+            }, 5);
+          },
+        };
+        return imgInstance;
+      })
+    );
   });
 
   it('handles empty image URLs gracefully', async () => {
@@ -17,19 +34,6 @@ describe('resourcePreloader', () => {
   });
 
   it('preloads round flags successfully', async () => {
-    // Mock Image
-    const mockImage = {
-      onload: null as any,
-      onerror: null as any,
-      decode: vi.fn().mockResolvedValue(undefined),
-      set src(_val: string) {
-        setTimeout(() => {
-          if (this.onload) this.onload();
-        }, 10);
-      },
-    };
-    vi.stubGlobal('Image', vi.fn(() => mockImage));
-
     const round: Round = {
       targetCountry: {
         name: 'France',
@@ -81,18 +85,6 @@ describe('resourcePreloader', () => {
   });
 
   it('orchestrates preloadAllGameResources with progress updates', async () => {
-    const mockImage = {
-      onload: null as any,
-      onerror: null as any,
-      decode: vi.fn().mockResolvedValue(undefined),
-      set src(_val: string) {
-        setTimeout(() => {
-          if (this.onload) this.onload();
-        }, 5);
-      },
-    };
-    vi.stubGlobal('Image', vi.fn(() => mockImage));
-
     const progressReports: Array<{ stage: string; percent: number }> = [];
     await preloadAllGameResources(null, 'flag-to-name', (p) => {
       progressReports.push(p);
@@ -101,5 +93,18 @@ describe('resourcePreloader', () => {
     expect(progressReports.length).toBeGreaterThan(0);
     const last = progressReports[progressReports.length - 1];
     expect(last.percent).toBe(100);
+  });
+
+  it('preloads upcoming questions flags for the next 3 questions', async () => {
+    const testCountries = [
+      { name: 'Spain', alpha2: 'ES', flagUrl: 'https://flags.test/es.png', capital: 'Madrid', region: 'Europe', population: 47000000 },
+      { name: 'Italy', alpha2: 'IT', flagUrl: 'https://flags.test/it.png', capital: 'Rome', region: 'Europe', population: 60000000 },
+      { name: 'Portugal', alpha2: 'PT', flagUrl: 'https://flags.test/pt.png', capital: 'Lisbon', region: 'Europe', population: 10000000 },
+      { name: 'Greece', alpha2: 'GR', flagUrl: 'https://flags.test/gr.png', capital: 'Athens', region: 'Europe', population: 10000000 },
+    ];
+
+    await expect(
+      preloadUpcomingQuestionsFlags(testCountries, testCountries, 'globe', 3)
+    ).resolves.not.toThrow();
   });
 });
