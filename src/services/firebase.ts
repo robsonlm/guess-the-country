@@ -356,9 +356,13 @@ function cleanEntry(entry: LeaderboardEntry): LeaderboardEntry {
   if (entry.id.startsWith('seed-')) {
     throw new Error('Seed entries cannot be submitted.');
   }
+  const isUsStates = entry.edition === 'us-states' || Boolean(entry.usRegionFilter);
   return {
     ...entry,
-    playerName: entry.playerName?.trim() || 'World Explorer',
+    playerName: entry.playerName?.trim() || (isUsStates ? 'US State Champion' : 'World Explorer'),
+    edition: isUsStates ? 'us-states' : 'world',
+    continentFilter: entry.continentFilter || 'all',
+    usRegionFilter: isUsStates ? (entry.usRegionFilter || 'all') : undefined,
     timerMode: entry.timerMode || 'timed',
   };
 }

@@ -18,7 +18,7 @@ import {
   SlidersHorizontal,
   Check,
 } from 'lucide-react';
-import { GameMode, ContinentFilter, TimerMode } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode, GameEdition, USRegionFilter } from '../types/game';
 import {
   LeaderboardCategory,
   getFilteredLeaderboard,
@@ -38,8 +38,10 @@ interface LeaderboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   recentSubmittedEntryId?: string | null;
+  defaultEdition?: GameEdition;
   defaultGameMode?: GameMode;
   defaultContinent?: ContinentFilter;
+  defaultUsRegion?: USRegionFilter;
   defaultTimerMode?: TimerMode;
   isAdmin?: boolean;
 }
@@ -48,6 +50,11 @@ const CATEGORIES: { id: LeaderboardCategory; label: string; icon: React.ReactNod
   { id: 'least-mistakes', label: 'Fewest Mistakes', icon: <Target size={13} />, desc: 'Ranked by highest accuracy & fewest errors' },
   { id: 'fastest', label: 'Fastest Speed', icon: <Zap size={13} />, desc: 'Ranked by lowest elapsed completion time' },
   { id: 'highest-streak', label: 'Best Streak', icon: <Flame size={13} />, desc: 'Ranked by longest consecutive streak' },
+];
+
+const EDITION_OPTIONS: { id: GameEdition; label: string; icon: string }[] = [
+  { id: 'world', label: 'World Countries', icon: '🌐' },
+  { id: 'us-states', label: 'US State Flags', icon: '🇺🇸' },
 ];
 
 const GAME_MODES: { id: GameMode; label: string; icon: string }[] = [
@@ -65,6 +72,14 @@ const CONTINENT_FILTERS: { id: ContinentFilter; label: string; icon: string }[] 
   { id: 'Oceania', label: 'Oceania', icon: '🌏' },
 ];
 
+const US_REGION_FILTERS: { id: USRegionFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All 50 States', icon: '🇺🇸' },
+  { id: 'Northeast', label: 'Northeast', icon: '🌲' },
+  { id: 'Midwest', label: 'Midwest', icon: '🌾' },
+  { id: 'South', label: 'South', icon: '☀️' },
+  { id: 'West', label: 'West', icon: '🏔️' },
+];
+
 const TIMER_MODES: { id: TimerMode; label: string; icon: string }[] = [
   { id: 'timed', label: '10s Timed', icon: '⏱️' },
   { id: 'relaxed', label: 'Relaxed', icon: '🧘' },
@@ -74,13 +89,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   isOpen,
   onClose,
   recentSubmittedEntryId = null,
+  defaultEdition = 'world',
   defaultGameMode = 'globe',
   defaultContinent = 'all',
+  defaultUsRegion = 'all',
   defaultTimerMode = 'timed',
   isAdmin = false,
 }) => {
+  const [selectedEdition, setSelectedEdition] = useState<GameEdition>(defaultEdition);
   const [selectedMode, setSelectedMode] = useState<GameMode>(defaultGameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(defaultContinent);
+  const [selectedUsRegion, setSelectedUsRegion] = useState<USRegionFilter>(defaultUsRegion);
   const [selectedTimerMode, setSelectedTimerMode] = useState<TimerMode>(defaultTimerMode);
   const [selectedCategory, setSelectedCategory] = useState<LeaderboardCategory>(
     defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes'
@@ -98,14 +117,16 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   // Keep state in sync with defaults when opening
   useEffect(() => {
     if (isOpen) {
+      setSelectedEdition(defaultEdition);
       setSelectedMode(defaultGameMode);
       setSelectedContinent(defaultContinent);
+      setSelectedUsRegion(defaultUsRegion);
       setSelectedTimerMode(defaultTimerMode);
       setSelectedCategory(defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes');
       setIsSessionAdmin(isAdmin);
       setIsFiltersOpen(false);
     }
-  }, [isOpen, defaultGameMode, defaultContinent, defaultTimerMode, isAdmin]);
+  }, [isOpen, defaultEdition, defaultGameMode, defaultContinent, defaultUsRegion, defaultTimerMode, isAdmin]);
 
   // Sync and subscribe to global database on open
   useEffect(() => {
@@ -136,26 +157,44 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const allLeaderboardEntries = loadLeaderboard();
 
   // Helper counts to grey out empty leaderboard options
-  const getModeCount = (mode: GameMode) =>
-    allLeaderboardEntries.filter((e) => e.gameMode === mode).length;
+  const getEditionCount = (edition: GameEdition) =>
+    allLeaderboardEntries.filter((e) => (e.edition || 'world') === edition).length;
 
-  const getContinentCount = (continent: ContinentFilter) =>
+  const getModeCount = (mode: GameMode) =>
     allLeaderboardEntries.filter(
-      (e) => e.gameMode === selectedMode && e.continentFilter === continent
+      (e) => (e.edition || 'world') === selectedEdition && e.gameMode === mode
     ).length;
+
+  const getScopeCount = (scope: ContinentFilter | USRegionFilter) =>
+    allLeaderboardEntries.filter((e) => {
+      if ((e.edition || 'world') !== selectedEdition) return false;
+      if (e.gameMode !== selectedMode) return false;
+      if (selectedEdition === 'us-states') {
+        return (e.usRegionFilter || 'all') === scope;
+      }
+      return (e.continentFilter || 'all') === scope;
+    }).length;
 
   const getTimerCount = (timer: TimerMode) =>
-    allLeaderboardEntries.filter(
-      (e) =>
-        e.gameMode === selectedMode &&
-        e.continentFilter === selectedContinent &&
-        (e.timerMode || 'timed') === timer
-    ).length;
+    allLeaderboardEntries.filter((e) => {
+      if ((e.edition || 'world') !== selectedEdition) return false;
+      if (e.gameMode !== selectedMode) return false;
+      if (selectedEdition === 'us-states') {
+        if ((e.usRegionFilter || 'all') !== selectedUsRegion) return false;
+      } else {
+        if ((e.continentFilter || 'all') !== selectedContinent) return false;
+      }
+      return (e.timerMode || 'timed') === timer;
+    }).length;
 
   // Query strictly for this exact game type combination
+  const selectedScope: ContinentFilter | USRegionFilter =
+    selectedEdition === 'us-states' ? selectedUsRegion : selectedContinent;
+
   const entries = getFilteredLeaderboard(
+    selectedEdition,
     selectedMode,
-    selectedContinent,
+    selectedScope,
     selectedTimerMode,
     selectedCategory
   );
@@ -288,11 +327,20 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         {/* Collapsible Active Filter Summary Bar */}
         <div className="leaderboard-active-filter-strip">
           <div className="leaderboard-summary-chips" onClick={() => setIsFiltersOpen(!isFiltersOpen)}>
+            <span className="leaderboard-summary-chip edition">
+              {selectedEdition === 'us-states' ? '🇺🇸 US States' : '🌐 World'}
+            </span>
             <span className="leaderboard-summary-chip mode">
               {getModeIcon(selectedMode)} {getModeLabel(selectedMode)}
             </span>
             <span className="leaderboard-summary-chip scope">
-              {selectedContinent === 'all' ? '🌍 All World' : `📍 ${selectedContinent}`}
+              {selectedEdition === 'us-states'
+                ? selectedUsRegion === 'all'
+                  ? '🇺🇸 All 50 States'
+                  : `📍 ${selectedUsRegion}`
+                : selectedContinent === 'all'
+                ? '🌍 All World'
+                : `📍 ${selectedContinent}`}
             </span>
             <span className="leaderboard-summary-chip timer">
               {selectedTimerMode === 'timed' ? '⏱️ 10s Timed' : '🧘 Relaxed'}
@@ -303,7 +351,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             type="button"
             className={`leaderboard-filter-toggle-btn ${isFiltersOpen ? 'active' : ''}`}
             onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-            title={isFiltersOpen ? 'Close filters' : 'Change game mode or scope filters'}
+            title={isFiltersOpen ? 'Close filters' : 'Change edition, game mode or scope filters'}
             aria-expanded={isFiltersOpen}
           >
             <SlidersHorizontal size={12} />
@@ -315,7 +363,47 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         {/* Expandable Filter Drawer (Hidden after selection for clean screen) */}
         {isFiltersOpen && (
           <div className="leaderboard-filters-drawer fade-in">
-            {/* Row 1: Game Mode */}
+            {/* Row 1: Edition */}
+            <div className="leaderboard-filter-group">
+              <span className="leaderboard-filter-label">
+                <Globe2 size={11} /> Edition:
+              </span>
+              <div className="leaderboard-filter-pills">
+                {EDITION_OPTIONS.map((ed) => {
+                  const count = getEditionCount(ed.id);
+                  const isSelected = selectedEdition === ed.id;
+                  const isGreyedOut = count === 0 && !isSelected;
+
+                  return (
+                    <button
+                      key={ed.id}
+                      type="button"
+                      disabled={isGreyedOut}
+                      className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
+                        isGreyedOut ? 'empty-disabled' : ''
+                      }`}
+                      onClick={() => {
+                        if (!isGreyedOut) {
+                          setSelectedEdition(ed.id);
+                        }
+                      }}
+                      title={
+                        isGreyedOut
+                          ? `No records for ${ed.label}`
+                          : `${ed.label} (${count} records)`
+                      }
+                    >
+                      <span>{ed.icon}</span>
+                      <span>{ed.label}</span>
+                      {count > 0 && <span className="pill-count-badge">({count})</span>}
+                      {isSelected && <Check size={11} style={{ marginLeft: 3 }} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Row 2: Game Mode */}
             <div className="leaderboard-filter-group">
               <span className="leaderboard-filter-label">
                 <Layers size={11} /> Mode:
@@ -337,7 +425,6 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       onClick={() => {
                         if (!isGreyedOut) {
                           setSelectedMode(m.id);
-                          setIsFiltersOpen(false); // Auto-hide filters on selection
                         }
                       }}
                       title={
@@ -356,20 +443,23 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               </div>
             </div>
 
-            {/* Row 2: Scope / Continent */}
+            {/* Row 3: Scope / Region */}
             <div className="leaderboard-filter-group">
               <span className="leaderboard-filter-label">
-                <Compass size={11} /> Scope:
+                <Compass size={11} /> {selectedEdition === 'us-states' ? 'Region:' : 'Scope:'}
               </span>
               <div className="leaderboard-filter-pills">
-                {CONTINENT_FILTERS.map((cont) => {
-                  const count = getContinentCount(cont.id);
-                  const isSelected = selectedContinent === cont.id;
+                {(selectedEdition === 'us-states' ? US_REGION_FILTERS : CONTINENT_FILTERS).map((scopeItem) => {
+                  const count = getScopeCount(scopeItem.id);
+                  const isSelected =
+                    selectedEdition === 'us-states'
+                      ? selectedUsRegion === scopeItem.id
+                      : selectedContinent === scopeItem.id;
                   const isGreyedOut = count === 0 && !isSelected;
 
                   return (
                     <button
-                      key={cont.id}
+                      key={scopeItem.id}
                       type="button"
                       disabled={isGreyedOut}
                       className={`leaderboard-filter-pill ${isSelected ? 'active' : ''} ${
@@ -377,18 +467,22 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                       }`}
                       onClick={() => {
                         if (!isGreyedOut) {
-                          setSelectedContinent(cont.id);
-                          setIsFiltersOpen(false); // Auto-hide filters on selection
+                          if (selectedEdition === 'us-states') {
+                            setSelectedUsRegion(scopeItem.id as USRegionFilter);
+                          } else {
+                            setSelectedContinent(scopeItem.id as ContinentFilter);
+                          }
+                          setIsFiltersOpen(false); // Auto-hide filters on scope selection
                         }
                       }}
                       title={
                         isGreyedOut
-                          ? `No records for ${cont.label}`
-                          : `${cont.label} (${count} records)`
+                          ? `No records for ${scopeItem.label}`
+                          : `${scopeItem.label} (${count} records)`
                       }
                     >
-                      <span>{cont.icon}</span>
-                      <span>{cont.label}</span>
+                      <span>{scopeItem.icon}</span>
+                      <span>{scopeItem.label}</span>
                       {count > 0 && <span className="pill-count-badge">({count})</span>}
                       {isSelected && <Check size={11} style={{ marginLeft: 3 }} />}
                     </button>
@@ -397,7 +491,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               </div>
             </div>
 
-            {/* Row 3: Timer Mode */}
+            {/* Row 4: Timer Mode */}
             <div className="leaderboard-filter-group">
               <span className="leaderboard-filter-label">
                 <Clock size={11} /> Pacing:
@@ -481,8 +575,17 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
               <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)' }}>
                 No Records for This Combination Yet
               </div>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: '320px', margin: '0.3rem auto' }}>
-                Play a game in <strong>{getModeLabel(selectedMode)}</strong> ({selectedContinent === 'all' ? 'All World' : selectedContinent}, {selectedTimerMode === 'timed' ? '10s Timed' : 'Relaxed'}) and set the first record!
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: '340px', margin: '0.3rem auto' }}>
+                Play a game in <strong>{selectedEdition === 'us-states' ? 'US State Flags' : 'World Countries'}</strong> (
+                {getModeLabel(selectedMode)},{' '}
+                {selectedEdition === 'us-states'
+                  ? selectedUsRegion === 'all'
+                    ? 'All 50 States'
+                    : selectedUsRegion
+                  : selectedContinent === 'all'
+                  ? 'All World'
+                  : selectedContinent}
+                , {selectedTimerMode === 'timed' ? '10s Timed' : 'Relaxed'}) and set the first record!
               </p>
             </div>
           ) : (

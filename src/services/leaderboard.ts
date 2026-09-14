@@ -1,4 +1,4 @@
-import { GameMode, ContinentFilter, TimerMode } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode, GameEdition, USRegionFilter } from '../types/game';
 import {
   saveEntryToFirebase,
   fetchFirebaseLeaderboard,
@@ -15,8 +15,10 @@ export type LeaderboardCategory = 'fastest' | 'least-mistakes' | 'highest-streak
 export interface LeaderboardEntry {
   id: string;
   playerName: string;
+  edition?: GameEdition;
   gameMode: GameMode;
   continentFilter: ContinentFilter;
+  usRegionFilter?: USRegionFilter;
   timerMode: TimerMode;
   totalCountries: number;
   conqueredCount: number;
@@ -41,9 +43,24 @@ const LEADERBOARD_KEY = 'guess_the_country_leaderboard_v3';
 const LAST_PLAYER_NAME_KEY = 'guess_the_country_last_player_name';
 
 function normalizeEntry(e: LeaderboardEntry): LeaderboardEntry {
+  const isUsStates =
+    e.edition === 'us-states' ||
+    Boolean(e.usRegionFilter) ||
+    e.playerName?.includes('US State') ||
+    (['Northeast', 'Midwest', 'South', 'West'].includes(e.continentFilter as any));
+
+  const edition: GameEdition = isUsStates ? 'us-states' : 'world';
+  const usRegionFilter: USRegionFilter | undefined = isUsStates
+    ? (e.usRegionFilter || (['Northeast', 'Midwest', 'South', 'West'].includes(e.continentFilter as any) ? (e.continentFilter as any) : 'all'))
+    : undefined;
+  const continentFilter: ContinentFilter = isUsStates ? 'all' : (e.continentFilter || 'all');
+
   return {
     ...e,
     playerName: sanitizePlayerName(e.playerName),
+    edition,
+    continentFilter,
+    usRegionFilter,
     timerMode: e.timerMode || 'timed',
   };
 }
@@ -181,18 +198,31 @@ export function calculateRankBadge(mistakes: number, accuracy: number): 'S+' | '
 }
 
 export function addLeaderboardEntry(
-  entryData: Omit<LeaderboardEntry, 'id' | 'date' | 'rankBadge'>
+  entryData: Omit<LeaderboardEntry, 'id' | 'date' | 'rankBadge'> & {
+    edition?: GameEdition;
+    usRegionFilter?: USRegionFilter;
+  }
 ): LeaderboardPlacementResult {
   const currentList = loadLeaderboard();
   const trimmedName = sanitizePlayerName(entryData.playerName);
   setLastPlayerName(trimmedName);
   const targetTimerMode = entryData.timerMode || 'timed';
+  const targetEdition: GameEdition = entryData.edition === 'us-states' ? 'us-states' : 'world';
+  const targetUsRegion: USRegionFilter = targetEdition === 'us-states' ? (entryData.usRegionFilter || 'all') : 'all';
+  const targetContinent: ContinentFilter = targetEdition === 'world' ? (entryData.continentFilter || 'all') : 'all';
 
   const existingDuplicate = currentList.find((e) => {
     const isSamePlayer = e.playerName.trim().toLowerCase() === trimmedName.toLowerCase();
+    const eEdition = e.edition || 'world';
+    const isSameScope =
+      targetEdition === 'us-states'
+        ? (e.usRegionFilter || 'all') === targetUsRegion
+        : (e.continentFilter || 'all') === targetContinent;
+
     const isSameGame =
+      eEdition === targetEdition &&
       e.gameMode === entryData.gameMode &&
-      e.continentFilter === entryData.continentFilter &&
+      isSameScope &&
       (e.timerMode || 'timed') === targetTimerMode &&
       e.timeElapsedSeconds === entryData.timeElapsedSeconds &&
       e.mistakesCount === entryData.mistakesCount &&
@@ -207,6 +237,9 @@ export function addLeaderboardEntry(
   const entryToRank: LeaderboardEntry = existingDuplicate || {
     ...entryData,
     playerName: trimmedName,
+    edition: targetEdition,
+    continentFilter: targetContinent,
+    usRegionFilter: targetEdition === 'us-states' ? targetUsRegion : undefined,
     timerMode: targetTimerMode,
     id: safeId('entry'),
     date: new Date().toISOString(),
@@ -220,12 +253,16 @@ export function addLeaderboardEntry(
     pushGlobalLeaderboard(entryToRank, updatedList);
   }
 
-  const sameScopeList = updatedList.filter(
-    (e) =>
-      e.gameMode === entryData.gameMode &&
-      e.continentFilter === entryData.continentFilter &&
-      (e.timerMode || 'timed') === targetTimerMode
-  );
+  const sameScopeList = updatedList.filter((e) => {
+    const eEdition = e.edition || 'world';
+    if (eEdition !== targetEdition) return false;
+    if (e.gameMode !== entryData.gameMode) return false;
+    if ((e.timerMode || 'timed') !== targetTimerMode) return false;
+    if (targetEdition === 'us-states') {
+      return (e.usRegionFilter || 'all') === targetUsRegion;
+    }
+    return (e.continentFilter || 'all') === targetContinent;
+  });
 
   const fastestSorted = [...sameScopeList].sort((a, b) => {
     if (a.timeElapsedSeconds !== b.timeElapsedSeconds) return a.timeElapsedSeconds - b.timeElapsedSeconds;
@@ -258,22 +295,49 @@ export function addLeaderboardEntry(
 }
 
 /**
- * Returns strictly the leaderboard for a single game combination (gameMode + continent + timerMode).
+ * Returns strictly the leaderboard for a game combination (edition + gameMode + scopeFilter + timerMode).
  */
 export function getFilteredLeaderboard(
-  gameMode: GameMode,
-  continentFilter: ContinentFilter,
-  timerMode: TimerMode,
-  category: LeaderboardCategory = 'least-mistakes'
+  editionOrMode: GameEdition | GameMode,
+  modeOrContinent: GameMode | ContinentFilter,
+  scopeOrTimer: ContinentFilter | USRegionFilter | TimerMode,
+  timerOrCategory?: TimerMode | LeaderboardCategory,
+  optionalCategory: LeaderboardCategory = 'least-mistakes'
 ): LeaderboardEntry[] {
+  let edition: GameEdition = 'world';
+  let gameMode: GameMode = 'globe';
+  let scopeFilter: ContinentFilter | USRegionFilter = 'all';
+  let timerMode: TimerMode = 'timed';
+  let category: LeaderboardCategory = 'least-mistakes';
+
+  // Check if called with (edition, gameMode, scope, timerMode, category)
+  if (editionOrMode === 'world' || editionOrMode === 'us-states') {
+    edition = editionOrMode;
+    gameMode = modeOrContinent as GameMode;
+    scopeFilter = scopeOrTimer as ContinentFilter | USRegionFilter;
+    timerMode = (timerOrCategory as TimerMode) || 'timed';
+    category = optionalCategory;
+  } else {
+    // Legacy call: (gameMode, continentFilter, timerMode, category)
+    gameMode = editionOrMode as GameMode;
+    scopeFilter = modeOrContinent as ContinentFilter;
+    timerMode = (scopeOrTimer as TimerMode) || 'timed';
+    category = (timerOrCategory as LeaderboardCategory) || 'least-mistakes';
+  }
+
   const allEntries = loadLeaderboard();
 
-  const filtered = allEntries.filter(
-    (e) =>
-      e.gameMode === gameMode &&
-      e.continentFilter === continentFilter &&
-      (e.timerMode || 'timed') === timerMode
-  );
+  const filtered = allEntries.filter((e) => {
+    const eEdition = e.edition || 'world';
+    if (eEdition !== edition) return false;
+    if (e.gameMode !== gameMode) return false;
+    if ((e.timerMode || 'timed') !== timerMode) return false;
+
+    if (edition === 'us-states') {
+      return (e.usRegionFilter || 'all') === scopeFilter;
+    }
+    return (e.continentFilter || 'all') === scopeFilter;
+  });
 
   const sorted = [...filtered].sort((a, b) => {
     if (category === 'fastest') {

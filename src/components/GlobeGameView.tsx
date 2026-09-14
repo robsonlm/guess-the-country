@@ -24,6 +24,7 @@ import {
   getCountryCoordinates,
   getCountryTargetAltitude,
   resolveFeatureAlpha2,
+  KNOWN_STATE_CENTROIDS,
   GeoFeature,
 } from '../services/countriesGeo';
 import { getEarthTextureUrls, getFlagUrl } from '../services/countriesApi';
@@ -241,11 +242,20 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     const conqueredSet = new Set(conqueredAlphas.map((a) => a.toUpperCase()));
     const hoveredAlphaUpper = hoveredAlpha ? hoveredAlpha.toUpperCase() : null;
 
+    const getFeatureAlpha = (d: any): string => {
+      if (!d) return '';
+      let a = (d.alpha2 || d.properties?.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+      if (a && !a.startsWith('US-') && a.length === 2 && KNOWN_STATE_CENTROIDS[`US-${a}`]) {
+        a = `US-${a}`;
+      }
+      return a;
+    };
+
     // Polygons dataset
     globe
       .polygonsData(geoFeatures)
       .polygonCapColor((d: any) => {
-        const a = (d.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+        const a = getFeatureAlpha(d);
         if (a === activeTargetAlpha) {
           return isExploreMode ? 'rgba(255, 183, 3, 0.92)' : 'rgba(247, 127, 0, 0.88)';
         }
@@ -261,7 +271,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         return 'rgba(25, 45, 75, 0.42)'; // Default neutral territory
       })
       .polygonSideColor((d: any) => {
-        const a = (d.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+        const a = getFeatureAlpha(d);
         if (a === activeTargetAlpha) return 'rgba(247, 127, 0, 0.45)';
         if (isExploreMode && hoveredAlphaUpper && a === hoveredAlphaUpper) return 'rgba(56, 189, 248, 0.35)';
         if (finalTargetAlphas.has(a)) return 'rgba(56, 189, 248, 0.40)';
@@ -269,7 +279,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         return 'rgba(20, 35, 60, 0.12)';
       })
       .polygonStrokeColor((d: any) => {
-        const a = (d.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+        const a = getFeatureAlpha(d);
         if (a === activeTargetAlpha) return '#ffffff';
         if (isExploreMode && hoveredAlphaUpper && a === hoveredAlphaUpper) return '#7dd3fc';
         if (finalTargetAlphas.has(a)) return '#38bdf8';
@@ -277,7 +287,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
         return 'rgba(72, 202, 228, 0.3)';
       })
       .polygonAltitude((d: any) => {
-        const a = (d.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+        const a = getFeatureAlpha(d);
         if (a === activeTargetAlpha) return 0.07;
         if (isExploreMode && hoveredAlphaUpper && a === hoveredAlphaUpper) return 0.035;
         if (finalTargetAlphas.has(a)) return 0.04;
@@ -425,19 +435,26 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     if (!globe) return;
 
     if (isExploreMode) {
+      const getFeatureAlpha = (d: any): string => {
+        if (!d) return '';
+        let a = (d.alpha2 || d.properties?.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
+        if (a && !a.startsWith('US-') && a.length === 2 && KNOWN_STATE_CENTROIDS[`US-${a}`]) {
+          a = `US-${a}`;
+        }
+        return a;
+      };
+
       globe.onPolygonHover((polygon: any) => {
         if (globeContainerRef.current) {
           globeContainerRef.current.style.cursor = polygon ? 'pointer' : 'grab';
         }
-        const alpha = polygon
-          ? (polygon.alpha2 || resolveFeatureAlpha2(polygon.properties) || '').toUpperCase()
-          : null;
+        const alpha = polygon ? getFeatureAlpha(polygon) : null;
         setHoveredAlpha(alpha);
       });
 
       globe.onPolygonClick((polygon: any) => {
         if (!polygon) return;
-        const alpha = (polygon.alpha2 || resolveFeatureAlpha2(polygon.properties) || '').toUpperCase();
+        const alpha = getFeatureAlpha(polygon);
         if (!alpha) return;
 
         const found = allCountries?.find((c) => c.alpha2.toUpperCase() === alpha);

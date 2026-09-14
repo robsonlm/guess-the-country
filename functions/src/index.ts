@@ -17,6 +17,8 @@ const ALLOWED_CONTINENTS = new Set([
   "Europe",
   "Oceania",
 ]);
+const ALLOWED_EDITIONS = new Set(["world", "us-states"]);
+const ALLOWED_US_REGIONS = new Set(["all", "Northeast", "Midwest", "South", "West"]);
 const ALLOWED_TIMER_MODES = new Set(["timed", "relaxed", "per-question", "blitz"]);
 const ALLOWED_RANK_BADGES = new Set(["S+", "S", "A", "B", "C"]);
 
@@ -88,6 +90,22 @@ function validateEntry(raw: unknown): Record<string, unknown> {
   if (!ALLOWED_TIMER_MODES.has(timerMode)) {
     throw new functions.https.HttpsError("invalid-argument", "Unknown timerMode.");
   }
+  let edition = "world";
+  if (entry.edition !== undefined) {
+    const rawEdition = asString(entry.edition, 32, "edition");
+    if (!ALLOWED_EDITIONS.has(rawEdition)) {
+      throw new functions.https.HttpsError("invalid-argument", "Unknown edition.");
+    }
+    edition = rawEdition;
+  }
+  let usRegionFilter: string | undefined = undefined;
+  if (entry.usRegionFilter !== undefined) {
+    const rawRegion = asString(entry.usRegionFilter, 32, "usRegionFilter");
+    if (!ALLOWED_US_REGIONS.has(rawRegion)) {
+      throw new functions.https.HttpsError("invalid-argument", "Unknown usRegionFilter.");
+    }
+    usRegionFilter = rawRegion;
+  }
   const totalCountries = asNumber(entry.totalCountries, "totalCountries", 1, 1000);
   const conqueredCount = asNumber(entry.conqueredCount, "conqueredCount", 1, totalCountries);
   const mistakesCount = asNumber(entry.mistakesCount, "mistakesCount", 0, totalCountries);
@@ -103,8 +121,10 @@ function validateEntry(raw: unknown): Record<string, unknown> {
   return {
     id,
     playerName,
+    edition,
     gameMode,
     continentFilter,
+    ...(usRegionFilter ? { usRegionFilter } : {}),
     timerMode,
     totalCountries,
     conqueredCount,

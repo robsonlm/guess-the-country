@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, User } from 'lucide-react';
-import { GameMode, ContinentFilter, GameScore, TimerMode, GameEdition } from '../types/game';
+import { GameMode, ContinentFilter, GameScore, TimerMode, GameEdition, USRegionFilter } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
@@ -15,6 +15,7 @@ interface VictoryModalProps {
   timeElapsedSeconds?: number;
   gameMode?: GameMode;
   continentFilter?: ContinentFilter;
+  usRegionFilter?: USRegionFilter;
   timerMode?: TimerMode;
   playerName?: string;
   edition?: GameEdition;
@@ -29,6 +30,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   timeElapsedSeconds = 0,
   gameMode = 'flag-to-name',
   continentFilter = 'all',
+  usRegionFilter = 'all',
   timerMode = 'timed',
   playerName: initialPlayerName,
   edition = 'world',
@@ -53,8 +55,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
     const result = addLeaderboardEntry({
       playerName: playerName.trim() || (isUsStatesEdition ? 'US State Champion' : 'World Master'),
+      edition,
       gameMode,
       continentFilter,
+      usRegionFilter: isUsStatesEdition ? (usRegionFilter || 'all') : undefined,
       timerMode,
       totalCountries,
       conqueredCount: score.right,
@@ -68,7 +72,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     if (onSubmitSuccess) {
       onSubmitSuccess();
     }
-  }, [playerName, gameMode, continentFilter, timerMode, totalCountries, score.right, score.wrong, percentageNum, timeElapsedSeconds, score.bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
+  }, [playerName, gameMode, continentFilter, usRegionFilter, timerMode, totalCountries, score.right, score.wrong, percentageNum, timeElapsedSeconds, score.bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
 
   return (
     <div className="modal-overlay fade-in" role="dialog" aria-modal="true" style={{ zIndex: 100 }}>

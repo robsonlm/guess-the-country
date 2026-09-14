@@ -8,7 +8,7 @@ import {
   CheckCircle2,
   User,
 } from 'lucide-react';
-import { ContinentFilter, TimerMode, GameEdition } from '../types/game';
+import { ContinentFilter, TimerMode, GameEdition, USRegionFilter } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
@@ -25,6 +25,7 @@ interface GlobeVictoryModalProps {
   timeElapsedSeconds?: number;
   bestStreak?: number;
   continentFilter?: ContinentFilter;
+  usRegionFilter?: USRegionFilter;
   timerMode?: TimerMode;
   playerName?: string;
   edition?: GameEdition;
@@ -42,6 +43,7 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
   timeElapsedSeconds = 0,
   bestStreak = 0,
   continentFilter = 'all',
+  usRegionFilter = 'all',
   timerMode = 'timed',
   playerName: initialPlayerName,
   edition = 'world',
@@ -103,8 +105,10 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
 
     const result = addLeaderboardEntry({
       playerName: playerName.trim() || (isUsStatesEdition ? 'US State Champion' : 'Globe Master'),
+      edition,
       gameMode: 'globe',
       continentFilter,
+      usRegionFilter: isUsStatesEdition ? (usRegionFilter || 'all') : undefined,
       timerMode,
       totalCountries,
       conqueredCount,
@@ -118,7 +122,7 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
     if (onSubmitSuccess) {
       onSubmitSuccess();
     }
-  }, [isOpen, playerName, continentFilter, timerMode, totalCountries, conqueredCount, mistakesCount, accuracy, timeElapsedSeconds, bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
+  }, [isOpen, playerName, continentFilter, usRegionFilter, timerMode, totalCountries, conqueredCount, mistakesCount, accuracy, timeElapsedSeconds, bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
 
   if (!isOpen) return null;
 

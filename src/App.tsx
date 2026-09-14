@@ -372,6 +372,7 @@ export function App() {
           timeElapsedSeconds={gameElapsedSeconds}
           bestStreak={score.bestStreak}
           continentFilter={settings.continentFilter}
+          usRegionFilter={settings.usRegionFilter}
           timerMode={settings.timerMode}
           playerName={isLoggedIn ? authPlayerName : currentPlayerName}
           onPlayAgain={() => {
@@ -392,6 +393,7 @@ export function App() {
           timeElapsedSeconds={gameElapsedSeconds}
           gameMode={settings.gameMode}
           continentFilter={settings.continentFilter}
+          usRegionFilter={settings.usRegionFilter}
           timerMode={settings.timerMode}
           playerName={isLoggedIn ? authPlayerName : currentPlayerName}
           onPlayAgain={resetScore}
@@ -401,12 +403,14 @@ export function App() {
 
       {/* Global Hall of Fame & Leaderboard Modal */}
       <LeaderboardModal
-        key={`leaderboard-${isLeaderboardOpen}-${settings.gameMode}-${settings.continentFilter}-${settings.timerMode}`}
+        key={`leaderboard-${isLeaderboardOpen}-${settings.edition}-${settings.gameMode}-${settings.continentFilter}-${settings.usRegionFilter}-${settings.timerMode}`}
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
         recentSubmittedEntryId={recentLeaderboardEntryId}
+        defaultEdition={settings.edition}
         defaultGameMode={settings.gameMode}
         defaultContinent={settings.continentFilter}
+        defaultUsRegion={settings.usRegionFilter}
         defaultTimerMode={settings.timerMode}
         isAdmin={isAdmin}
       />

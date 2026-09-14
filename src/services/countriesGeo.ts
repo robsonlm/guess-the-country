@@ -347,28 +347,40 @@ function computePolygonCentroid(geometry: any): { lat: number; lng: number } {
 }
 
 export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
+  if (!props) return '';
   if (props.alpha2) {
-    return props.alpha2.toUpperCase();
+    const a = props.alpha2.toUpperCase();
+    return a.length === 2 && KNOWN_STATE_CENTROIDS[`US-${a}`] ? `US-${a}` : a;
   }
   if (props.code && props.code.length === 2) {
     return `US-${props.code.toUpperCase()}`;
   }
 
+  // Handle US State codes like 'US-AL'
+  if (props.ISO_A2 && props.ISO_A2 !== '-99') {
+    const iso2 = props.ISO_A2.toUpperCase();
+    if (iso2.startsWith('US-') || iso2.length === 2) {
+      return iso2;
+    }
+  }
+
+  if (props.ISO_A2_EH && props.ISO_A2_EH !== '-99') {
+    const iso2Eh = props.ISO_A2_EH.toUpperCase();
+    if (iso2Eh.startsWith('US-') || iso2Eh.length === 2) {
+      return iso2Eh;
+    }
+  }
+
+  if (props.WB_A2 && props.WB_A2 !== '-99') {
+    const wb2 = props.WB_A2.toUpperCase();
+    if (wb2.startsWith('US-') || wb2.length === 2) {
+      return wb2;
+    }
+  }
+
   const name = props.NAME || props.ADMIN || '';
   if (SPECIAL_CODE_MAP[name]) {
     return SPECIAL_CODE_MAP[name];
-  }
-
-  if (props.ISO_A2 && props.ISO_A2 !== '-99' && props.ISO_A2.length === 2) {
-    return props.ISO_A2.toUpperCase();
-  }
-
-  if (props.ISO_A2_EH && props.ISO_A2_EH !== '-99' && props.ISO_A2_EH.length === 2) {
-    return props.ISO_A2_EH.toUpperCase();
-  }
-
-  if (props.WB_A2 && props.WB_A2 !== '-99' && props.WB_A2.length === 2) {
-    return props.WB_A2.toUpperCase();
   }
 
   const iso3 = props.ISO_A3 || props.ADM0_A3 || '';
@@ -377,7 +389,11 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
   }
 
   if (props.POSTAL && props.POSTAL.length === 2 && props.POSTAL !== '-99') {
-    return props.POSTAL.toUpperCase();
+    const postal = props.POSTAL.toUpperCase();
+    if (KNOWN_STATE_CENTROIDS[`US-${postal}`]) {
+      return `US-${postal}`;
+    }
+    return postal;
   }
 
   return '';
@@ -397,8 +413,15 @@ export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<G
         const geojson = await res.json();
         if (geojson && Array.isArray(geojson.features)) {
           const stateFeatures: GeoFeature[] = geojson.features.map((f: any) => {
-            const alpha2 = resolveFeatureAlpha2(f.properties) || f.properties?.alpha2 || (f.properties?.code ? `US-${f.properties.code}` : '');
-            const centroid = KNOWN_STATE_CENTROIDS[alpha2] || computePolygonCentroid(f.geometry);
+            let alpha2 =
+              (f.alpha2 ? String(f.alpha2).toUpperCase() : '') ||
+              resolveFeatureAlpha2(f.properties) ||
+              (f.properties?.alpha2 ? String(f.properties.alpha2).toUpperCase() : '') ||
+              (f.properties?.code ? `US-${f.properties.code.toUpperCase()}` : '');
+            if (alpha2 && !alpha2.startsWith('US-') && alpha2.length === 2 && KNOWN_STATE_CENTROIDS[`US-${alpha2}`]) {
+              alpha2 = `US-${alpha2}`;
+            }
+            const centroid = (alpha2 ? KNOWN_STATE_CENTROIDS[alpha2] : null) || computePolygonCentroid(f.geometry);
             const feature: GeoFeature = {
               ...f,
               alpha2,
@@ -409,8 +432,21 @@ export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<G
             }
             return feature;
           });
-          cachedStateFeatures = stateFeatures;
-          return stateFeatures;
+
+          // Also load base world features so non-US countries still render neutral polygon borders on the globe
+          let combined = stateFeatures;
+          try {
+            const worldFeatures = await loadGeoFeatures('world');
+            const nonUsWorldFeatures = worldFeatures.filter(
+              (wf) => wf.alpha2 !== 'US' && resolveFeatureAlpha2(wf.properties) !== 'US'
+            );
+            combined = [...nonUsWorldFeatures, ...stateFeatures];
+          } catch {
+            // Keep stateFeatures if world fetch fails
+          }
+
+          cachedStateFeatures = combined;
+          return combined;
         }
       }
     } catch (err) {
