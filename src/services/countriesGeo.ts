@@ -91,12 +91,16 @@ const SPECIAL_CODE_MAP: Record<string, string> = {
   Somaliland: 'SO',
   Kosovo: 'XK',
   Taiwan: 'TW',
+  Antarctica: 'AQ',
+  'Fr. S. Antarctic Lands': 'TF',
+  'S. Geo. and the Is.': 'GS',
 };
 
 // Known ISO-3 to ISO-2 mapping fallback
 const ISO3_TO_ISO2: Record<string, string> = {
   AFG: 'AF', ALB: 'AL', DZA: 'DZ', AND: 'AD', AGO: 'AO', ARG: 'AR', ARM: 'AM', AUS: 'AU',
   AUT: 'AT', AZE: 'AZ', BHS: 'BS', BHR: 'BH', BGD: 'BD', BRB: 'BB', BLR: 'BY', BEL: 'BE',
+  ATA: 'AQ',
   BLZ: 'BZ', BEN: 'BJ', BTN: 'BT', BOL: 'BO', BIH: 'BA', BWA: 'BW', BRA: 'BR', BRN: 'BN',
   BGR: 'BG', BFA: 'BF', BDI: 'BI', KHM: 'KH', CMR: 'CM', CAN: 'CA', CPV: 'CV', CAF: 'CF',
   TCD: 'TD', CHL: 'CL', CHN: 'CN', COL: 'CO', COM: 'KM', COG: 'CG', COD: 'CD', CRI: 'CR',
@@ -128,6 +132,7 @@ export const KNOWN_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   AD: { lat: 42.5063, lng: 1.5218 },
   AO: { lat: -11.2027, lng: 17.8739 },
   AG: { lat: 17.0608, lng: -61.7964 },
+  AQ: { lat: -82.8628, lng: 135.0000 },
   AR: { lat: -38.4161, lng: -63.6167 },
   AM: { lat: 40.0691, lng: 45.0382 },
   AU: { lat: -25.2744, lng: 133.7751 },
@@ -358,6 +363,8 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
   // Handle US State codes like 'US-AL' or country codes like 'FR', 'CA'
   if (props.ISO_A2 && props.ISO_A2 !== '-99') {
     const iso2 = props.ISO_A2.toUpperCase();
+    if (iso2 === 'CN-TW') return 'TW';
+    if (iso2 === 'KO') return 'XK';
     if (iso2.startsWith('US-') || iso2.length === 2) {
       return iso2;
     }

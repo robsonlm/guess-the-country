@@ -108,7 +108,11 @@ export const ProgressiveFlag: React.FC<ProgressiveFlagProps> = ({
 
     highImg.onerror = () => {
       if (!isSubscribed || activeCodeRef.current !== code) return;
-      // Fallback: stay with low-res or external CDN
+      if (code && !code.startsWith('us-') && !highImg.src.includes('flagcdn.com')) {
+        highImg.src = `https://flagcdn.com/w320/${code.toLowerCase()}.png`;
+        return;
+      }
+      // Fallback: stay with low-res or notify caller
       if (onError) onError();
     };
 
@@ -133,7 +137,13 @@ export const ProgressiveFlag: React.FC<ProgressiveFlagProps> = ({
       loading={loading}
       decoding="async"
       onLoad={onLoad}
-      onError={onError}
+      onError={() => {
+        if (code && !code.startsWith('us-') && !currentSrc.includes('flagcdn.com')) {
+          setCurrentSrc(`https://flagcdn.com/w320/${code.toLowerCase()}.png`);
+        } else if (onError) {
+          onError();
+        }
+      }}
     />
   );
 };
