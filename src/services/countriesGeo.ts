@@ -27,6 +27,7 @@ export interface GeoFeature {
 
 let cachedFeatures: GeoFeature[] | null = null;
 let cachedStateFeatures: GeoFeature[] | null = null;
+let cachedBrStateFeatures: GeoFeature[] | null = null;
 const alpha2ToFeatureMap = new Map<string, GeoFeature>();
 
 export const KNOWN_STATE_CENTROIDS: Record<string, { lat: number; lng: number }> = {
@@ -400,30 +401,40 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
   if (props.alpha2) {
     return props.alpha2.toUpperCase();
   }
+  if (props.sigla && props.sigla.length === 2) {
+    return `BR-${props.sigla.toUpperCase()}`;
+  }
   if (props.code && props.code.length === 2) {
-    return `US-${props.code.toUpperCase()}`;
+    const upperCode = props.code.toUpperCase();
+    if (KNOWN_BR_STATE_CENTROIDS[`BR-${upperCode}`]) {
+      return `BR-${upperCode}`;
+    }
+    if (KNOWN_STATE_CENTROIDS[`US-${upperCode}`]) {
+      return `US-${upperCode}`;
+    }
+    return upperCode;
   }
 
-  // Handle US State codes like 'US-AL' or country codes like 'FR', 'CA'
+  // Handle US State codes like 'US-AL', BR State codes like 'BR-SP', or country codes like 'FR', 'CA'
   if (props.ISO_A2 && props.ISO_A2 !== '-99') {
     const iso2 = props.ISO_A2.toUpperCase();
     if (iso2 === 'CN-TW') return 'TW';
     if (iso2 === 'KO') return 'XK';
-    if (iso2.startsWith('US-') || iso2.length === 2) {
+    if (iso2.startsWith('US-') || iso2.startsWith('BR-') || iso2.length === 2) {
       return iso2;
     }
   }
 
   if (props.ISO_A2_EH && props.ISO_A2_EH !== '-99') {
     const iso2Eh = props.ISO_A2_EH.toUpperCase();
-    if (iso2Eh.startsWith('US-') || iso2Eh.length === 2) {
+    if (iso2Eh.startsWith('US-') || iso2Eh.startsWith('BR-') || iso2Eh.length === 2) {
       return iso2Eh;
     }
   }
 
   if (props.WB_A2 && props.WB_A2 !== '-99') {
     const wb2 = props.WB_A2.toUpperCase();
-    if (wb2.startsWith('US-') || wb2.length === 2) {
+    if (wb2.startsWith('US-') || wb2.startsWith('BR-') || wb2.length === 2) {
       return wb2;
     }
   }
@@ -438,9 +449,12 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
     return ISO3_TO_ISO2[iso3];
   }
 
-  // Fallback for US State features that only contain a POSTAL abbreviation (e.g. { POSTAL: 'TX' })
+  // Fallback for US / BR State features that only contain a POSTAL abbreviation (e.g. { POSTAL: 'TX' } or { POSTAL: 'SP' })
   if (props.POSTAL && props.POSTAL.length === 2 && props.POSTAL !== '-99') {
     const postal = props.POSTAL.toUpperCase();
+    if (KNOWN_BR_STATE_CENTROIDS[`BR-${postal}`]) {
+      return `BR-${postal}`;
+    }
     if (KNOWN_STATE_CENTROIDS[`US-${postal}`]) {
       return `US-${postal}`;
     }
@@ -452,21 +466,53 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
 
 export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<GeoFeature[]> {
   if (edition === 'br-states') {
+    if (cachedBrStateFeatures && cachedBrStateFeatures.length > 0) {
+      return cachedBrStateFeatures;
+    }
+
     try {
+      const base = import.meta.env.BASE_URL || '/';
+      const cleanBase = base.endsWith('/') ? base : `${base}/`;
       let geojson: any = null;
-      for (const url of BR_STATES_GEOJSON_URLS) {
+
+      // 1. Try local bundled GeoJSON first
+      try {
+        const res = await fetch(`${cleanBase}br_states.geojson`);
+        if (res.ok) {
+          geojson = await res.json();
+        }
+      } catch {
+        // Try root path fallback
+      }
+
+      // 2. Fallback to root path if base path failed
+      if (!geojson || !Array.isArray(geojson.features)) {
         try {
-          const res = await fetch(url);
+          const res = await fetch('/br_states.geojson');
           if (res.ok) {
-            const parsed = await res.json();
-            const features = Array.isArray(parsed) ? parsed : parsed?.features;
-            if (Array.isArray(features) && features.length > 0) {
-              geojson = { features };
-              break;
-            }
+            geojson = await res.json();
           }
         } catch {
-          // try next mirror
+          // Try CDN mirrors
+        }
+      }
+
+      // 3. Fallback to CDN URLs if local file unavailable
+      if (!geojson || !Array.isArray(geojson.features)) {
+        for (const url of BR_STATES_GEOJSON_URLS) {
+          try {
+            const res = await fetch(url);
+            if (res.ok) {
+              const parsed = await res.json();
+              const features = Array.isArray(parsed) ? parsed : parsed?.features;
+              if (Array.isArray(features) && features.length > 0) {
+                geojson = { features };
+                break;
+              }
+            }
+          } catch {
+            // try next mirror
+          }
         }
       }
 
@@ -493,6 +539,13 @@ export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<G
               ufCode = String(f.id).padStart(2, '0').toUpperCase();
             }
 
+            if (!ufCode && props.ISO_A2 && props.ISO_A2.startsWith('BR-')) {
+              ufCode = props.ISO_A2.slice(3).toUpperCase();
+            }
+            if (!ufCode && props.alpha2 && props.alpha2.startsWith('BR-')) {
+              ufCode = props.alpha2.slice(3).toUpperCase();
+            }
+
             if (!ufCode) return null;
             const alpha2 = `BR-${ufCode}`;
             const centroid =
@@ -503,41 +556,39 @@ export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<G
               centroid,
               isState: true,
             };
+            if (alpha2) {
+              alpha2ToFeatureMap.set(alpha2, feature);
+            }
             return feature;
           })
           .filter((x: GeoFeature | null): x is GeoFeature => x !== null);
 
         if (stateFeatures.length > 0) {
-          return stateFeatures;
+          // Also load base world features so non-Brazil countries still render neutral polygon borders on the globe
+          let combined = stateFeatures;
+          try {
+            const worldFeatures = await loadGeoFeatures('world');
+            const nonBrWorldFeatures = worldFeatures
+              .filter(
+                (wf) => wf.alpha2 !== 'BR' && resolveFeatureAlpha2(wf.properties) !== 'BR'
+              )
+              .map((wf) => ({
+                ...wf,
+                isState: false,
+              }));
+            combined = [...nonBrWorldFeatures, ...stateFeatures];
+          } catch {
+            // Keep stateFeatures if world fetch fails
+          }
+
+          cachedBrStateFeatures = combined;
+          return combined;
         }
       }
     } catch (err) {
       console.warn('Failed to load br_states.geojson:', err);
     }
-    // Graceful degradation: render point markers from bundled centroids only
-    const fallbackFeatures: GeoFeature[] = Object.entries(KNOWN_BR_STATE_CENTROIDS).map(
-      ([alpha2, coords]) => {
-        const circleCoords: [number, number][] = [];
-        const radiusDeg = 0.55;
-        const segments = 14;
-        for (let i = 0; i <= segments; i++) {
-          const angle = (i * 2 * Math.PI) / segments;
-          const dLat = radiusDeg * Math.cos(angle);
-          const dLng =
-            (radiusDeg * Math.sin(angle)) / Math.max(0.2, Math.cos((coords.lat * Math.PI) / 180));
-          circleCoords.push([coords.lng + dLng, coords.lat + dLat]);
-        }
-        return {
-          type: 'Feature',
-          properties: { NAME: alpha2, SIGLA_UF: alpha2.slice(3) },
-          geometry: { type: 'Polygon', coordinates: [circleCoords] },
-          alpha2,
-          centroid: coords,
-          isState: true,
-        } as GeoFeature;
-      }
-    );
-    return fallbackFeatures;
+    return [];
   }
 
   if (edition === 'us-states') {
