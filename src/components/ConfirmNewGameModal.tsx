@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { AlertTriangle, RotateCcw, X } from 'lucide-react';
 
 interface ConfirmNewGameModalProps {
   isOpen: boolean;
@@ -38,9 +38,19 @@ export const ConfirmNewGameModal: React.FC<ConfirmNewGameModalProps> = ({
           backdropFilter: 'blur(20px)',
           border: '1px solid rgba(239, 68, 68, 0.45)',
           boxShadow: '0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(239, 68, 68, 0.15)',
+          position: 'relative',
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        <button
+          type="button"
+          className="modal-close-btn"
+          onClick={onCancel}
+          title="Close dialog"
+          aria-label="Close dialog"
+        >
+          <X size={16} />
+        </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.9rem' }}>
           <div
             style={{

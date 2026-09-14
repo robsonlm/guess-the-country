@@ -35,6 +35,7 @@ export function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authPromptMessage, setAuthPromptMessage] = useState<string | undefined>(undefined);
   const [recentLeaderboardEntryId, setRecentLeaderboardEntryId] = useState<string | null>(null);
+  const [isCardsVictoryDismissed, setIsCardsVictoryDismissed] = useState(false);
   const {
     isLoggedIn,
     playerName: authPlayerName,
@@ -385,7 +386,7 @@ export function App() {
       )}
 
       {/* Victory Modal when all flags are conquered (Cards Mode) */}
-      {isGameComplete && settings.gameMode !== 'globe' && (
+      {isGameComplete && settings.gameMode !== 'globe' && !isCardsVictoryDismissed && (
         <VictoryModal
           edition={settings.edition}
           score={score}
@@ -396,7 +397,11 @@ export function App() {
           usRegionFilter={settings.usRegionFilter}
           timerMode={settings.timerMode}
           playerName={isLoggedIn ? authPlayerName : currentPlayerName}
-          onPlayAgain={resetScore}
+          onPlayAgain={() => {
+            setIsCardsVictoryDismissed(false);
+            resetScore();
+          }}
+          onClose={() => setIsCardsVictoryDismissed(true)}
           onOpenLeaderboard={handleOpenLeaderboard}
         />
       )}
@@ -470,7 +475,7 @@ export function App() {
           openStartModal();
         }}
         onClose={closeStartModal}
-        allowClose={isGameStarted}
+        allowClose={true}
       />
 
       {/* Player Authentication & Registration Modal */}

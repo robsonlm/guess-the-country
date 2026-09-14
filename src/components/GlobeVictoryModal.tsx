@@ -7,6 +7,7 @@ import {
   Trophy,
   CheckCircle2,
   User,
+  X,
 } from 'lucide-react';
 import { ContinentFilter, TimerMode, GameEdition, USRegionFilter } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
@@ -33,6 +34,7 @@ interface GlobeVictoryModalProps {
   onExplore: () => void;
   onOpenLeaderboard?: (entryId?: string) => void;
   onSubmitSuccess?: () => void;
+  onClose?: () => void;
 }
 
 export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
@@ -51,6 +53,7 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
   onExplore,
   onOpenLeaderboard,
   onSubmitSuccess,
+  onClose,
 }) => {
   const [placementResult, setPlacementResult] = useState<LeaderboardPlacementResult | null>(null);
   const hasSubmittedRef = useRef(false);
@@ -140,8 +143,18 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
           boxShadow: '0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(42, 157, 143, 0.3)',
           maxHeight: '92vh',
           overflowY: 'auto',
+          position: 'relative',
         }}
       >
+        <button
+          type="button"
+          className="modal-close-btn"
+          onClick={onClose || onExplore}
+          title="Close window"
+          aria-label="Close victory modal"
+        >
+          <X size={18} />
+        </button>
         <div style={{ marginBottom: '0.75rem' }}>
           <div
             style={{

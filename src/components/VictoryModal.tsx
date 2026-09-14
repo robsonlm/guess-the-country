@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, User } from 'lucide-react';
+import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, User, X } from 'lucide-react';
 import { GameMode, ContinentFilter, GameScore, TimerMode, GameEdition, USRegionFilter } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
@@ -22,6 +22,7 @@ interface VictoryModalProps {
   onPlayAgain: () => void;
   onOpenLeaderboard?: (entryId?: string) => void;
   onSubmitSuccess?: () => void;
+  onClose?: () => void;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -37,6 +38,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onPlayAgain,
   onOpenLeaderboard,
   onSubmitSuccess,
+  onClose,
 }) => {
   const [placementResult, setPlacementResult] = useState<LeaderboardPlacementResult | null>(null);
   const hasSubmittedRef = useRef(false);
@@ -74,6 +76,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     }
   }, [playerName, gameMode, continentFilter, usRegionFilter, timerMode, totalCountries, score.right, score.wrong, percentageNum, timeElapsedSeconds, score.bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
 
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  if (isDismissed) return null;
+
   return (
     <div className="modal-overlay fade-in" role="dialog" aria-modal="true" style={{ zIndex: 100 }}>
       <div
@@ -84,8 +90,21 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           maxWidth: '520px',
           maxHeight: '92vh',
           overflowY: 'auto',
+          position: 'relative',
         }}
       >
+        <button
+          type="button"
+          className="modal-close-btn"
+          onClick={() => {
+            setIsDismissed(true);
+            if (onClose) onClose();
+          }}
+          title="Close window"
+          aria-label="Close victory modal"
+        >
+          <X size={18} />
+        </button>
         <div className="victory-icon-wrapper pop-in">
           <Trophy size={44} className="victory-trophy" />
         </div>

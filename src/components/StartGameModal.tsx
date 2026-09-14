@@ -241,13 +241,13 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
           /* Normal View: Enter Explorer Name and pick Game Setup */
           <form onSubmit={handleNameSubmit}>
             <div className="start-modal-header">
-              {allowClose && onClose && (
+              {onClose && (
                 <button
                   type="button"
                   className="start-modal-close-btn"
                   onClick={onClose}
-                  title="Close"
-                  aria-label="Close"
+                  title="Close window"
+                  aria-label="Close setup modal"
                 >
                   <X size={16} />
                 </button>
@@ -450,6 +450,18 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
           /* Admin Sign-in View (Firebase Authentication) */
           <div>
             <div className="start-modal-header">
+              <button
+                type="button"
+                className="start-modal-close-btn"
+                onClick={() => {
+                  setIsAdminModeRequested(false);
+                  if (onClose) onClose();
+                }}
+                title="Close window"
+                aria-label="Close admin modal"
+              >
+                <X size={16} />
+              </button>
               <div className="start-modal-icon admin">
                 <Lock size={26} />
               </div>

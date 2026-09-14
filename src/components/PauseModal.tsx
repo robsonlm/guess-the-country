@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { PauseCircle, Play } from 'lucide-react';
+import { PauseCircle, Play, X } from 'lucide-react';
 
 interface PauseModalProps {
   isOpen: boolean;
@@ -25,8 +25,17 @@ export const PauseModal: React.FC<PauseModalProps> = ({ isOpen, onResume }) => {
     <div className="modal-overlay" role="dialog" aria-modal="true">
       <div
         className="modal-content pause-modal-content pop-in"
-        style={{ textAlign: 'center', padding: '2.2rem 1.75rem', maxWidth: 440 }}
+        style={{ textAlign: 'center', padding: '2.2rem 1.75rem', maxWidth: 440, position: 'relative' }}
       >
+        <button
+          type="button"
+          className="modal-close-btn"
+          onClick={onResume}
+          title="Resume game"
+          aria-label="Close pause modal and resume game"
+        >
+          <X size={18} />
+        </button>
         <div className="pause-icon-wrapper">
           <PauseCircle size={52} className="pause-icon" />
         </div>
