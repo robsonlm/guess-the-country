@@ -9,7 +9,7 @@ import {
   Check,
   Globe,
 } from 'lucide-react';
-import { UserSettings, ThemeMode, GameEdition } from '../types/game';
+import { UserSettings, ThemeMode, GameEdition, BRRegionFilter } from '../types/game';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -28,6 +28,15 @@ const THEMES: { id: ThemeMode; name: string; color: string }[] = [
   { id: 'emerald-forest', name: 'Emerald', color: '#10b981' },
 ];
 
+const BR_REGION_OPTIONS: { id: BRRegionFilter; label: string }[] = [
+  { id: 'all', label: 'All 27 States' },
+  { id: 'Norte', label: 'Norte' },
+  { id: 'Nordeste', label: 'Nordeste' },
+  { id: 'Centro-Oeste', label: 'Centro-Oeste' },
+  { id: 'Sudeste', label: 'Sudeste' },
+  { id: 'Sul', label: 'Sul' },
+];
+
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose,
@@ -38,6 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onReSyncData,
 }) => {
   const [edition, setEdition] = useState<GameEdition>(settings.edition || 'world');
+  const [brRegionFilter, setBrRegionFilter] = useState<BRRegionFilter>(settings.brRegionFilter || 'all');
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
   const [theme, setTheme] = useState<ThemeMode>(settings.theme);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
@@ -46,6 +56,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setEdition(settings.edition || 'world');
+      setBrRegionFilter(settings.brRegionFilter || 'all');
       setSoundEnabled(settings.soundEnabled);
       setTheme(settings.theme);
       setShowConfirmReset(false);
@@ -69,6 +80,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     e.preventDefault();
     onSaveSettings({
       edition,
+      brRegionFilter,
       soundEnabled,
       theme,
     });
@@ -108,7 +120,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <Globe size={15} style={{ display: 'inline', marginRight: 5 }} />
               Game Edition
             </label>
-            <div className="theme-options-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+            <div className="theme-options-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <button
                 type="button"
                 className={`theme-chip ${edition === 'world' ? 'active' : ''}`}
@@ -127,8 +139,41 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <span>US State Flags</span>
                 {edition === 'us-states' && <Check size={14} className="theme-check" />}
               </button>
+              <button
+                type="button"
+                className={`theme-chip ${edition === 'br-states' ? 'active' : ''}`}
+                onClick={() => setEdition('br-states')}
+              >
+                <span>🇧🇷</span>
+                <span>Brazilian States</span>
+                {edition === 'br-states' && <Check size={14} className="theme-check" />}
+              </button>
             </div>
           </div>
+
+          {/* BR Region Selector (only when br-states edition is active) */}
+          {edition === 'br-states' && (
+            <div className="form-group">
+              <label className="form-label">
+                <Globe size={15} style={{ display: 'inline', marginRight: 5 }} />
+                Brazilian Region
+              </label>
+              <div className="theme-options-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                {BR_REGION_OPTIONS.map((reg) => (
+                  <button
+                    key={reg.id}
+                    type="button"
+                    className={`theme-chip ${brRegionFilter === reg.id ? 'active' : ''}`}
+                    onClick={() => setBrRegionFilter(reg.id)}
+                  >
+                    <span>{reg.id === 'all' ? '🇧🇷' : '📍'}</span>
+                    <span>{reg.label}</span>
+                    {brRegionFilter === reg.id && <Check size={14} className="theme-check" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Theme Selector */}
           <div className="form-group">
@@ -181,6 +226,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <span className="toggle-desc" style={{ color: '#94a3b8' }}>
                 {edition === 'us-states'
                   ? `${localInfo.count} US State flags & territories stored locally (100% offline, 0 API calls)`
+                  : edition === 'br-states'
+                  ? `${localInfo.count} Brazilian State flags & territories stored locally (100% offline, 0 API calls)`
                   : `${localInfo.count} sovereign UN countries & flags stored locally (100% offline, 0 API calls)`}
               </span>
             </div>

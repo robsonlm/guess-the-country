@@ -13,7 +13,7 @@ import {
   LogIn,
   Lock,
 } from 'lucide-react';
-import { GameMode, ContinentFilter, TimerMode, UserSettings, GameScore, Achievement, GameEdition, USRegionFilter } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode, UserSettings, GameScore, Achievement, GameEdition, USRegionFilter, BRRegionFilter } from '../types/game';
 import { getFilteredLeaderboard, formatTimeElapsed } from '../services/leaderboard';
 import { sanitizePlayerName } from '../utils/sanitize';
 import { APP_VERSION } from '../utils/version';
@@ -34,6 +34,7 @@ interface MainPageViewProps {
       mode?: GameMode;
       continent?: ContinentFilter;
       usRegion?: USRegionFilter;
+      brRegion?: BRRegionFilter;
       timer?: TimerMode;
     }
   ) => void;
@@ -46,6 +47,7 @@ interface MainPageViewProps {
 const EDITION_OPTIONS: { id: GameEdition; label: string; icon: string; desc: string }[] = [
   { id: 'world', label: 'World Countries', icon: '🌐', desc: '197 Sovereign nations and official UN country flags' },
   { id: 'us-states', label: 'US State Flags', icon: '🇺🇸', desc: 'All 50 US States + DC authentic state flags & capitals' },
+  { id: 'br-states', label: 'Brazilian States', icon: '🇧🇷', desc: 'All 26 Brazilian states + Distrito Federal authentic flags & capitals' },
 ];
 
 const GAME_MODES: { id: GameMode; label: string; icon: string; desc: string }[] = [
@@ -69,6 +71,15 @@ const US_REGION_OPTIONS: { id: USRegionFilter; label: string; icon: string }[] =
   { id: 'Midwest', label: 'Midwest', icon: '🌾' },
   { id: 'South', label: 'South', icon: '☀️' },
   { id: 'West', label: 'West', icon: '🏔️' },
+];
+
+const BR_REGION_OPTIONS: { id: BRRegionFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All 27 States', icon: '🇧🇷' },
+  { id: 'Norte', label: 'Norte', icon: '🌳' },
+  { id: 'Nordeste', label: 'Nordeste', icon: '☀️' },
+  { id: 'Centro-Oeste', label: 'Centro-Oeste', icon: '🌾' },
+  { id: 'Sudeste', label: 'Sudeste', icon: '🏙️' },
+  { id: 'Sul', label: 'Sul', icon: '❄️' },
 ];
 
 const TIMER_OPTIONS: { id: TimerMode; label: string; icon: string; desc: string }[] = [
@@ -95,6 +106,7 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
   const [selectedMode, setSelectedMode] = useState<GameMode>(settings.gameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(settings.continentFilter);
   const [selectedUsRegion, setSelectedUsRegion] = useState<USRegionFilter>(settings.usRegionFilter || 'all');
+  const [selectedBrRegion, setSelectedBrRegion] = useState<BRRegionFilter>(settings.brRegionFilter || 'all');
   const [selectedTimer, setSelectedTimer] = useState<TimerMode>(settings.timerMode);
 
   useEffect(() => {
@@ -124,6 +136,7 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
       mode: selectedMode,
       continent: selectedContinent,
       usRegion: selectedUsRegion,
+      brRegion: selectedBrRegion,
       timer: selectedTimer,
     });
   };
@@ -317,6 +330,18 @@ export const MainPageView: React.FC<MainPageViewProps> = ({
                     type="button"
                     className={`main-continent-pill ${selectedUsRegion === reg.id ? 'active' : ''}`}
                     onClick={() => setSelectedUsRegion(reg.id)}
+                  >
+                    <span>{reg.icon}</span>
+                    <span>{reg.label}</span>
+                  </button>
+                ))
+              : selectedEdition === 'br-states'
+              ? BR_REGION_OPTIONS.map((reg) => (
+                  <button
+                    key={reg.id}
+                    type="button"
+                    className={`main-continent-pill ${selectedBrRegion === reg.id ? 'active' : ''}`}
+                    onClick={() => setSelectedBrRegion(reg.id)}
                   >
                     <span>{reg.icon}</span>
                     <span>{reg.label}</span>

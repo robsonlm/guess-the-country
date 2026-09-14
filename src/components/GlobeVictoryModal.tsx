@@ -9,7 +9,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { ContinentFilter, TimerMode, GameEdition, USRegionFilter } from '../types/game';
+import { ContinentFilter, TimerMode, GameEdition, USRegionFilter, BRRegionFilter } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
@@ -27,6 +27,7 @@ interface GlobeVictoryModalProps {
   bestStreak?: number;
   continentFilter?: ContinentFilter;
   usRegionFilter?: USRegionFilter;
+  brRegionFilter?: BRRegionFilter;
   timerMode?: TimerMode;
   playerName?: string;
   edition?: GameEdition;
@@ -46,6 +47,7 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
   bestStreak = 0,
   continentFilter = 'all',
   usRegionFilter = 'all',
+  brRegionFilter = 'all',
   timerMode = 'timed',
   playerName: initialPlayerName,
   edition = 'world',
@@ -60,29 +62,31 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
   const playerName = initialPlayerName?.trim() || getLastPlayerName();
 
   const isUsStatesEdition = edition === 'us-states';
+  const isBrStatesEdition = edition === 'br-states';
+  const isStateEdition = isUsStatesEdition || isBrStatesEdition;
   const totalGuesses = conqueredCount + mistakesCount;
   const accuracy = totalGuesses > 0 ? Math.round((conqueredCount / totalGuesses) * 100) : 100;
 
   // Rank Calculation
   let rank = 'C';
-  let rankTitle = isUsStatesEdition ? 'State Pioneer' : 'World Pioneer';
+  let rankTitle = isStateEdition ? 'State Pioneer' : 'World Pioneer';
   let rankColor = '#94a3b8';
 
   if (mistakesCount === 0) {
     rank = 'S+';
-    rankTitle = isUsStatesEdition ? 'Flawless Master of the States' : 'Flawless Master Cartographer';
+    rankTitle = isStateEdition ? 'Flawless Master of the States' : 'Flawless Master Cartographer';
     rankColor = '#ffd166';
   } else if (mistakesCount <= 3) {
     rank = 'S';
-    rankTitle = isUsStatesEdition ? 'Grand State Explorer' : 'Grand Explorer';
+    rankTitle = isStateEdition ? 'Grand State Explorer' : 'Grand Explorer';
     rankColor = '#06d6a0';
   } else if (mistakesCount <= 8) {
     rank = 'A';
-    rankTitle = isUsStatesEdition ? 'Veteran Navigator' : 'Veteran Navigator';
+    rankTitle = isStateEdition ? 'Veteran Navigator' : 'Veteran Navigator';
     rankColor = '#48cae4';
   } else if (mistakesCount <= 15) {
     rank = 'B';
-    rankTitle = isUsStatesEdition ? 'Skilled Voyager' : 'Skilled Voyager';
+    rankTitle = isStateEdition ? 'Skilled Voyager' : 'Skilled Voyager';
     rankColor = '#818cf8';
   }
 
@@ -107,11 +111,13 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
     clearGameProgress(edition);
 
     const result = addLeaderboardEntry({
-      playerName: playerName.trim() || (isUsStatesEdition ? 'US State Champion' : 'Globe Master'),
+      playerName: playerName.trim() ||
+        (isUsStatesEdition ? 'US State Champion' : isBrStatesEdition ? 'Brazilian States Champion' : 'Globe Master'),
       edition,
       gameMode: 'globe',
       continentFilter,
       usRegionFilter: isUsStatesEdition ? (usRegionFilter || 'all') : undefined,
+      brRegionFilter: isBrStatesEdition ? (brRegionFilter || 'all') : undefined,
       timerMode,
       totalCountries,
       conqueredCount,
@@ -125,7 +131,7 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
     if (onSubmitSuccess) {
       onSubmitSuccess();
     }
-  }, [isOpen, playerName, continentFilter, usRegionFilter, timerMode, totalCountries, conqueredCount, mistakesCount, accuracy, timeElapsedSeconds, bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
+  }, [isOpen, playerName, continentFilter, usRegionFilter, brRegionFilter, timerMode, totalCountries, conqueredCount, mistakesCount, accuracy, timeElapsedSeconds, bestStreak, onSubmitSuccess, edition, isUsStatesEdition, isBrStatesEdition]);
 
   if (!isOpen) return null;
 
@@ -174,11 +180,17 @@ export const GlobeVictoryModal: React.FC<GlobeVictoryModalProps> = ({
         </div>
 
         <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: 'var(--text)', marginBottom: '0.2rem' }}>
-          {isUsStatesEdition ? 'All 50 US States Conquered!' : 'Entire Globe Conquered!'}
+          {isUsStatesEdition
+            ? 'All 50 US States Conquered!'
+            : isBrStatesEdition
+            ? 'All 27 Brazilian States Conquered!'
+            : 'Entire Globe Conquered!'}
         </h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginBottom: '1rem' }}>
           {isUsStatesEdition
             ? 'You have successfully identified every US state flag across the nation!'
+            : isBrStatesEdition
+            ? 'You have successfully identified every Brazilian state flag across the country!'
             : 'You have successfully identified every territory across Planet Earth!'}
         </p>
 

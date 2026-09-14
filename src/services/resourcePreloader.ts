@@ -297,6 +297,8 @@ export async function preloadAllGameResources(
     const geoStageLabel =
       edition === 'us-states'
         ? 'Calibrating 3D US State Cartography...'
+        : edition === 'br-states'
+        ? 'Calibrating 3D Brazilian State Cartography...'
         : 'Calibrating 3D Earth Cartography & Polygons...';
     update(geoStageLabel, 15);
     await preloadGeoData(edition);
@@ -311,7 +313,7 @@ export async function preloadAllGameResources(
 
     // Stage 3: Round Flags + Lookahead (70% -> 100%)
     const flagStageLabel =
-      edition === 'us-states'
+      edition === 'us-states' || edition === 'br-states'
         ? 'Acquiring State Flags for Current & Upcoming Rounds...'
         : 'Acquiring National Flags for Current & Upcoming Rounds...';
     update(flagStageLabel, 75);
@@ -344,7 +346,7 @@ export async function preloadAllGameResources(
   } else {
     // Standard Card Quiz Mode
     const flagStageLabel =
-      edition === 'us-states'
+      edition === 'us-states' || edition === 'br-states'
         ? 'Acquiring State Flags for Current & Upcoming Rounds...'
         : 'Acquiring National Flags for Current & Upcoming Rounds...';
     update(flagStageLabel, 20);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Trophy, CheckCircle2, RotateCcw, Percent, Flame, Award, User, X } from 'lucide-react';
-import { GameMode, ContinentFilter, GameScore, TimerMode, GameEdition, USRegionFilter } from '../types/game';
+import { GameMode, ContinentFilter, GameScore, TimerMode, GameEdition, USRegionFilter, BRRegionFilter } from '../types/game';
 import { clearGameProgress } from '../services/countriesApi';
 import {
   getLastPlayerName,
@@ -16,6 +16,7 @@ interface VictoryModalProps {
   gameMode?: GameMode;
   continentFilter?: ContinentFilter;
   usRegionFilter?: USRegionFilter;
+  brRegionFilter?: BRRegionFilter;
   timerMode?: TimerMode;
   playerName?: string;
   edition?: GameEdition;
@@ -32,6 +33,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   gameMode = 'flag-to-name',
   continentFilter = 'all',
   usRegionFilter = 'all',
+  brRegionFilter = 'all',
   timerMode = 'timed',
   playerName: initialPlayerName,
   edition = 'world',
@@ -44,6 +46,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   const hasSubmittedRef = useRef(false);
 
   const isUsStatesEdition = edition === 'us-states';
+  const isBrStatesEdition = edition === 'br-states';
   const percentageNum = score.total === 0 ? 100 : Math.round((score.right / score.total) * 100);
   const percentageStr = percentageNum.toString();
   const playerName = initialPlayerName?.trim() || getLastPlayerName();
@@ -56,11 +59,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     clearGameProgress(edition);
 
     const result = addLeaderboardEntry({
-      playerName: playerName.trim() || (isUsStatesEdition ? 'US State Champion' : 'World Master'),
+      playerName: playerName.trim() ||
+        (isUsStatesEdition ? 'US State Champion' : isBrStatesEdition ? 'Brazilian States Champion' : 'World Master'),
       edition,
       gameMode,
       continentFilter,
       usRegionFilter: isUsStatesEdition ? (usRegionFilter || 'all') : undefined,
+      brRegionFilter: isBrStatesEdition ? (brRegionFilter || 'all') : undefined,
       timerMode,
       totalCountries,
       conqueredCount: score.right,
@@ -74,7 +79,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     if (onSubmitSuccess) {
       onSubmitSuccess();
     }
-  }, [playerName, gameMode, continentFilter, usRegionFilter, timerMode, totalCountries, score.right, score.wrong, percentageNum, timeElapsedSeconds, score.bestStreak, onSubmitSuccess, edition, isUsStatesEdition]);
+  }, [playerName, gameMode, continentFilter, usRegionFilter, brRegionFilter, timerMode, totalCountries, score.right, score.wrong, percentageNum, timeElapsedSeconds, score.bestStreak, onSubmitSuccess, edition, isUsStatesEdition, isBrStatesEdition]);
 
   const [isDismissed, setIsDismissed] = useState(false);
 
@@ -110,11 +115,17 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         <h2 className="victory-title" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>
-          {isUsStatesEdition ? 'US State Flag Grand Master!' : 'World Flag Grand Master!'}
+          {isUsStatesEdition
+            ? 'US State Flag Grand Master!'
+            : isBrStatesEdition
+            ? 'Brazilian State Flag Grand Master!'
+            : 'World Flag Grand Master!'}
         </h2>
         <p className="victory-subtitle" style={{ fontSize: '0.9rem', marginBottom: '1.25rem' }}>
           {isUsStatesEdition
             ? <>Incredible! You have correctly identified all <strong>{totalCountries}</strong> US state flags!</>
+            : isBrStatesEdition
+            ? <>Incredible! You have correctly identified all <strong>{totalCountries}</strong> Brazilian state flags!</>
             : <>Incredible! You have correctly identified all <strong>{totalCountries}</strong> world country flags!</>}
         </p>
 

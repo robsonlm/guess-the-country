@@ -29,6 +29,15 @@ const US_REGION_TABS: { id: string; label: string }[] = [
   { id: 'West', label: 'West' },
 ];
 
+const BR_REGION_TABS: { id: string; label: string }[] = [
+  { id: 'all', label: 'All 27 States' },
+  { id: 'Norte', label: 'Norte' },
+  { id: 'Nordeste', label: 'Nordeste' },
+  { id: 'Centro-Oeste', label: 'Centro-Oeste' },
+  { id: 'Sudeste', label: 'Sudeste' },
+  { id: 'Sul', label: 'Sul' },
+];
+
 export const MasteredFlagsTray: React.FC<MasteredFlagsTrayProps> = ({
   solvedCountries,
   allCountries,
@@ -42,9 +51,14 @@ export const MasteredFlagsTray: React.FC<MasteredFlagsTrayProps> = ({
   const [selectedContinent, setSelectedContinent] = useState<string>('all');
 
   const isUsStatesEdition = edition === 'us-states' || (allCountries.length > 0 && allCountries[0]?.alpha2?.startsWith('US-'));
-  const activeTabs = isUsStatesEdition ? US_REGION_TABS : CONTINENT_TABS;
+  const isBrStatesEdition = edition === 'br-states' || (allCountries.length > 0 && allCountries[0]?.alpha2?.startsWith('BR-'));
+  const activeTabs = isUsStatesEdition
+    ? US_REGION_TABS
+    : isBrStatesEdition
+    ? BR_REGION_TABS
+    : CONTINENT_TABS;
 
-  const total = allCountries.length || (isUsStatesEdition ? 50 : 197);
+  const total = allCountries.length || (isUsStatesEdition ? 50 : isBrStatesEdition ? 27 : 197);
   const count = solvedCountries.length;
   const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : '0';
 
@@ -169,7 +183,13 @@ export const MasteredFlagsTray: React.FC<MasteredFlagsTrayProps> = ({
                   <Search size={14} style={{ color: 'var(--text-muted)' }} />
                   <input
                     type="text"
-                    placeholder={isUsStatesEdition ? "Search mastered states…" : "Search mastered countries…"}
+                    placeholder={
+                    isUsStatesEdition
+                      ? 'Search mastered states…'
+                      : isBrStatesEdition
+                      ? 'Search mastered states…'
+                      : 'Search mastered countries…'
+                  }
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="mastered-search-input"

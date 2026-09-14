@@ -90,7 +90,16 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     edition === 'us-states' ||
     targetCountry?.alpha2?.startsWith('US-') ||
     (allCountries.length > 0 && allCountries[0]?.alpha2?.startsWith('US-'));
-  const activeEdition: GameEdition = isUsStatesEdition ? 'us-states' : 'world';
+  const isBrStatesEdition =
+    edition === 'br-states' ||
+    targetCountry?.alpha2?.startsWith('BR-') ||
+    (allCountries.length > 0 && allCountries[0]?.alpha2?.startsWith('BR-'));
+  const isStateEdition = isUsStatesEdition || isBrStatesEdition;
+  const activeEdition: GameEdition = isUsStatesEdition
+    ? 'us-states'
+    : isBrStatesEdition
+    ? 'br-states'
+    : 'world';
 
   // Explore Mode state: selected country card & hover highlight
   const [selectedExploreCountry, setSelectedExploreCountry] = useState<Country | null>(null);
@@ -833,7 +842,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                   )}
                   {selectedExploreCountry.capital && (
                     <div className="explore-meta-item">
-                      <span className="meta-label">{isUsStatesEdition ? 'State Capital' : 'Capital'}</span>
+                      <span className="meta-label">{isStateEdition ? 'State Capital' : 'Capital'}</span>
                       <span className="meta-value">{selectedExploreCountry.capital}</span>
                     </div>
                   )}
@@ -870,9 +879,9 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                         setSelectedExploreCountry(nextCountry);
                         focusTargetCountry(nextCountry, 900);
                       }}
-                      title={isUsStatesEdition ? 'Explore next US state' : 'Explore next territory'}
+                      title={isStateEdition ? 'Explore next state' : 'Explore next territory'}
                     >
-                      {isUsStatesEdition ? 'Next State →' : 'Next Territory →'}
+                      {isStateEdition ? 'Next State →' : 'Next Territory →'}
                     </button>
                   )}
                 </div>
@@ -882,8 +891,10 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
             <div className="globe-explore-guide-pill fade-in">
               <Sparkles size={14} style={{ color: '#38bdf8' }} />
               <span>
-                {isUsStatesEdition
-                  ? 'Click any US State on the 3D globe to view its flag and details'
+                {isStateEdition
+                  ? isUsStatesEdition
+                    ? 'Click any US State on the 3D globe to view its flag and details'
+                    : 'Click any Brazilian state on the 3D globe to view its flag and details'
                   : 'Click any country on the 3D globe to view its flag and details'}
               </span>
             </div>
@@ -904,6 +915,8 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                   </>
                 ) : isUsStatesEdition ? (
                   'Highlighted US State'
+                ) : isBrStatesEdition ? (
+                  'Highlighted Brazilian State'
                 ) : (
                   'Highlighted Territory'
                 )}
@@ -928,7 +941,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
       {!isExploreMode && !isFinalThree && (
         <div className="globe-clues-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '6px' }}>
           <span className="globe-prompt-text" style={{ fontSize: '0.86rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            Choose the correct flag for the highlighted {isUsStatesEdition ? 'US state' : 'territory'}:
+            Choose the correct flag for the highlighted {isStateEdition ? (isUsStatesEdition ? 'US state' : 'Brazilian state') : 'territory'}:
           </span>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
@@ -966,7 +979,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
                 <span>FINAL {finalThreeTargets.length} SHOWDOWN</span>
               </div>
               <p className="final-three-instruction">
-                Select a {isUsStatesEdition ? 'state' : 'territory'}, then pick its flag below.
+                Select a {isStateEdition ? 'state' : 'territory'}, then pick its flag below.
               </p>
             </div>
 

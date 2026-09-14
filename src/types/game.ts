@@ -19,12 +19,13 @@ export interface GameScore {
   bestStreak: number;
 }
 
-export type GameEdition = 'world' | 'us-states';
+export type GameEdition = 'world' | 'us-states' | 'br-states';
 export type GameMode = 'globe' | 'flag-to-name' | 'name-to-flag';
 export type TimerMode = 'timed' | 'relaxed'; // timed = 10s per flag, relaxed = untimed
 export type ThemeMode = 'deep-space' | 'cyberpunk' | 'vintage-atlas' | 'emerald-forest';
 export type ContinentFilter = 'all' | 'Africa' | 'Americas' | 'Asia' | 'Europe' | 'Oceania';
 export type USRegionFilter = 'all' | 'Northeast' | 'Midwest' | 'South' | 'West';
+export type BRRegionFilter = 'all' | 'Norte' | 'Nordeste' | 'Centro-Oeste' | 'Sudeste' | 'Sul';
 
 export interface UserSettings {
   soundEnabled: boolean;
@@ -34,6 +35,7 @@ export interface UserSettings {
   theme: ThemeMode;
   continentFilter: ContinentFilter;
   usRegionFilter: USRegionFilter;
+  brRegionFilter: BRRegionFilter;
 }
 
 export interface ChoiceOption {

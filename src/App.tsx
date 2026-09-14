@@ -374,6 +374,7 @@ export function App() {
           bestStreak={score.bestStreak}
           continentFilter={settings.continentFilter}
           usRegionFilter={settings.usRegionFilter}
+          brRegionFilter={settings.brRegionFilter}
           timerMode={settings.timerMode}
           playerName={isLoggedIn ? authPlayerName : currentPlayerName}
           onPlayAgain={() => {
@@ -395,6 +396,7 @@ export function App() {
           gameMode={settings.gameMode}
           continentFilter={settings.continentFilter}
           usRegionFilter={settings.usRegionFilter}
+          brRegionFilter={settings.brRegionFilter}
           timerMode={settings.timerMode}
           playerName={isLoggedIn ? authPlayerName : currentPlayerName}
           onPlayAgain={() => {
@@ -408,7 +410,7 @@ export function App() {
 
       {/* Global Hall of Fame & Leaderboard Modal */}
       <LeaderboardModal
-        key={`leaderboard-${isLeaderboardOpen}-${settings.edition}-${settings.gameMode}-${settings.continentFilter}-${settings.usRegionFilter}-${settings.timerMode}`}
+        key={`leaderboard-${isLeaderboardOpen}-${settings.edition}-${settings.gameMode}-${settings.continentFilter}-${settings.usRegionFilter}-${settings.brRegionFilter}-${settings.timerMode}`}
         isOpen={isLeaderboardOpen}
         onClose={() => setIsLeaderboardOpen(false)}
         recentSubmittedEntryId={recentLeaderboardEntryId}
@@ -416,6 +418,7 @@ export function App() {
         defaultGameMode={settings.gameMode}
         defaultContinent={settings.continentFilter}
         defaultUsRegion={settings.usRegionFilter}
+        defaultBrRegion={settings.brRegionFilter}
         defaultTimerMode={settings.timerMode}
         isAdmin={isAdmin}
       />
@@ -462,6 +465,7 @@ export function App() {
         timerMode={settings.timerMode}
         edition={settings.edition}
         usRegionFilter={settings.usRegionFilter}
+        brRegionFilter={settings.brRegionFilter}
         onStart={(name, config) => {
           if (!isLoggedIn) {
             setAuthPromptMessage('Please log in or create an account to start playing!');

@@ -83,6 +83,50 @@ export const KNOWN_STATE_CENTROIDS: Record<string, { lat: number; lng: number }>
   'US-DC': { lat: 38.9072, lng: -77.0369 },
 };
 
+// IBGE centroids for the 27 Brazilian federative units. Used as a fallback when
+// the runtime GeoJSON does not carry per-feature centroids, mirroring the
+// KNOWN_STATE_CENTROIDS pattern for US states.
+export const KNOWN_BR_STATE_CENTROIDS: Record<string, { lat: number; lng: number }> = {
+  'BR-AC': { lat: -9.0238, lng: -70.812 },
+  'BR-AL': { lat: -9.5713, lng: -36.782 },
+  'BR-AP': { lat: 0.902, lng: -52.003 },
+  'BR-AM': { lat: -3.4168, lng: -65.8561 },
+  'BR-BA': { lat: -12.9714, lng: -41.7112 },
+  'BR-CE': { lat: -5.3264, lng: -39.6151 },
+  'BR-DF': { lat: -15.8267, lng: -47.9218 },
+  'BR-ES': { lat: -19.1834, lng: -40.3089 },
+  'BR-GO': { lat: -15.827, lng: -49.8362 },
+  'BR-MA': { lat: -5.4185, lng: -45.0025 },
+  'BR-MT': { lat: -12.6424, lng: -55.4263 },
+  'BR-MS': { lat: -20.4486, lng: -54.6295 },
+  'BR-MG': { lat: -18.5122, lng: -44.555 },
+  'BR-PA': { lat: -3.79, lng: -52.48 },
+  'BR-PB': { lat: -7.2399, lng: -36.7819 },
+  'BR-PR': { lat: -24.89, lng: -51.55 },
+  'BR-PE': { lat: -8.3817, lng: -37.8558 },
+  'BR-PI': { lat: -7.7183, lng: -42.7289 },
+  'BR-RJ': { lat: -22.181, lng: -42.66 },
+  'BR-RN': { lat: -5.4026, lng: -36.9541 },
+  'BR-RS': { lat: -30.17, lng: -53.5 },
+  'BR-RO': { lat: -10.83, lng: -63.34 },
+  'BR-RR': { lat: 2.7377, lng: -62.075 },
+  'BR-SC': { lat: -27.45, lng: -50.95 },
+  'BR-SP': { lat: -22.19, lng: -48.79 },
+  'BR-SE': { lat: -10.5741, lng: -37.3857 },
+  'BR-TO': { lat: -10.167, lng: -48.3277 },
+};
+
+// Brazilian state GeoJSON: runtime CDN URLs (in fallback order). The primary
+// source hosts states with property key `SIGLA_UF` (e.g. {SIGLA_UF: 'SP'}),
+// but different mirrors use `id_uf`, `uf`, or `code`. loadGeoFeatures tries
+// every property in `BR_STATE_PROPERTY_KEYS` to be defensive.
+const BR_STATES_GEOJSON_URLS: string[] = [
+  'https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson',
+  'https://raw.githubusercontent.com/tbrugz/geodata-br/master/geojson/geojs-100mun.json',
+];
+
+const BR_STATE_PROPERTY_KEYS = ['SIGLA_UF', 'id_uf', 'uf', 'code', 'sigla'] as const;
+
 // Special case mappings for Natural Earth 110m codes
 const SPECIAL_CODE_MAP: Record<string, string> = {
   France: 'FR',
@@ -407,6 +451,95 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
 }
 
 export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<GeoFeature[]> {
+  if (edition === 'br-states') {
+    try {
+      let geojson: any = null;
+      for (const url of BR_STATES_GEOJSON_URLS) {
+        try {
+          const res = await fetch(url);
+          if (res.ok) {
+            const parsed = await res.json();
+            const features = Array.isArray(parsed) ? parsed : parsed?.features;
+            if (Array.isArray(features) && features.length > 0) {
+              geojson = { features };
+              break;
+            }
+          }
+        } catch {
+          // try next mirror
+        }
+      }
+
+      if (geojson && Array.isArray(geojson.features)) {
+        const stateFeatures: GeoFeature[] = geojson.features
+          .map((f: any) => {
+            const props = f.properties || {};
+            let ufCode = '';
+            for (const key of BR_STATE_PROPERTY_KEYS) {
+              const candidate = props[key];
+              if (typeof candidate === 'string' && candidate.length === 2) {
+                ufCode = candidate.toUpperCase();
+                break;
+              } else if (typeof candidate === 'number') {
+                ufCode = String(candidate).padStart(2, '0').toUpperCase();
+                break;
+              }
+            }
+
+            // Also try id field if no property key matched
+            if (!ufCode && typeof f.id === 'string' && f.id.length === 2) {
+              ufCode = f.id.toUpperCase();
+            } else if (!ufCode && typeof f.id === 'number') {
+              ufCode = String(f.id).padStart(2, '0').toUpperCase();
+            }
+
+            if (!ufCode) return null;
+            const alpha2 = `BR-${ufCode}`;
+            const centroid =
+              KNOWN_BR_STATE_CENTROIDS[alpha2] || computePolygonCentroid(f.geometry);
+            const feature: GeoFeature = {
+              ...f,
+              alpha2,
+              centroid,
+              isState: true,
+            };
+            return feature;
+          })
+          .filter((x: GeoFeature | null): x is GeoFeature => x !== null);
+
+        if (stateFeatures.length > 0) {
+          return stateFeatures;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load br_states.geojson:', err);
+    }
+    // Graceful degradation: render point markers from bundled centroids only
+    const fallbackFeatures: GeoFeature[] = Object.entries(KNOWN_BR_STATE_CENTROIDS).map(
+      ([alpha2, coords]) => {
+        const circleCoords: [number, number][] = [];
+        const radiusDeg = 0.55;
+        const segments = 14;
+        for (let i = 0; i <= segments; i++) {
+          const angle = (i * 2 * Math.PI) / segments;
+          const dLat = radiusDeg * Math.cos(angle);
+          const dLng =
+            (radiusDeg * Math.sin(angle)) / Math.max(0.2, Math.cos((coords.lat * Math.PI) / 180));
+          circleCoords.push([coords.lng + dLng, coords.lat + dLat]);
+        }
+        return {
+          type: 'Feature',
+          properties: { NAME: alpha2, SIGLA_UF: alpha2.slice(3) },
+          geometry: { type: 'Polygon', coordinates: [circleCoords] },
+          alpha2,
+          centroid: coords,
+          isState: true,
+        } as GeoFeature;
+      }
+    );
+    return fallbackFeatures;
+  }
+
   if (edition === 'us-states') {
     if (cachedStateFeatures && cachedStateFeatures.length > 0) {
       return cachedStateFeatures;
@@ -579,6 +712,9 @@ export function getCountryCoordinates(alpha2: string): { lat: number; lng: numbe
   if (upper.startsWith('US-') && KNOWN_STATE_CENTROIDS[upper]) {
     return KNOWN_STATE_CENTROIDS[upper];
   }
+  if (upper.startsWith('BR-') && KNOWN_BR_STATE_CENTROIDS[upper]) {
+    return KNOWN_BR_STATE_CENTROIDS[upper];
+  }
   if (KNOWN_CENTROIDS[upper]) {
     return KNOWN_CENTROIDS[upper];
   }
@@ -588,6 +724,9 @@ export function getCountryCoordinates(alpha2: string): { lat: number; lng: numbe
   }
   if (upper.startsWith('US-')) {
     return { lat: 39.8283, lng: -98.5795 };
+  }
+  if (upper.startsWith('BR-')) {
+    return { lat: -14.235, lng: -51.9253 };
   }
   return { lat: 20, lng: 0 };
 }

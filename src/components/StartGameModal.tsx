@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 import { sanitizePlayerName } from '../utils/sanitize';
-import { GameMode, ContinentFilter, TimerMode, GameEdition, USRegionFilter } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode, GameEdition, USRegionFilter, BRRegionFilter } from '../types/game';
 
 interface StartGameModalProps {
   isOpen: boolean;
@@ -28,6 +28,7 @@ interface StartGameModalProps {
   gameMode: GameMode;
   continentFilter: ContinentFilter;
   usRegionFilter?: USRegionFilter;
+  brRegionFilter?: BRRegionFilter;
   timerMode: TimerMode;
   onStart: (
     playerName: string,
@@ -36,6 +37,7 @@ interface StartGameModalProps {
       mode?: GameMode;
       continent?: ContinentFilter;
       usRegion?: USRegionFilter;
+      brRegion?: BRRegionFilter;
       timer?: TimerMode;
     }
   ) => void;
@@ -47,6 +49,7 @@ interface StartGameModalProps {
 const EDITION_OPTIONS: { id: GameEdition; label: string; icon: string }[] = [
   { id: 'world', label: 'World Countries', icon: '🌐' },
   { id: 'us-states', label: 'US State Flags', icon: '🇺🇸' },
+  { id: 'br-states', label: 'Brazilian States', icon: '🇧🇷' },
 ];
 
 const GAME_MODES: { id: GameMode; label: string; icon: string }[] = [
@@ -72,6 +75,15 @@ const US_REGION_OPTIONS: { id: USRegionFilter; label: string; icon: string }[] =
   { id: 'West', label: 'West', icon: '🏔️' },
 ];
 
+const BR_REGION_OPTIONS: { id: BRRegionFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All 27 States', icon: '🇧🇷' },
+  { id: 'Norte', label: 'Norte', icon: '🌳' },
+  { id: 'Nordeste', label: 'Nordeste', icon: '☀️' },
+  { id: 'Centro-Oeste', label: 'Centro-Oeste', icon: '🌾' },
+  { id: 'Sudeste', label: 'Sudeste', icon: '🏙️' },
+  { id: 'Sul', label: 'Sul', icon: '❄️' },
+];
+
 const TIMER_OPTIONS: { id: TimerMode; label: string; icon: string }[] = [
   { id: 'timed', label: '10s Timed', icon: '⏱️' },
   { id: 'relaxed', label: 'Relaxed', icon: '🧘' },
@@ -87,6 +99,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   gameMode,
   continentFilter,
   usRegionFilter = 'all',
+  brRegionFilter = 'all',
   timerMode,
   onStart,
   onEnableAdmin,
@@ -99,6 +112,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
   const [selectedMode, setSelectedMode] = useState<GameMode>(gameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(continentFilter);
   const [selectedUsRegion, setSelectedUsRegion] = useState<USRegionFilter>(usRegionFilter);
+  const [selectedBrRegion, setSelectedBrRegion] = useState<BRRegionFilter>(brRegionFilter);
   const [selectedTimer, setSelectedTimer] = useState<TimerMode>(timerMode);
 
   const [isAdminModeRequested, setIsAdminModeRequested] = useState(false);
@@ -122,6 +136,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
       setSelectedMode(gameMode);
       setSelectedContinent(continentFilter);
       setSelectedUsRegion(usRegionFilter);
+      setSelectedBrRegion(brRegionFilter);
       setSelectedTimer(timerMode);
       setIsAdminModeRequested(false);
       setAdminEmail('');
@@ -132,7 +147,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
         inputRef.current?.select();
       }, 100);
     }
-  }, [isOpen, initialPlayerName, edition, gameMode, continentFilter, usRegionFilter, timerMode]);
+  }, [isOpen, initialPlayerName, edition, gameMode, continentFilter, usRegionFilter, brRegionFilter, timerMode]);
 
   if (!isOpen) return null;
 
@@ -150,6 +165,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
           mode: selectedMode,
           continent: selectedContinent,
           usRegion: selectedUsRegion,
+          brRegion: selectedBrRegion,
           timer: selectedTimer,
         });
         return;
@@ -162,6 +178,7 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
       mode: selectedMode,
       continent: selectedContinent,
       usRegion: selectedUsRegion,
+      brRegion: selectedBrRegion,
       timer: selectedTimer,
     });
   };
@@ -322,6 +339,18 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                           type="button"
                           className={`main-continent-pill ${selectedUsRegion === reg.id ? 'active' : ''}`}
                           onClick={() => setSelectedUsRegion(reg.id)}
+                        >
+                          <span>{reg.icon}</span>
+                          <span>{reg.label}</span>
+                        </button>
+                      ))
+                    : selectedEdition === 'br-states'
+                    ? BR_REGION_OPTIONS.map((reg) => (
+                        <button
+                          key={reg.id}
+                          type="button"
+                          className={`main-continent-pill ${selectedBrRegion === reg.id ? 'active' : ''}`}
+                          onClick={() => setSelectedBrRegion(reg.id)}
                         >
                           <span>{reg.icon}</span>
                           <span>{reg.label}</span>
@@ -599,7 +628,12 @@ export const StartGameModal: React.FC<StartGameModalProps> = ({
                     className="btn-primary"
                     onClick={() => {
                       setIsAdminModeRequested(false);
-                      onStart('Admin', { mode: selectedMode, continent: selectedContinent, timer: selectedTimer });
+                      onStart('Admin', {
+                        mode: selectedMode,
+                        continent: selectedContinent,
+                        brRegion: selectedBrRegion,
+                        timer: selectedTimer,
+                      });
                     }}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: 10 }}
                   >

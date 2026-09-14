@@ -18,7 +18,7 @@ import {
   SlidersHorizontal,
   Check,
 } from 'lucide-react';
-import { GameMode, ContinentFilter, TimerMode, GameEdition, USRegionFilter } from '../types/game';
+import { GameMode, ContinentFilter, TimerMode, GameEdition, USRegionFilter, BRRegionFilter } from '../types/game';
 import {
   LeaderboardCategory,
   getFilteredLeaderboard,
@@ -42,6 +42,7 @@ interface LeaderboardModalProps {
   defaultGameMode?: GameMode;
   defaultContinent?: ContinentFilter;
   defaultUsRegion?: USRegionFilter;
+  defaultBrRegion?: BRRegionFilter;
   defaultTimerMode?: TimerMode;
   isAdmin?: boolean;
 }
@@ -55,6 +56,7 @@ const CATEGORIES: { id: LeaderboardCategory; label: string; icon: React.ReactNod
 const EDITION_OPTIONS: { id: GameEdition; label: string; icon: string }[] = [
   { id: 'world', label: 'World Countries', icon: '🌐' },
   { id: 'us-states', label: 'US State Flags', icon: '🇺🇸' },
+  { id: 'br-states', label: 'Brazilian States', icon: '🇧🇷' },
 ];
 
 const GAME_MODES: { id: GameMode; label: string; icon: string }[] = [
@@ -80,6 +82,15 @@ const US_REGION_FILTERS: { id: USRegionFilter; label: string; icon: string }[] =
   { id: 'West', label: 'West', icon: '🏔️' },
 ];
 
+const BR_REGION_FILTERS: { id: BRRegionFilter; label: string; icon: string }[] = [
+  { id: 'all', label: 'All 27 States', icon: '🇧🇷' },
+  { id: 'Norte', label: 'Norte', icon: '🌳' },
+  { id: 'Nordeste', label: 'Nordeste', icon: '☀️' },
+  { id: 'Centro-Oeste', label: 'Centro-Oeste', icon: '🌾' },
+  { id: 'Sudeste', label: 'Sudeste', icon: '🏙️' },
+  { id: 'Sul', label: 'Sul', icon: '❄️' },
+];
+
 const TIMER_MODES: { id: TimerMode; label: string; icon: string }[] = [
   { id: 'timed', label: '10s Timed', icon: '⏱️' },
   { id: 'relaxed', label: 'Relaxed', icon: '🧘' },
@@ -93,6 +104,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   defaultGameMode = 'globe',
   defaultContinent = 'all',
   defaultUsRegion = 'all',
+  defaultBrRegion = 'all',
   defaultTimerMode = 'timed',
   isAdmin = false,
 }) => {
@@ -100,6 +112,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const [selectedMode, setSelectedMode] = useState<GameMode>(defaultGameMode);
   const [selectedContinent, setSelectedContinent] = useState<ContinentFilter>(defaultContinent);
   const [selectedUsRegion, setSelectedUsRegion] = useState<USRegionFilter>(defaultUsRegion);
+  const [selectedBrRegion, setSelectedBrRegion] = useState<BRRegionFilter>(defaultBrRegion);
   const [selectedTimerMode, setSelectedTimerMode] = useState<TimerMode>(defaultTimerMode);
   const [selectedCategory, setSelectedCategory] = useState<LeaderboardCategory>(
     defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes'
@@ -121,12 +134,13 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       setSelectedMode(defaultGameMode);
       setSelectedContinent(defaultContinent);
       setSelectedUsRegion(defaultUsRegion);
+      setSelectedBrRegion(defaultBrRegion);
       setSelectedTimerMode(defaultTimerMode);
       setSelectedCategory(defaultTimerMode === 'timed' ? 'fastest' : 'least-mistakes');
       setIsSessionAdmin(isAdmin);
       setIsFiltersOpen(false);
     }
-  }, [isOpen, defaultEdition, defaultGameMode, defaultContinent, defaultUsRegion, defaultTimerMode, isAdmin]);
+  }, [isOpen, defaultEdition, defaultGameMode, defaultContinent, defaultUsRegion, defaultBrRegion, defaultTimerMode, isAdmin]);
 
   // Sync and subscribe to global database on open
   useEffect(() => {
@@ -165,12 +179,15 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       (e) => (e.edition || 'world') === selectedEdition && e.gameMode === mode
     ).length;
 
-  const getScopeCount = (scope: ContinentFilter | USRegionFilter) =>
+  const getScopeCount = (scope: ContinentFilter | USRegionFilter | BRRegionFilter) =>
     allLeaderboardEntries.filter((e) => {
       if ((e.edition || 'world') !== selectedEdition) return false;
       if (e.gameMode !== selectedMode) return false;
       if (selectedEdition === 'us-states') {
         return (e.usRegionFilter || 'all') === scope;
+      }
+      if (selectedEdition === 'br-states') {
+        return (e.brRegionFilter || 'all') === scope;
       }
       return (e.continentFilter || 'all') === scope;
     }).length;
@@ -181,6 +198,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       if (e.gameMode !== selectedMode) return false;
       if (selectedEdition === 'us-states') {
         if ((e.usRegionFilter || 'all') !== selectedUsRegion) return false;
+      } else if (selectedEdition === 'br-states') {
+        if ((e.brRegionFilter || 'all') !== selectedBrRegion) return false;
       } else {
         if ((e.continentFilter || 'all') !== selectedContinent) return false;
       }
@@ -188,8 +207,12 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
     }).length;
 
   // Query strictly for this exact game type combination
-  const selectedScope: ContinentFilter | USRegionFilter =
-    selectedEdition === 'us-states' ? selectedUsRegion : selectedContinent;
+  const selectedScope: ContinentFilter | USRegionFilter | BRRegionFilter =
+    selectedEdition === 'us-states'
+      ? selectedUsRegion
+      : selectedEdition === 'br-states'
+      ? selectedBrRegion
+      : selectedContinent;
 
   const entries = getFilteredLeaderboard(
     selectedEdition,
@@ -328,7 +351,11 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
         <div className="leaderboard-active-filter-strip">
           <div className="leaderboard-summary-chips" onClick={() => setIsFiltersOpen(!isFiltersOpen)}>
             <span className="leaderboard-summary-chip edition">
-              {selectedEdition === 'us-states' ? '🇺🇸 US States' : '🌐 World'}
+              {selectedEdition === 'us-states'
+                ? '🇺🇸 US States'
+                : selectedEdition === 'br-states'
+                ? '🇧🇷 Brazilian States'
+                : '🌐 World'}
             </span>
             <span className="leaderboard-summary-chip mode">
               {getModeIcon(selectedMode)} {getModeLabel(selectedMode)}
@@ -338,6 +365,10 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 ? selectedUsRegion === 'all'
                   ? '🇺🇸 All 50 States'
                   : `📍 ${selectedUsRegion}`
+                : selectedEdition === 'br-states'
+                ? selectedBrRegion === 'all'
+                  ? '🇧🇷 All 27 States'
+                  : `📍 ${selectedBrRegion}`
                 : selectedContinent === 'all'
                 ? '🌍 All World'
                 : `📍 ${selectedContinent}`}
@@ -446,14 +477,22 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
             {/* Row 3: Scope / Region */}
             <div className="leaderboard-filter-group">
               <span className="leaderboard-filter-label">
-                <Compass size={11} /> {selectedEdition === 'us-states' ? 'Region:' : 'Scope:'}
+                <Compass size={11} />{' '}
+                {selectedEdition === 'us-states' || selectedEdition === 'br-states' ? 'Region:' : 'Scope:'}
               </span>
               <div className="leaderboard-filter-pills">
-                {(selectedEdition === 'us-states' ? US_REGION_FILTERS : CONTINENT_FILTERS).map((scopeItem) => {
+                {(selectedEdition === 'us-states'
+                  ? US_REGION_FILTERS
+                  : selectedEdition === 'br-states'
+                  ? BR_REGION_FILTERS
+                  : CONTINENT_FILTERS
+                ).map((scopeItem) => {
                   const count = getScopeCount(scopeItem.id);
                   const isSelected =
                     selectedEdition === 'us-states'
                       ? selectedUsRegion === scopeItem.id
+                      : selectedEdition === 'br-states'
+                      ? selectedBrRegion === scopeItem.id
                       : selectedContinent === scopeItem.id;
                   const isGreyedOut = count === 0 && !isSelected;
 
@@ -469,6 +508,8 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                         if (!isGreyedOut) {
                           if (selectedEdition === 'us-states') {
                             setSelectedUsRegion(scopeItem.id as USRegionFilter);
+                          } else if (selectedEdition === 'br-states') {
+                            setSelectedBrRegion(scopeItem.id as BRRegionFilter);
                           } else {
                             setSelectedContinent(scopeItem.id as ContinentFilter);
                           }
@@ -576,12 +617,23 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                 No Records for This Combination Yet
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', maxWidth: '340px', margin: '0.3rem auto' }}>
-                Play a game in <strong>{selectedEdition === 'us-states' ? 'US State Flags' : 'World Countries'}</strong> (
-                {getModeLabel(selectedMode)},{' '}
+                Play a game in{' '}
+                <strong>
+                  {selectedEdition === 'us-states'
+                    ? 'US State Flags'
+                    : selectedEdition === 'br-states'
+                    ? 'Brazilian States'
+                    : 'World Countries'}
+                </strong>{' '}
+                ({getModeLabel(selectedMode)},{' '}
                 {selectedEdition === 'us-states'
                   ? selectedUsRegion === 'all'
                     ? 'All 50 States'
                     : selectedUsRegion
+                  : selectedEdition === 'br-states'
+                  ? selectedBrRegion === 'all'
+                    ? 'All 27 States'
+                    : selectedBrRegion
                   : selectedContinent === 'all'
                   ? 'All World'
                   : selectedContinent}

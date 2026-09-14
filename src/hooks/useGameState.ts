@@ -10,6 +10,7 @@ import {
   GameMode,
   ContinentFilter,
   USRegionFilter,
+  BRRegionFilter,
   GameEdition,
   TimerMode,
   LifelineState,
@@ -199,11 +200,15 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     ) => {
       if (!countryList || countryList.length === 0) return;
 
-      // Filter by continent or US region if active
+      // Filter by continent, US region, or BR region if active
       let pool = countryList;
       if (currentSettings.edition === 'us-states') {
         if (currentSettings.usRegionFilter && currentSettings.usRegionFilter !== 'all') {
           pool = countryList.filter((c) => c.region === currentSettings.usRegionFilter);
+        }
+      } else if (currentSettings.edition === 'br-states') {
+        if (currentSettings.brRegionFilter && currentSettings.brRegionFilter !== 'all') {
+          pool = countryList.filter((c) => c.region === currentSettings.brRegionFilter);
         }
       } else if (currentSettings.continentFilter !== 'all') {
         pool = countryList.filter((c) => c.region === currentSettings.continentFilter);
@@ -398,7 +403,8 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       return;
     }
     playLifeline();
-    const isState = settingsRef.current.edition === 'us-states';
+    const edition = settingsRef.current.edition;
+    const isState = edition === 'us-states' || edition === 'br-states';
     const cap = currentRound.targetCountry.capital || 'Capital not recorded';
     const cluePrefix = isState ? '🏛️ State Capital Clue' : '🏛️ Capital Clue';
     setLifelineState((prev) => ({
@@ -485,6 +491,10 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       if (edition === 'us-states') {
         if (activeSettings.usRegionFilter && activeSettings.usRegionFilter !== 'all') {
           pool = res.countries.filter((c) => c.region === activeSettings.usRegionFilter);
+        }
+      } else if (edition === 'br-states') {
+        if (activeSettings.brRegionFilter && activeSettings.brRegionFilter !== 'all') {
+          pool = res.countries.filter((c) => c.region === activeSettings.brRegionFilter);
         }
       } else if (activeSettings.continentFilter !== 'all') {
         pool = res.countries.filter((c) => c.region === activeSettings.continentFilter);
@@ -602,7 +612,8 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
           (newSettings.gameMode !== undefined && newSettings.gameMode !== prev.gameMode) ||
           (newSettings.timerMode !== undefined && newSettings.timerMode !== prev.timerMode) ||
           (newSettings.continentFilter !== undefined && newSettings.continentFilter !== prev.continentFilter) ||
-          (newSettings.usRegionFilter !== undefined && newSettings.usRegionFilter !== prev.usRegionFilter);
+          (newSettings.usRegionFilter !== undefined && newSettings.usRegionFilter !== prev.usRegionFilter) ||
+          (newSettings.brRegionFilter !== undefined && newSettings.brRegionFilter !== prev.brRegionFilter);
 
         const currentEdition = updated.edition || 'world';
 
@@ -1048,6 +1059,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       mode?: GameMode;
       continent?: ContinentFilter;
       usRegion?: USRegionFilter;
+      brRegion?: BRRegionFilter;
       timer?: TimerMode;
     }
   ) => {
@@ -1063,6 +1075,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         ...(config.mode ? { gameMode: config.mode } : {}),
         ...(config.continent ? { continentFilter: config.continent } : {}),
         ...(config.usRegion ? { usRegionFilter: config.usRegion } : {}),
+        ...(config.brRegion ? { brRegionFilter: config.brRegion } : {}),
         ...(config.timer ? { timerMode: config.timer } : {}),
       });
     }
@@ -1085,11 +1098,16 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
     const effectiveEdition = config?.edition || settingsRef.current.edition || 'world';
     const effectiveContinent = config?.continent || settingsRef.current.continentFilter;
     const effectiveUsRegion = config?.usRegion || settingsRef.current.usRegionFilter || 'all';
+    const effectiveBrRegion = config?.brRegion || settingsRef.current.brRegionFilter || 'all';
 
     let pool = countriesRef.current;
     if (effectiveEdition === 'us-states') {
       if (effectiveUsRegion !== 'all') {
         pool = countriesRef.current.filter((c) => c.region === effectiveUsRegion);
+      }
+    } else if (effectiveEdition === 'br-states') {
+      if (effectiveBrRegion !== 'all') {
+        pool = countriesRef.current.filter((c) => c.region === effectiveBrRegion);
       }
     } else if (effectiveContinent !== 'all') {
       pool = countriesRef.current.filter((c) => c.region === effectiveContinent);

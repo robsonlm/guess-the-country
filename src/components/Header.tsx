@@ -58,10 +58,18 @@ export const Header: React.FC<HeaderProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <h1 className="brand-title">
             <span className="brand-title-full">
-              {settings.edition === 'us-states' ? 'Guess the US State' : 'Guess the Country'}
+              {settings.edition === 'us-states'
+                ? 'Guess the US State'
+                : settings.edition === 'br-states'
+                ? 'Guess the Brazilian State'
+                : 'Guess the Country'}
             </span>
             <span className="brand-title-compact">
-              {settings.edition === 'us-states' ? 'US States' : 'Guess Country'}
+              {settings.edition === 'us-states'
+                ? 'US States'
+                : settings.edition === 'br-states'
+                ? 'BR States'
+                : 'Guess Country'}
             </span>
           </h1>
           {settings.edition === 'us-states' && (
@@ -82,6 +90,26 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <span>🇺🇸</span>
               <span>USA</span>
+            </div>
+          )}
+          {settings.edition === 'br-states' && (
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '0.70rem',
+                fontWeight: 800,
+                padding: '2px 7px',
+                borderRadius: '9999px',
+                background: 'rgba(34, 197, 94, 0.18)',
+                color: '#86efac',
+                border: '1px solid rgba(34, 197, 94, 0.45)',
+              }}
+              title="Active Edition: Brazilian State Flags"
+            >
+              <span>🇧🇷</span>
+              <span>BRA</span>
             </div>
           )}
         </div>

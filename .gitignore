@@ -5,6 +5,7 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+.kilo/
 
 styles/*.css.map
 *.tsbuildinfo

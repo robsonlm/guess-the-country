@@ -95,4 +95,40 @@ describe('Leaderboard with World and US-States Editions', () => {
     expect(resolveFeatureAlpha2({ ISO_A2: 'ID', POSTAL: 'ID', NAME: 'Indonesia' })).toBe('ID');
     expect(resolveFeatureAlpha2({ ISO_A2: 'FR' })).toBe('FR');
   });
+
+  it('isolates br-states entries from world and us-states leaderboards', () => {
+    addLeaderboardEntry({
+      playerName: 'Carla',
+      edition: 'br-states',
+      gameMode: 'globe',
+      continentFilter: 'all',
+      brRegionFilter: 'Nordeste',
+      timerMode: 'timed',
+      totalCountries: 9,
+      conqueredCount: 9,
+      mistakesCount: 0,
+      accuracy: 100,
+      timeElapsedSeconds: 50,
+      bestStreak: 9,
+    });
+
+    // Query BR states Nordeste: should include Carla.
+    const brResults = getFilteredLeaderboard('br-states', 'globe', 'Nordeste', 'timed');
+    expect(brResults.length).toBe(1);
+    expect(brResults[0].playerName).toBe('Carla');
+    expect(brResults[0].edition).toBe('br-states');
+    expect(brResults[0].brRegionFilter).toBe('Nordeste');
+
+    // Query BR states Sudeste: should be empty (different region).
+    const brSudeste = getFilteredLeaderboard('br-states', 'globe', 'Sudeste', 'timed');
+    expect(brSudeste.length).toBe(0);
+
+    // Query US-states: should still be empty (cross-edition isolation).
+    const usResults = getFilteredLeaderboard('us-states', 'globe', 'all', 'timed');
+    expect(usResults.length).toBe(0);
+
+    // Query world: should still be empty (cross-edition isolation).
+    const worldResults = getFilteredLeaderboard('world', 'globe', 'all', 'timed');
+    expect(worldResults.length).toBe(0);
+  });
 });
