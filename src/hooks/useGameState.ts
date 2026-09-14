@@ -28,13 +28,20 @@ import {
   loadGlobeMistakes,
   saveGlobeMistakes,
   clearGameProgress,
+  getFlagUrl,
 } from '../services/countriesApi';
 import { loadAchievements, checkNewAchievements } from '../services/achievements';
 import { getNeighboringCountries } from '../services/countriesGeo';
 import { getLastPlayerName, setLastPlayerName } from '../services/leaderboard';
 import { useSoundEffects } from './useSoundEffects';
 import { getCurrentRoute, navigateToRoute } from '../utils/router';
-import { preloadAllGameResources, preloadUpcomingQuestionsFlags } from '../services/resourcePreloader';
+import {
+  preloadAllGameResources,
+  preloadUpcomingQuestionsFlags,
+  preloadEditionFlags,
+  preloadImage,
+  startBackgroundPrewarm,
+} from '../services/resourcePreloader';
 
 const INITIAL_LIFELINES: LifelineState = {
   capitalCredits: 1,
@@ -168,10 +175,12 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
 
   const { playCorrect, playWrong, playStreakMilestone, playLifeline } = useSoundEffects(settings.soundEnabled);
 
-  const preloadFlag = (url?: string) => {
-    if (!url) return;
-    const img = new Image();
-    img.src = url;
+  const preloadFlag = (country?: Country) => {
+    if (!country) return;
+    const low = country.lowFlagUrl || getFlagUrl(country.alpha2, 'low');
+    const high = country.flagUrl || getFlagUrl(country.alpha2, 'high');
+    if (low) preloadImage(low, 2500);
+    if (high) preloadImage(high, 4000);
   };
 
   const calculateDifficulty = (mode: GameMode) => {
@@ -223,7 +232,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       // Special Globe Mode Final 3 Showdown condition (when 3 or fewer countries remain)
       if (currentSettings.gameMode === 'globe' && unsolvedPool.length <= 3) {
         const finalThreeTargets = [...unsolvedPool];
-        finalThreeTargets.forEach((c) => preloadFlag(c.flagUrl));
+        finalThreeTargets.forEach((c) => preloadFlag(c));
 
         const isEffectiveAdmin =
           adminRef.current ||
@@ -288,7 +297,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
       const targetCountry = unsolvedPool[targetIdx];
       lastTargetAlphaRef.current = targetCountry.alpha2;
 
-      preloadFlag(targetCountry.flagUrl);
+      preloadFlag(targetCountry);
 
       // Pick distractor countries
       let distractors: Country[] = [];
@@ -298,7 +307,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         // This ensures flags of already guessed right countries are never shown
         const distractorCandidates = unsolvedPool.filter((c) => c.alpha2 !== targetCountry.alpha2);
         distractors = getNeighboringCountries(targetCountry, distractorCandidates, optionCount - 1);
-        distractors.forEach((c) => preloadFlag(c.flagUrl));
+        distractors.forEach((c) => preloadFlag(c));
       } else {
         // Classic / progressive random distractors
         const usedAlphas = new Set<string>([targetCountry.alpha2]);
@@ -308,7 +317,7 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
           if (!usedAlphas.has(candidate.alpha2)) {
             usedAlphas.add(candidate.alpha2);
             distractors.push(candidate);
-            preloadFlag(candidate.flagUrl);
+            preloadFlag(candidate);
           }
         }
       }
@@ -367,9 +376,9 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         isFinalThree: false,
       });
 
-      // Lookahead: Preload all flags for the next 3 questions in the background
+      // Lookahead: Preload all flags for the next 6 questions in the background
       const nextRemaining = unsolvedPool.filter((c) => c.alpha2 !== targetCountry.alpha2);
-      preloadUpcomingQuestionsFlags(nextRemaining, countryList, currentSettings.gameMode, 3).catch(() => {});
+      preloadUpcomingQuestionsFlags(nextRemaining, countryList, currentSettings.gameMode, 6).catch(() => {});
     },
     []
   );
@@ -503,6 +512,10 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
           currentSolved
         );
       }
+
+      // Proactively warm all flags for the loaded edition in the background
+      preloadEditionFlags(res.countries).catch(() => {});
+      startBackgroundPrewarm(edition, res.countries);
 
       // If user refreshed directly on #play, ensure preloader syncs before starting timer
       if (getCurrentRoute() === 'play') {

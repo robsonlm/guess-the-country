@@ -133,8 +133,8 @@ export async function preloadGeoData(edition: GameEdition = 'world'): Promise<bo
 }
 
 /**
- * Preloads all flags for small decks like US States (51 flags) in batches
- * so that every single state flag renders instantly from memory without delays.
+ * Preloads all flags for the active edition in batches
+ * so that every single flag renders instantly from memory without delays.
  */
 export async function preloadEditionFlags(
   countryList: Country[]
@@ -151,20 +151,16 @@ export async function preloadEditionFlags(
     if (high) highUrls.push(high);
   }
 
-  // Preload in batches of 10 to avoid socket flooding while ensuring rapid readiness
-  const batchSize = 10;
-  for (let i = 0; i < lowUrls.length; i += batchSize) {
-    const batch = lowUrls.slice(i, i + batchSize);
-    await Promise.all(batch.map((url) => preloadImage(url, 2500)));
+  // Preload in batches of 20 with concurrent promise execution
+  const batchSize = 20;
+  for (let i = 0; i < highUrls.length; i += batchSize) {
+    const highBatch = highUrls.slice(i, i + batchSize);
+    const lowBatch = lowUrls.slice(i, i + batchSize);
+    await Promise.all([
+      ...highBatch.map((url) => preloadImage(url, 3000)),
+      ...lowBatch.map((url) => preloadImage(url, 2500)),
+    ]);
   }
-
-  // Concurrently warm high-res flags in background
-  (async () => {
-    for (let i = 0; i < highUrls.length; i += batchSize) {
-      const batch = highUrls.slice(i, i + batchSize);
-      await Promise.all(batch.map((url) => preloadImage(url, 4500)));
-    }
-  })().catch(() => {});
 }
 
 /**
@@ -200,40 +196,41 @@ export async function preloadRoundFlags(
     round.finalThreeTargets.forEach(registerCountry);
   }
 
+  const highList = Array.from(highUrls);
   const lowList = Array.from(lowUrls);
-  if (lowList.length === 0) {
+  if (highList.length === 0 && lowList.length === 0) {
     if (onProgress) onProgress(100);
     return true;
   }
 
   let completed = 0;
-  const promises = lowList.map((url) =>
-    preloadImage(url, 3000).then((res) => {
+  const total = highList.length;
+  const promises = highList.map((url) =>
+    preloadImage(url, 3500).then((res) => {
       completed++;
-      if (onProgress) {
-        onProgress(Math.round((completed / lowList.length) * 100));
+      if (onProgress && total > 0) {
+        onProgress(Math.round((completed / total) * 100));
       }
       return res;
     })
   );
 
+  // Also warm low-res flags concurrently
+  lowList.forEach((url) => preloadImage(url, 2000));
+
   await Promise.all(promises);
-
-  // Concurrently warm high-res flags in background
-  Promise.all(Array.from(highUrls).map((url) => preloadImage(url, 6000))).catch(() => {});
-
   return true;
 }
 
 /**
  * Proactively preloads and hardware-decodes all flags for the next N questions
- * in the background. Low-res flags load first, followed by high-res warming.
+ * in the background. High-res flags load first, followed by low-res warming.
  */
 export async function preloadUpcomingQuestionsFlags(
   unsolvedPool: Country[],
   countryList: Country[],
   gameMode: GameMode,
-  lookaheadCount: number = 4
+  lookaheadCount: number = 6
 ): Promise<void> {
   if (!unsolvedPool || unsolvedPool.length === 0) return;
 
@@ -269,11 +266,11 @@ export async function preloadUpcomingQuestionsFlags(
     }
   }
 
-  // Preload and hardware-decode low-res flags first
-  await Promise.all(Array.from(lowUrls).map((url) => preloadImage(url, 3500)));
+  // Preload and hardware-decode high-res flags first
+  await Promise.all(Array.from(highUrls).map((url) => preloadImage(url, 3500)));
 
-  // Concurrently warm high-res flags
-  Promise.all(Array.from(highUrls).map((url) => preloadImage(url, 6000))).catch(() => {});
+  // Concurrently warm low-res fallbacks
+  Promise.all(Array.from(lowUrls).map((url) => preloadImage(url, 2500))).catch(() => {});
 }
 
 /**
@@ -329,16 +326,14 @@ export async function preloadAllGameResources(
     }
 
     if (upcomingContext && upcomingContext.countryList.length > 0) {
-      if (edition === 'us-states') {
-        preloadTasks.push(preloadEditionFlags(upcomingContext.countryList));
-      }
+      preloadTasks.push(preloadEditionFlags(upcomingContext.countryList));
       if (upcomingContext.unsolvedPool.length > 0) {
         preloadTasks.push(
           preloadUpcomingQuestionsFlags(
             upcomingContext.unsolvedPool,
             upcomingContext.countryList,
             gameMode,
-            5
+            6
           )
         );
       }
@@ -364,16 +359,14 @@ export async function preloadAllGameResources(
     }
 
     if (upcomingContext && upcomingContext.countryList.length > 0) {
-      if (edition === 'us-states') {
-        preloadTasks.push(preloadEditionFlags(upcomingContext.countryList));
-      }
+      preloadTasks.push(preloadEditionFlags(upcomingContext.countryList));
       if (upcomingContext.unsolvedPool.length > 0) {
         preloadTasks.push(
           preloadUpcomingQuestionsFlags(
             upcomingContext.unsolvedPool,
             upcomingContext.countryList,
             gameMode,
-            5
+            6
           )
         );
       }
@@ -383,27 +376,32 @@ export async function preloadAllGameResources(
     update('Expedition Ready! Launching...', 100);
   }
 
-  // Slight 150ms delay at 100% to ensure smooth visual transition
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  // Slight 120ms delay at 100% to ensure smooth visual transition
+  await new Promise((resolve) => setTimeout(resolve, 120));
 }
 
 /**
  * Background pre-warm: runs silently on landing page mount so by the time
- * the player clicks 'Play', the heavy assets (>4MB) are already loaded in browser cache.
+ * the player clicks 'Play', heavy assets and flags are already loaded in browser cache.
  */
-export function startBackgroundPrewarm(edition: GameEdition = 'world'): void {
+export function startBackgroundPrewarm(
+  edition: GameEdition = 'world',
+  countryList?: Country[]
+): void {
   if (hasStartedBackgroundPrewarm) return;
   hasStartedBackgroundPrewarm = true;
 
-  const runner = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 1200));
+  const runner = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 600));
 
   runner(() => {
     preloadGeoData(edition)
       .catch(() => {})
-      .then(() => {
-        return preloadEarthTextures();
-      })
+      .then(() => preloadEarthTextures())
       .catch(() => {});
+
+    if (countryList && countryList.length > 0) {
+      preloadEditionFlags(countryList).catch(() => {});
+    }
   });
 }
 

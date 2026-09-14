@@ -5,6 +5,25 @@ import { isImagePreloaded, markImagePreloaded } from '../services/resourcePreloa
 // Module-level cache of high-res image URLs that are decoded in GPU/browser memory
 const decodedMemoryCache = new Set<string>();
 
+function isUrlCachedInBrowser(url: string): boolean {
+  if (!url) return false;
+  if (decodedMemoryCache.has(url) || isImagePreloaded(url)) return true;
+  if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
+    try {
+      const testImg = new Image();
+      testImg.src = url;
+      if (testImg.complete && testImg.naturalWidth > 0) {
+        decodedMemoryCache.add(url);
+        markImagePreloaded(url);
+        return true;
+      }
+    } catch {
+      // safe fallback
+    }
+  }
+  return false;
+}
+
 interface ProgressiveFlagProps {
   alpha2?: string;
   name?: string;
@@ -36,8 +55,8 @@ export const ProgressiveFlag: React.FC<ProgressiveFlagProps> = ({
   const lowSrc = lowFlagUrl || (code ? getLowResFlagUrl(code) : '');
   const highSrc = flagUrl || (code ? getFlagUrl(code, 'high') : '');
 
-  const isAlreadyWarm = !!highSrc && (decodedMemoryCache.has(highSrc) || isImagePreloaded(highSrc));
-  const initialSrc = isAlreadyWarm ? highSrc : (lowSrc || highSrc);
+  const isAlreadyWarm = isUrlCachedInBrowser(highSrc);
+  const initialSrc = isAlreadyWarm ? highSrc : (isUrlCachedInBrowser(lowSrc) ? lowSrc : (lowSrc || highSrc));
 
   const [currentSrc, setCurrentSrc] = useState<string>(initialSrc);
   const [isHighResLoaded, setIsHighResLoaded] = useState<boolean>(isAlreadyWarm);
@@ -46,7 +65,7 @@ export const ProgressiveFlag: React.FC<ProgressiveFlagProps> = ({
   useEffect(() => {
     activeCodeRef.current = code;
 
-    const warm = !!highSrc && (decodedMemoryCache.has(highSrc) || isImagePreloaded(highSrc));
+    const warm = isUrlCachedInBrowser(highSrc);
     if (warm) {
       setCurrentSrc(highSrc);
       setIsHighResLoaded(true);
