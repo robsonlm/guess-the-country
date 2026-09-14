@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getFlagUrl, getLowResFlagUrl } from '../services/countriesApi';
+import { isImagePreloaded, markImagePreloaded } from '../services/resourcePreloader';
+
+// Module-level cache of high-res image URLs that are decoded in GPU/browser memory
+const decodedMemoryCache = new Set<string>();
 
 interface ProgressiveFlagProps {
   alpha2?: string;
@@ -32,17 +36,27 @@ export const ProgressiveFlag: React.FC<ProgressiveFlagProps> = ({
   const lowSrc = lowFlagUrl || (code ? getLowResFlagUrl(code) : '');
   const highSrc = flagUrl || (code ? getFlagUrl(code, 'high') : '');
 
-  // Start with low-res source immediately
-  const [currentSrc, setCurrentSrc] = useState<string>(lowSrc || highSrc);
-  const [isHighResLoaded, setIsHighResLoaded] = useState(false);
+  const isAlreadyWarm = !!highSrc && (decodedMemoryCache.has(highSrc) || isImagePreloaded(highSrc));
+  const initialSrc = isAlreadyWarm ? highSrc : (lowSrc || highSrc);
+
+  const [currentSrc, setCurrentSrc] = useState<string>(initialSrc);
+  const [isHighResLoaded, setIsHighResLoaded] = useState<boolean>(isAlreadyWarm);
   const activeCodeRef = useRef<string>(code);
 
   useEffect(() => {
     activeCodeRef.current = code;
-    setIsHighResLoaded(false);
 
-    const initialSrc = lowSrc || highSrc;
-    setCurrentSrc(initialSrc);
+    const warm = !!highSrc && (decodedMemoryCache.has(highSrc) || isImagePreloaded(highSrc));
+    if (warm) {
+      setCurrentSrc(highSrc);
+      setIsHighResLoaded(true);
+      if (onLoad) onLoad();
+      return;
+    }
+
+    setIsHighResLoaded(false);
+    const startSrc = lowSrc || highSrc;
+    setCurrentSrc(startSrc);
 
     if (!highSrc || highSrc === lowSrc) {
       setIsHighResLoaded(true);
@@ -53,6 +67,10 @@ export const ProgressiveFlag: React.FC<ProgressiveFlagProps> = ({
     const highImg = new Image();
 
     const handleHighLoaded = () => {
+      if (highSrc) {
+        decodedMemoryCache.add(highSrc);
+        markImagePreloaded(highSrc);
+      }
       if (!isSubscribed || activeCodeRef.current !== code) return;
       setCurrentSrc(highSrc);
       setIsHighResLoaded(true);
@@ -94,6 +112,7 @@ export const ProgressiveFlag: React.FC<ProgressiveFlagProps> = ({
       className={`progressive-flag ${className} ${isHighResLoaded ? 'flag-highres-ready' : 'flag-lowres-active'}`}
       style={style}
       loading={loading}
+      decoding="async"
       onLoad={onLoad}
       onError={onError}
     />

@@ -349,14 +349,13 @@ function computePolygonCentroid(geometry: any): { lat: number; lng: number } {
 export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
   if (!props) return '';
   if (props.alpha2) {
-    const a = props.alpha2.toUpperCase();
-    return a.length === 2 && KNOWN_STATE_CENTROIDS[`US-${a}`] ? `US-${a}` : a;
+    return props.alpha2.toUpperCase();
   }
   if (props.code && props.code.length === 2) {
     return `US-${props.code.toUpperCase()}`;
   }
 
-  // Handle US State codes like 'US-AL'
+  // Handle US State codes like 'US-AL' or country codes like 'FR', 'CA'
   if (props.ISO_A2 && props.ISO_A2 !== '-99') {
     const iso2 = props.ISO_A2.toUpperCase();
     if (iso2.startsWith('US-') || iso2.length === 2) {
@@ -388,6 +387,7 @@ export function resolveFeatureAlpha2(props: GeoFeature['properties']): string {
     return ISO3_TO_ISO2[iso3];
   }
 
+  // Fallback for US State features that only contain a POSTAL abbreviation (e.g. { POSTAL: 'TX' })
   if (props.POSTAL && props.POSTAL.length === 2 && props.POSTAL !== '-99') {
     const postal = props.POSTAL.toUpperCase();
     if (KNOWN_STATE_CENTROIDS[`US-${postal}`]) {
@@ -415,10 +415,11 @@ export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<G
           const stateFeatures: GeoFeature[] = geojson.features.map((f: any) => {
             let alpha2 =
               (f.alpha2 ? String(f.alpha2).toUpperCase() : '') ||
-              resolveFeatureAlpha2(f.properties) ||
+              (f.properties?.ISO_A2 && f.properties.ISO_A2.startsWith('US-') ? f.properties.ISO_A2.toUpperCase() : '') ||
               (f.properties?.alpha2 ? String(f.properties.alpha2).toUpperCase() : '') ||
-              (f.properties?.code ? `US-${f.properties.code.toUpperCase()}` : '');
-            if (alpha2 && !alpha2.startsWith('US-') && alpha2.length === 2 && KNOWN_STATE_CENTROIDS[`US-${alpha2}`]) {
+              (f.properties?.code ? `US-${f.properties.code.toUpperCase()}` : '') ||
+              (f.properties?.POSTAL && f.properties.POSTAL.length === 2 ? `US-${f.properties.POSTAL.toUpperCase()}` : '');
+            if (alpha2 && !alpha2.startsWith('US-') && alpha2.length === 2) {
               alpha2 = `US-${alpha2}`;
             }
             const centroid = (alpha2 ? KNOWN_STATE_CENTROIDS[alpha2] : null) || computePolygonCentroid(f.geometry);
@@ -426,6 +427,7 @@ export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<G
               ...f,
               alpha2,
               centroid,
+              isState: true,
             };
             if (alpha2) {
               alpha2ToFeatureMap.set(alpha2, feature);
@@ -437,9 +439,14 @@ export async function loadGeoFeatures(edition: GameEdition = 'world'): Promise<G
           let combined = stateFeatures;
           try {
             const worldFeatures = await loadGeoFeatures('world');
-            const nonUsWorldFeatures = worldFeatures.filter(
-              (wf) => wf.alpha2 !== 'US' && resolveFeatureAlpha2(wf.properties) !== 'US'
-            );
+            const nonUsWorldFeatures = worldFeatures
+              .filter(
+                (wf) => wf.alpha2 !== 'US' && resolveFeatureAlpha2(wf.properties) !== 'US'
+              )
+              .map((wf) => ({
+                ...wf,
+                isState: false,
+              }));
             combined = [...nonUsWorldFeatures, ...stateFeatures];
           } catch {
             // Keep stateFeatures if world fetch fails

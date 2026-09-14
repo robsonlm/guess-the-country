@@ -107,4 +107,22 @@ describe('resourcePreloader', () => {
       preloadUpcomingQuestionsFlags(testCountries, testCountries, 'globe', 3)
     ).resolves.not.toThrow();
   });
+
+  it('tracks preloaded images and warms edition flags', async () => {
+    const { isImagePreloaded, markImagePreloaded, preloadEditionFlags } = await import(
+      './resourcePreloader'
+    );
+    expect(isImagePreloaded('https://flags.test/sample.png')).toBe(false);
+    markImagePreloaded('https://flags.test/sample.png');
+    expect(isImagePreloaded('https://flags.test/sample.png')).toBe(true);
+
+    const testStates = [
+      { name: 'California', alpha2: 'US-CA', flagUrl: '/flags/us-states/ca.png', lowFlagUrl: '/flags/us-states/low/ca.png' },
+      { name: 'Texas', alpha2: 'US-TX', flagUrl: '/flags/us-states/tx.png', lowFlagUrl: '/flags/us-states/low/tx.png' },
+    ] as any;
+
+    await expect(preloadEditionFlags(testStates)).resolves.not.toThrow();
+    expect(isImagePreloaded('/flags/us-states/low/ca.png')).toBe(true);
+    expect(isImagePreloaded('/flags/us-states/low/tx.png')).toBe(true);
+  });
 });

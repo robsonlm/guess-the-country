@@ -78,11 +78,21 @@ describe('Leaderboard with World and US-States Editions', () => {
     expect(emptyUsResults.length).toBe(0);
   });
 
-  it('resolves US state feature codes correctly to US-XX', () => {
+  it('resolves US state feature codes correctly to US-XX and preserves world countries', () => {
+    // US States
     expect(resolveFeatureAlpha2({ ISO_A2: 'US-AL', POSTAL: 'AL' })).toBe('US-AL');
     expect(resolveFeatureAlpha2({ ISO_A2_EH: 'US-CA', POSTAL: 'CA' })).toBe('US-CA');
     expect(resolveFeatureAlpha2({ POSTAL: 'TX' })).toBe('US-TX');
     expect(resolveFeatureAlpha2({ code: 'NY' })).toBe('US-NY');
+
+    // World Countries that share postal codes with US state abbreviations
+    expect(resolveFeatureAlpha2({ ISO_A2: 'CA', POSTAL: 'CA', NAME: 'Canada' })).toBe('CA');
+    expect(resolveFeatureAlpha2({ ISO_A2: 'AR', POSTAL: 'AR', NAME: 'Argentina' })).toBe('AR');
+    expect(resolveFeatureAlpha2({ ISO_A2: 'IN', POSTAL: 'IN', NAME: 'India' })).toBe('IN');
+    expect(resolveFeatureAlpha2({ ISO_A2: 'CO', POSTAL: 'CO', NAME: 'Colombia' })).toBe('CO');
+    expect(resolveFeatureAlpha2({ ISO_A2: 'AL', POSTAL: 'AL', NAME: 'Albania' })).toBe('AL');
+    expect(resolveFeatureAlpha2({ ISO_A2: 'IL', POSTAL: 'IL', NAME: 'Israel' })).toBe('IL');
+    expect(resolveFeatureAlpha2({ ISO_A2: 'ID', POSTAL: 'ID', NAME: 'Indonesia' })).toBe('ID');
     expect(resolveFeatureAlpha2({ ISO_A2: 'FR' })).toBe('FR');
   });
 });

@@ -24,7 +24,6 @@ import {
   getCountryCoordinates,
   getCountryTargetAltitude,
   resolveFeatureAlpha2,
-  KNOWN_STATE_CENTROIDS,
   GeoFeature,
 } from '../services/countriesGeo';
 import { getEarthTextureUrls, getFlagUrl } from '../services/countriesApi';
@@ -244,11 +243,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
 
     const getFeatureAlpha = (d: any): string => {
       if (!d) return '';
-      let a = (d.alpha2 || d.properties?.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
-      if (a && !a.startsWith('US-') && a.length === 2 && KNOWN_STATE_CENTROIDS[`US-${a}`]) {
-        a = `US-${a}`;
-      }
-      return a;
+      return (d.alpha2 || d.properties?.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
     };
 
     // Polygons dataset
@@ -437,11 +432,7 @@ export const GlobeGameView: React.FC<GlobeGameViewProps> = ({
     if (isExploreMode) {
       const getFeatureAlpha = (d: any): string => {
         if (!d) return '';
-        let a = (d.alpha2 || d.properties?.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
-        if (a && !a.startsWith('US-') && a.length === 2 && KNOWN_STATE_CENTROIDS[`US-${a}`]) {
-          a = `US-${a}`;
-        }
-        return a;
+        return (d.alpha2 || d.properties?.alpha2 || resolveFeatureAlpha2(d.properties) || '').toUpperCase();
       };
 
       globe.onPolygonHover((polygon: any) => {

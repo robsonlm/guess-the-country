@@ -516,7 +516,8 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
             setPreloadProgress(p.percent);
             setPreloadStage(p.stage);
           },
-          { unsolvedPool: unsolved, countryList: res.countries }
+          { unsolvedPool: unsolved, countryList: res.countries },
+          activeSettings.edition || 'world'
         )
           .catch(() => {})
           .finally(() => {
@@ -1092,7 +1093,8 @@ export function useGameState(isExternalModalOpen: boolean = false, isAdmin: bool
         setPreloadProgress(p.percent);
         setPreloadStage(p.stage);
       },
-      { unsolvedPool, countryList: countriesRef.current }
+      { unsolvedPool, countryList: countriesRef.current },
+      settingsRef.current.edition || 'world'
     )
       .catch((err) => {
         console.warn('Resource preloading warning:', err);

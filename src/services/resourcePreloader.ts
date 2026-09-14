@@ -1,4 +1,4 @@
-import { Country, Round, GameMode } from '../types/game';
+import { Country, Round, GameMode, GameEdition } from '../types/game';
 import { loadGeoFeatures, getNeighboringCountries } from './countriesGeo';
 import { getFlagUrl, getEarthTextureUrls } from './countriesApi';
 
@@ -10,7 +10,17 @@ export interface PreloadProgress {
 let hasStartedBackgroundPrewarm = false;
 let isGeoWarm = false;
 let areTexturesWarm = false;
-const preloadedImageUrls = new Set<string>();
+export const preloadedImageUrls = new Set<string>();
+
+export function isImagePreloaded(url: string): boolean {
+  return !!url && preloadedImageUrls.has(url);
+}
+
+export function markImagePreloaded(url: string): void {
+  if (url) {
+    preloadedImageUrls.add(url);
+  }
+}
 
 /**
  * Preloads an image and decodes it so it's ready in GPU memory without jank.
@@ -111,15 +121,50 @@ export async function preloadEarthTextures(
 /**
  * Preload the GeoJSON dataset for 3D Globe boundaries
  */
-export async function preloadGeoData(): Promise<boolean> {
+export async function preloadGeoData(edition: GameEdition = 'world'): Promise<boolean> {
   try {
-    const features = await loadGeoFeatures();
+    const features = await loadGeoFeatures(edition);
     isGeoWarm = features.length > 0;
     return isGeoWarm;
   } catch (err) {
     console.warn('Preloading GeoJSON failed, will retry at render:', err);
     return false;
   }
+}
+
+/**
+ * Preloads all flags for small decks like US States (51 flags) in batches
+ * so that every single state flag renders instantly from memory without delays.
+ */
+export async function preloadEditionFlags(
+  countryList: Country[]
+): Promise<void> {
+  if (!countryList || countryList.length === 0) return;
+
+  const lowUrls: string[] = [];
+  const highUrls: string[] = [];
+
+  for (const c of countryList) {
+    const low = c.lowFlagUrl || getFlagUrl(c.alpha2, 'low');
+    const high = c.flagUrl || getFlagUrl(c.alpha2, 'high');
+    if (low) lowUrls.push(low);
+    if (high) highUrls.push(high);
+  }
+
+  // Preload in batches of 10 to avoid socket flooding while ensuring rapid readiness
+  const batchSize = 10;
+  for (let i = 0; i < lowUrls.length; i += batchSize) {
+    const batch = lowUrls.slice(i, i + batchSize);
+    await Promise.all(batch.map((url) => preloadImage(url, 2500)));
+  }
+
+  // Concurrently warm high-res flags in background
+  (async () => {
+    for (let i = 0; i < highUrls.length; i += batchSize) {
+      const batch = highUrls.slice(i, i + batchSize);
+      await Promise.all(batch.map((url) => preloadImage(url, 4500)));
+    }
+  })().catch(() => {});
 }
 
 /**
@@ -188,7 +233,7 @@ export async function preloadUpcomingQuestionsFlags(
   unsolvedPool: Country[],
   countryList: Country[],
   gameMode: GameMode,
-  lookaheadCount: number = 3
+  lookaheadCount: number = 4
 ): Promise<void> {
   if (!unsolvedPool || unsolvedPool.length === 0) return;
 
@@ -233,13 +278,14 @@ export async function preloadUpcomingQuestionsFlags(
 
 /**
  * Coordinates all game resources required before starting gameplay countdown,
- * including both the active round and lookahead preloading for the next 3 questions.
+ * including both the active round and lookahead preloading for upcoming questions.
  */
 export async function preloadAllGameResources(
   round: Round | null,
   gameMode: GameMode,
   onProgressUpdate?: (progress: PreloadProgress) => void,
-  upcomingContext?: { unsolvedPool: Country[]; countryList: Country[] }
+  upcomingContext?: { unsolvedPool: Country[]; countryList: Country[] },
+  edition: GameEdition = 'world'
 ): Promise<void> {
   const update = (stage: string, percent: number) => {
     if (onProgressUpdate) {
@@ -251,8 +297,12 @@ export async function preloadAllGameResources(
 
   if (isGlobeMode) {
     // Stage 1: GeoJSON Cartography (0% -> 35%)
-    update('Calibrating 3D Earth Cartography & Polygons...', 15);
-    await preloadGeoData();
+    const geoStageLabel =
+      edition === 'us-states'
+        ? 'Calibrating 3D US State Cartography...'
+        : 'Calibrating 3D Earth Cartography & Polygons...';
+    update(geoStageLabel, 15);
+    await preloadGeoData(edition);
     update('Cartography Calibrated', 35);
 
     // Stage 2: Earth Textures (35% -> 70%)
@@ -262,75 +312,93 @@ export async function preloadAllGameResources(
     });
     update('Globe Textures Ready', 70);
 
-    // Stage 3: Round 1 Flags + Lookahead Next 3 Questions (70% -> 100%)
-    update('Loading Flags for Current & Upcoming Rounds...', 75);
+    // Stage 3: Round Flags + Lookahead (70% -> 100%)
+    const flagStageLabel =
+      edition === 'us-states'
+        ? 'Acquiring State Flags for Current & Upcoming Rounds...'
+        : 'Acquiring National Flags for Current & Upcoming Rounds...';
+    update(flagStageLabel, 75);
     const preloadTasks: Promise<any>[] = [];
 
     if (round) {
       preloadTasks.push(
         preloadRoundFlags(round, (p) => {
-          update('Acquiring National Flags for Current & Upcoming Rounds...', 70 + Math.round((p * 20) / 100));
+          update(flagStageLabel, 70 + Math.round((p * 20) / 100));
         })
       );
     }
 
-    if (upcomingContext && upcomingContext.unsolvedPool.length > 0) {
-      preloadTasks.push(
-        preloadUpcomingQuestionsFlags(
-          upcomingContext.unsolvedPool,
-          upcomingContext.countryList,
-          gameMode,
-          3
-        )
-      );
+    if (upcomingContext && upcomingContext.countryList.length > 0) {
+      if (edition === 'us-states') {
+        preloadTasks.push(preloadEditionFlags(upcomingContext.countryList));
+      }
+      if (upcomingContext.unsolvedPool.length > 0) {
+        preloadTasks.push(
+          preloadUpcomingQuestionsFlags(
+            upcomingContext.unsolvedPool,
+            upcomingContext.countryList,
+            gameMode,
+            5
+          )
+        );
+      }
     }
 
     await Promise.all(preloadTasks);
     update('Expedition Ready! Launching...', 100);
   } else {
     // Standard Card Quiz Mode
-    update('Acquiring National Flags for Current & Upcoming Rounds...', 20);
+    const flagStageLabel =
+      edition === 'us-states'
+        ? 'Acquiring State Flags for Current & Upcoming Rounds...'
+        : 'Acquiring National Flags for Current & Upcoming Rounds...';
+    update(flagStageLabel, 20);
     const preloadTasks: Promise<any>[] = [];
 
     if (round) {
       preloadTasks.push(
         preloadRoundFlags(round, (p) => {
-          update('Acquiring National Flags for Current & Upcoming Rounds...', 20 + Math.round((p * 70) / 100));
+          update(flagStageLabel, 20 + Math.round((p * 70) / 100));
         })
       );
     }
 
-    if (upcomingContext && upcomingContext.unsolvedPool.length > 0) {
-      preloadTasks.push(
-        preloadUpcomingQuestionsFlags(
-          upcomingContext.unsolvedPool,
-          upcomingContext.countryList,
-          gameMode,
-          3
-        )
-      );
+    if (upcomingContext && upcomingContext.countryList.length > 0) {
+      if (edition === 'us-states') {
+        preloadTasks.push(preloadEditionFlags(upcomingContext.countryList));
+      }
+      if (upcomingContext.unsolvedPool.length > 0) {
+        preloadTasks.push(
+          preloadUpcomingQuestionsFlags(
+            upcomingContext.unsolvedPool,
+            upcomingContext.countryList,
+            gameMode,
+            5
+          )
+        );
+      }
     }
 
     await Promise.all(preloadTasks);
     update('Expedition Ready! Launching...', 100);
   }
 
-  // Slight 180ms delay at 100% to ensure smooth visual transition
-  await new Promise((resolve) => setTimeout(resolve, 180));
+  // Slight 150ms delay at 100% to ensure smooth visual transition
+  await new Promise((resolve) => setTimeout(resolve, 150));
 }
 
 /**
  * Background pre-warm: runs silently on landing page mount so by the time
  * the player clicks 'Play', the heavy assets (>4MB) are already loaded in browser cache.
  */
-export function startBackgroundPrewarm(): void {
+export function startBackgroundPrewarm(edition: GameEdition = 'world'): void {
   if (hasStartedBackgroundPrewarm) return;
   hasStartedBackgroundPrewarm = true;
 
   const runner = (window as any).requestIdleCallback || ((cb: any) => setTimeout(cb, 1200));
 
   runner(() => {
-    preloadGeoData()
+    preloadGeoData(edition)
       .catch(() => {})
       .then(() => {
         return preloadEarthTextures();
